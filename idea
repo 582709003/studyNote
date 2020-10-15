@@ -1,0 +1,126 @@
+官方学习笔记:https://www.jetbrains.com/help/idea/2018.2/meet-intellij-idea.html
+
+官方下载地址：https://www.jetbrains.com/
+
+如果卸载idea，workspace是不会被删除的
+
+idea各种配置所保存的文件夹，如果你的配置坏了，可以删掉目录，idea会帮你生成一个全新的默认配置目录：C:\Users\Administrator\.IntelliJIdea2018.2\config
+
+idea配置所保存的文件夹：C:\Users\Administrator\.IntelliJIdea2018.2\config
+
+idea卸载过程：
+	1：idea安装包路径：D:\sjd\softDownload\IntelliJ IDEA 2018.2
+	2：idea自动生成路径：C:\Users\Administrator\.IntelliJIdea2018.2
+
+.idea文件和.iml文件时idea特有的文件
+
+idea没有工作空间的概念，但是又project和model的概念，一般如果项目较为复杂的话，那就最好建多个模块；但是如果比较简单，那就建一个模块或者也可以直接在project下直接写代码，不用建model
+
+
+idea主题效果可以去这边下载：http://www.riaway.com/
+
+设置鼠标滚轮修改字体大小：editor--general--change font size with ctrl+mouse  wheel
+
+当鼠标停留时快速显示文档：editor--general--勾选show quick documentation on mouse over
+
+自动导包：editor--general--auto import--勾选insert importson paste ALL--勾选下面两个选项
+
+书写代码时如果首字母写的是小写的，idea依然给以提示设置：editor--general--code completion 去掉勾选
+
+设置取消显示单行tabs的操作：editor--general--editortabs--去掉勾选show tabs in single row
+
+设置字体大小：editor--general--font
+
+如果导入的文件不是utf-8,可以在右下角选择编码方式，reload：暂时的以新编码方式显示  convert：以新编码方式修改文件并加载到编辑器
+
+选中一打开的文件，右击可选择move right/move down 可以将代码文件分屏
+
+可以通过右击文件选择local history 查看当前文件的修改记录  ***
+
+生成 javadoc 在tools菜单栏下选择generate javadoc  输入 Locale：输入语言类型：zh_CN
+                                                    Other command line arguments：-encoding UTF-8 -charset UTF-8
+idea导入项目时的操作
+    open：使用open时，项目必须是.idea的，然后找到项目目录，打开即可；
+    new:project from existing sources类似于import project,可能项目不是.idea的，但是通过这边可以将项目转化为.idea格式的，maven项目导入pom文件即可
+        module from existing sources 这个必须是.idea的，maven项目导入pom文件即可
+
+菜单栏File下的settings里的设置是为了当前项目进行设置；而other setting是给所有新建的项目进行设置的；
+
+IntelliJ IDEA 首次加载项目的时候，都会创建索引，而创建索引的时间跟项目的
+文件多少成正比。在 IntelliJ IDEA 创建索引过程中即使你编辑了代码也是编译
+不了、运行不起来的，所以还是安安静静等 IntelliJ IDEA 创建索引完成。
+IntelliJ IDEA 的缓存和索引主要是用来加快文件查询，从而加快各种查找、代码
+提示等操作的速度，所以 IntelliJ IDEA 的索引的重要性再强调一次也不为过。
+但是，IntelliJ IDEA 的索引和缓存并不是一直会良好地支持 IntelliJ IDEA 的，
+某些特殊条件下，IntelliJ IDEA 的缓存和索引文件也是会损坏的，比如：断电、
+蓝屏引起的强制关机，当你重新打开 IntelliJ IDEA，很可能 IntelliJ IDEA 会报
+各种莫名其妙错误，甚至项目打不开，IntelliJ IDEA 主题还原成默认状态。即使
+没有断电、蓝屏，也会有莫名奇怪的问题的时候，也很有可能是 IntelliJ IDEA 缓
+存和索引出现了问题，这种情况还不少。遇到此类问题也不用过多担心。我们可
+以清理缓存和索引。如下：
+ 在File菜单栏下选择incalidate caches/restart
+ 一般建议点击 Invalidate and Restart，这样会比较干净。
+ 上图警告：清除索引和缓存会使得 IntelliJ IDEA 的 Local History 丢失。所
+一般建议点击 Invalidate and Restart，这样会比较干净。
+上图警告：清除索引和缓存会使得 IntelliJ IDEA 的 Local History 丢失。所以如果你项目没
+有加入到版本控制，而你又需要你项目文件的历史更改记录，那你最好备份下你的
+LocalHistory 目录。目录地址在： C:\Users\ 当 前 登 录 的 系 统 用 户 名
+\.IntelliJIdea14\system\LocalHistory 建议使用硬盘的全文搜索，这样效率更高.
+通过上面方式清除缓存、索引本质也就是去删除 C 盘下的 system 目录下的对应的文件
+而已，所以如果你不用上述方法也可以删除整个 system。当 IntelliJ IDEA 再次启动项目的
+时候会重新创建新的 system 目录以及对应项目缓存和索引。
+
+取消idea自动更新勾选：设置下appearans&Behavier--system settings--updates,去掉第一个勾选,即可取消更新
+
+快捷键
+1 执行(run) alt+r
+2 提示补全类名 (Class Name Completion) alt+/
+3 单行注释 ctrl + /
+4 多行注释 ctrl + shift + /
+5 向下复制一行 (Duplicate Lines) ctrl+alt+down
+6 删除一行或选中行 (delete line) ctrl+d
+7 向下移动行(move statement down) alt+down
+8 向上移动行(move statement up) alt+up
+9 向下开始新的一行(start new line) shift+enter
+10 向上开始新的一行 (Start New Line before current) ctrl+shift+enter
+11 如何查看源码 (class) ctrl + 选中指定的结构 或 ctrl + shift + t
+12 万能解错/生成返回值变量 alt + enter
+13 退回到前一个编辑的页面 (back) alt + left
+14 进入到下一个编辑的页面(针对于上条) (forward) alt + right
+15 查看继承关系(type hierarchy) F4
+
+16 格式化代码(reformat code) ctrl+shift+F
+17 提示方法参数类型(Parameter Info) ctrl+alt+/
+18 复制代码 ctrl + c
+19 撤销 ctrl + z
+20 反撤销 ctrl + y
+21 剪切 ctrl + x
+22 粘贴 ctrl + v
+23 保存 ctrl + s
+24 全选 ctrl + a
+25 选中数行，整体往后移动 tab
+26 选中数行，整体往前移动 shift + tab
+27 查看类的结构：类似于 eclipse 的 outline ctrl+o
+28 重构：修改变量名与方法名(rename) alt+shift+r
+29 大写转小写/小写转大写(toggle case) ctrl+shift+y IntelliJ IDEA 的安装、配置与使用
+30 生成构造器/get/set/toString alt +insert   ***
+
+31 查看文档说明(quick documentation) F2
+32 收起所有的方法(collapse all) alt + shift + c
+33 打开所有方法(expand all) alt+shift+x
+34 打开代码所在硬盘文件夹(show in explorer) ctrl+shift+x
+35 生成 try-catch 等(surround with) alt+shift+z    ***
+36 局部变量抽取为成员变量(introduce field) alt+shift+f
+37 查找/替换(当前) ctrl+f
+38 查找(全局) ctrl+h
+39 查找文件 double Shift
+40 查看类的继承结构图(Show UML Diagram) ctrl + shift + u
+41 查看方法的多层重写结构(method hierarchy) ctrl+alt+h
+42 添加到收藏(add to favorites) ctrl+alt+f   ***
+43 抽取方法(Extract Method) alt+shift+m   ***
+44 打开最近修改的文件(Recently Files) ctrl+E  ***
+45 关闭当前打开的代码栏(close) ctrl + w
+46 关闭打开的所有代码栏(close all) ctrl + shift + w
+47 快速搜索类中的错误(next highlighted error) shift + q
+48 选择要粘贴的内容(Show in Explorer) ctrl+shift+v
+49 查找方法在哪里被调用(Call Hierarchy) ctrl+shift+h

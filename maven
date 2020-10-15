@@ -1,0 +1,143 @@
+项目是由框架以及jar包组成，jar包由maven管理
+用maven管理jar包后，开发时其实项目里是没有jar包的，包都是通过引用maven仓库的；但是部署到服务器时
+是会把涉及到的包打包 部署到服务器的
+
+maven还通过两条依赖原则：最短路径者优先和优先声明者优先 来解决jar包间的依赖关系
+这两条原则时针对依赖的传递性来说的，就是说在有多个依赖之间有传递性时遵守以上原则
+然后会在以上两条原则淘汰后到达本项目时会产生一个最终的依赖
+
+之所以会有jar包冲突，不同版本的jar包有不一样的方法或者方法体，可能项目里依赖的方法在新版本的jar包里被取消导致异常
+
+
+tomcat里部署项目的时候，访问项目的根路径（其实就是上下文路径）其实不一定和项目名称一样，你可以随便起名字
+
+maven 安装路径最好是无中文无空格路径下
+
+maven项目的目录结构
+
+project
+    src
+        main
+            java
+            resources
+        test
+            java
+            resources
+    pom.xml
+
+
+
+如果不用idea进行maven的命令执行，需要进pom文件所在的路径然后cmd进去，在这个路径下进行命令执行
+maven其实是使用插件进行工作的
+
+maven命令可以连起来使用
+
+mvn test-compile是编译测试程序的，使用到testCompile插件
+
+mvn source:jar 这是打源码包，将你的项目里测试包外的代码打成一个包引入到项目里
+
+maven坐标
+    groupid:公司或组织域名倒叙+当前项目名称
+    artifactid:当前项目的模块名称
+    version:当前模块版本
+
+新建maven项目时，可以选择quick start,也可以不选择任何选项，直接创建
+
+maven项目类型
+        jar  表示java项目（默认值）
+        war  表示web项目
+        pom  表示父工程
+
+maven简介依赖：A直接依赖B，B直接依赖C，A间接依赖C
+    依赖的传递性：当存在简介依赖的情况时，主工程对间接依赖是否可以访问主要间接依赖引入时的scope，zhiyouscope为compile时可以访问，
+
+
+
+maven依赖范围作用域：
+    compile：（默认compile）
+        1、main目录下的java代码可以使用这个范围的依赖
+        2、test目录下的java代码可以使用这个范围的依赖
+        3、部署到tomcat服务器上运行时要放在web-inf的lib目录下
+    test：
+        1、main目录下的java代码不可以使用这个范围的依赖
+        2、test目录下的java代码可以使用这个范围的依赖
+        3、不参与部署到tomcat服务器
+           例如junit包
+
+    provided：（提供范围）
+        1、main目录下的java代码可以使用这个范围的依赖
+        2、test目录下的java代码可以使用这个范围的依赖
+        3、不参与部署到tomcat服务器,因为tomcat本身提供了这个包，只在开发时使用
+           例如servlet-api包
+
+     runtime：（提供范围）
+        1、main目录下的java代码不可以使用这个范围的依赖
+        2、test目录下的java代码可以使用这个范围的依赖
+        3、参与部署到tomcat服务器,部署到tomcat服务器上运行时要放在web-inf的lib目录下
+           例如jdbc驱动包，只在测试运行以及服务器上运行时才决定使用什么样的数据库连接
+
+     import:
+        1、import scope只能用在dependencyManagement里面使用
+        2、是为了解决子模块对父工程里面的依赖的单继承问题
+        3、相当于在父工程pom文件里可以有多个依赖
+        注意：scope=import只能用在dependencyManagement里面,且仅用于type=pom的dependency
+        例：
+        <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.springframework.cloud</groupId>
+                        <artifactId>spring-cloud-dependencies</artifactId>
+                        <version>Greenwich.SR1</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>2.1.7.RELEASE</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+
+
+     system：
+        1、system范围依赖与provided类似，但是你必须显式的提供一个对于本地系统中JAR文件的路径。
+        2、这么做是为了允许基于本地对象编译，而这些对象是系统类库的一部分。
+        3、这样的构建应该是一直可用的，Maven 也不会在仓库中去寻找它。
+        4、如果你将一个依赖范围设置成系统范围，你必须同时提供一个systemPath元素。注意该范围是不推荐使用的（建议尽量去从公共或定制的 Maven 仓库中引用依赖）
+
+
+插件和目标
+    maven的生命周期有三个独立的阶段
+        clean
+        site
+        default (这个里面时除了clean和site外的阶段)
+        这三个阶段执行时都不会影响其他阶段，但是每个独立周期里执行后面的命令时都会执行前面的阶段
+
+
+    整个生命周期都是用插件来完成的，每个插件都能实现多个功能，每个功能都是一个插件目标
+    maven的生命周期和插件目标相互绑定，已完成某个具体的构建任务
+    例如：compile就是maven-compile-plugin 的一个功能；
+         pre-clean是插件的一个目标
+
+maven继承
+    首先必须得是父子工程关系，子工程需要指定父工程pom文件路径，子工程的jar才会引入
+    例：<relativePath>../pom.xml</relativePath>，子工程有<parent>标签
+
+    <dependencies>:这个是依赖管理标签，jar会被当前项目引入，子项目继承当前项目时，会自动引入该依赖，无需显式引用
+    <dependencyManagement>:依赖管理配置声明标签，声明配置，当前项目并不会直接引入jar，
+                            子项目继承该项目后，子项目不能直接使用jar包，子项目如果要用，必须得显式的声明
+                            好处：由父工程管理jar版本，子工程只需引用即可
+
+
+maven聚合（当前项目有<modules>
+                     <module></module>
+                     <modules>的，这个时当前项目）
+    好处：对当前的项目进行任何maven生命周期的操作，被聚合的项目都跟着做相同的操作
+
+Spring Boot Maven plugin的最主要goal就是repackage，其在Maven的package生命周期阶段，能够将mvn package生成的软件包，再次打包为可执行的软件包，
+并将mvn package生成的软件包重命名为*.original。
+
