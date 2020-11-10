@@ -27,6 +27,8 @@ jdk、jre、jvm三者关系
     系统变量和用户变量的区别
         系统变量配置的话会作用整个系统，不区别哪个用户；用户变量会作用于这个用户；
 
+    springboot项目，一般springboot项目里classpath目录指的是resources文件夹，src目录下的main，编译后它下面的内容会被放到classpath下
+
 注释
     javadoc注释
         /**
@@ -433,7 +435,7 @@ Object类
     hashcode方法返回的是哈希码：实际上是一个java对象的内存地址经过哈希算法得出一个值，
     所以hashcode()方法的执行结果可以等同看作一个对象的内存地址
 
-
+静态方法以及属性和该类的对象没有关系，即使使用对象的引用调用静态属性或者方法，也是使用的类调用
 
 匿名内部类
     1、什么是内部类
@@ -514,6 +516,7 @@ Object类
         语法：int [][]k = new int[i][j]
         对于二维数组k来说   i这个位置必须赋值，而j 这个位置 可以赋值 也可以空着不赋值。
 
+      Arrays.binarySearch(int[] a, int key)  二分法查询指定元素时，数组必须是已经被排序好的
 
 BigDecimal：java.math.BigDecimal
     属于大数据，精度极高，不属于基本数据类型，数据java对象（引用数据类型）
@@ -534,6 +537,164 @@ Transient关键字:
     如果对象的某个属性你不希望序列化，就可以在这个属性前加上这个关键字
 
 
+String字符串：
+    1、在java中使用双引号括起来的都是string对象
+    2、java中规定，使用双引号括起来的字符串，例如"ad"从出生到死亡都是不可变的
+    3、在java中双引号括起来的字符串都是直接存储在方法区的常量池中的
+    4、因为字符串使用太频繁，为了执行效率，所以把字符串放到了方法区的字符串常量中
+    5、new出来的string对象肯定是在堆内存中开辟内存空间,然后111还是在常量池中开辟空间，但是堆内存中会保存这个"111"在常量池中的内存地址
+        String a = new String("111");
+        只要被双引号括起来的字符串，肯定在常量池中有一份
+
+        String s1 = "11";
+        String s3 = "11";
+        System.out.println("result===="+(s1==s3)); 比较的是常量池的地址 true
+
+        String s4 = new String("22");
+        String s5 = new String("22");
+        System.out.println("result2===="+(s4==s5)); 比较的是对内存的地址 false
+
+        垃圾回收器是不会回收常量的内存的
+
+String.compareTo()方法：
+    按照字典顺序比较，前小后打的原则
+    "a".compareTo("a") =0
+    "a".compareTo("b") <0 因为a在前，b在后，前小后大
+
+StringBuffer()是线程安全的，StringBuilder()是线程不安全的
+
+StringBuffer底层实际上是一个char数组，往StringBuffer放字符串实际是放到字节数组中
+String在频繁连接字符串时，操作过程是先生成"ab"字符串，在内存中占一个位置，然后在和"c"组成"abc"字符串;
+String s = "a" + "b" + "c";
+//而StringBuffer是一次性生成"abc"字符串，没有中间过渡的字符串；主要是StringBuffer底层的字节数组没有final修饰
+StringBuffer s2 = new StringBuffer();
+s2.append("a");
+s2.append("b");
+s2.append("c");
+
+
+包装类
+    java为八种基本数据类型提供了包装类
+    因为八种基本数据类型不够用
+
+
+     Integer ins = new Integer(4);
+     4这个基本数据类型进行构造方法的包装达到了：基本数据类型向引用数据类型的转换
+     基本数据类型向引用数据类型的转换称为装箱
+     int i = ins.intValue();（还有很多类似的方法可以看看）引用数据类型转换为基本数据类型的过程称为拆箱
+
+     自动装箱和自动拆箱
+        自动装箱：Integer ins = 4;
+        自动拆箱：int y = ins;
+
+     有了自动拆箱之后，Number类里的方法（intValue()....）就用不着了
+
+    java为了提高执行效率，将-128到127之间所有的包装对象提前创建好，
+    放到一个方法区的整数型常量池，目的是只要用这个区间的数据就不需要再new了，直接从常量池中获取
+    Integer a1 = 128;
+    Integer b1 = 128;
+    System.out.println(a1 == b1); false
+
+    Integer a2 = 127;
+    Integer b2 = 127;
+    System.out.println(a2 == b2); true
+
+
+Random随机类：
+    Random r = new Random();
+    //产生【0-100】之间的正整数
+    int i3 = r.nextInt(101);参数使最大值边界，不包括边界
+    System.out.println(i3);
+
+枚举类型：
+    枚举编译之后也是CLASS文件，枚举是一种引用数据类型，枚举中的每一个值可以看作是常量
+    语法：
+        enum 枚举类型名 {
+            枚举值1,枚举值2
+        }
+
+
+编译时异常和运行时异常都是发生在运行阶段。编译阶段异常是不会发生的；
+    编译时异常因为什么而得名？
+    编译时异常不是说编译时就发生异常，而是说编译时异常必须在编译阶段预先处理，如果不处理，编译器会报错，因而得名；
+    所有异常都是在运行阶段发生的，因为只有程序运行阶段才可以new对象，因为异常的发生就是new异常对象；
+
+    编译时异常和运行时异常的区别
+        1、编译时异常发生的概率比较高，运行时异常发生的概率比较低
+
+
+    所有Exception的直接子类，都叫做编译时异常，编译时异常又被叫做checked异常
+    所有RuntimeException以及子类都属于运行时异常，也可以称作unchecked异常，运行时异常在编写程序阶段，你可以选择处理也可以不处理
+
+try catch finally 语法中这三个部分，catch和finally都可以单独没有，但是不可以都没有
+
+发生异常时，被try catch finally包裹的方法之后的代码是不会执行的，finally内的代码是必定会执行的，不管有没有发生异常；finally之后的代码执行完后；
+finally后面的代码理论上如果没有抛出异常或者return的话是可以正常执行的，除非try里有异常，或者catch抛出异常或者return，或者finally里return
+
+
+
+集合
+    1、集合中不能直接存储基本数据类型，另外集合也不能存储JAVA对象，集合中存储的都是内存地址或者说是引用
+    2、在java中，集合中分为两大类
+        一类是单个方式存储元素，这一类集合的超级父接口：java.util.Collection
+        一类是以键值对方式存储元素，这一类集合中超级父接口：java.util.Map
+    所哟集合继承iterable的含义是：所有集合都是可迭代的
+
+    List和Set是Collection的子接口
+
+    List：
+        list集合存储元素的特点：有序可重复，存储的元素有下标。这里的有序不是按照大小顺序而是存进去的顺序
+        List接口特有方法
+            add(int var1, E var2)
+           int lastIndexOf(Object e)
+           set(int var1, E var2) 用指定元素替换指定索引上的元素
+
+
+
+        ArrayList：
+                底层采用数组这种数据结构，这个集合是非线程安全的；频繁检索以及往末尾添加元素的话使用这个集合
+                默认初始化容量是10；Object数组
+                ArrayList集合的扩容
+                ，原容量的1.5倍
+                尽可能少的扩容ArrayList集合，因为扩容效率较低，建议在使用ArrayList集合的时候与孤寂元素的个数，给定一个初始容量
+                集合的检索效率高，因为底层是数组，数组的类型，个数都是知道的，所以计算内存地址很高效，随机增删元素的效率较低，但是往末尾添加元素的效率较高
+                a >> b 将a转化为对二进制位然后去掉末尾b位数，然后再转化为十进制
+
+                a << b就表示把a转为二进制后左移b位（在后面添b个0）。例如100的二进制为1100100，而110010000转成十进制是400，
+                那么100 shl 2 = 400。可以看出，a shl b的值实际上就是a乘以2的b次方，因为在二进制数后添一个0就相当于该数乘以2。
+
+                Collection c2 = new HashSet<>();
+                ((ArrayList) c2).add(0);
+                ((ArrayList) c2).add(1);
+                ((ArrayList) c2).add(2);
+                ((ArrayList) c2).add(3);
+                //通过这个方法可以将hashset转化为arraylist
+                ArrayList c3 =  new ArrayList(c2);
+
+        LinkedList：
+            底层采用了双向链表数据结构,没有初始化容量，频繁增删使用这个集合；检索效率较低，空间存储上不连续；
+
+            单向链表数据结构：对于链表数据结构来说，基本的单元是节点Node；对于单向链表来说，任何一个节点Node都有两个属性
+                                        第一：存储的数据
+                                        第二：下一个结点的内存地址
+
+                                        优点：随机增删元素效率较高（因为链表上的元素在空间存储上内存地址不连续，所以增删元素不涉及大量元素位移）
+                                        缺点：查询效率较低，每一次查找元素时都需要从头节点往下遍历
+
+                        双向链表数据结构：基本单元还是节点Node，每一个节点Node有三个属性
+                                        第一：存储的数据
+                                        第二：上一个节点的内存地址
+                                        第三：下一个节点的内存地址
+
+
+        Vector:
+            底层是采用了数组数据结构，线程安全的，Vector所有方法都有synchronized，但是效率较低，现在保证线程安全有别的方案
+            ，所以vector使用较少了
+            扩容之后是原容量的2倍；
+
+            如何将arrayList变成线程安全的
+                ArrayList c3 =  new ArrayList(c2);
+                Collections.synchronizedList(c3);//这样c3就变成线程安全的
 
 
 
@@ -543,37 +704,382 @@ Transient关键字:
 
 
 
+    Set：
+        Set集合存储元素的特点：无序不可重复。Set集合中元素不可重复且元素灭有下标
+
+        HashSet：实际上new hashSet的时候底层是new 了一个hashMap，向hashSet里存储元素的实际上是存储到hashMap集合中
+                hashMap的数据结构是哈希表
+
+        TreeSet:底层实际上是TreeMap，new TreeSet的时候，实际上是new了一个TreeMap集合，往TreeSet存储元素的时候实际上是
+                往TreeMap集合的key部分里添加元素，TreeMap集合底层采用了二叉树结构；treeset无序不可重复，但可以按照元素大小顺序自动排序
+
+                自平衡二叉树数据结构：
+                    1：自平衡二叉树，遵循左小右大原则存放
+                    2：遍历二叉树有三种方式：
+                        前序遍历：根左右
+                        中序遍历：左根右
+                        后序遍历：左右根
+                      注意：前中后说的是“根”的位置
+
+                TreeSet/TreeMap集合 采用的是：中序遍历方式
+                    Iterator迭代器采用的是中序遍历方式，左根右
+
+
+        SortedSet:无需不可重复，但是集合中的元素可以自动按照某种规则自动排序，称为排序集合，放到该集合中的元素自动按照大小排序
+
+
+        Collection集合元素删除
+            迭代器删除
+             Collection c = new ArrayList();
+            ((ArrayList) c).add(0);
+            ((ArrayList) c).add(1);
+            ((ArrayList) c).add(2);
+            ((ArrayList) c).add(3);
+            Iterator iterator = c.iterator();
+            while (iterator.hasNext()){
+                Object next = iterator.next();
+                //c.remove(next);  在迭代集合元素的过程中，这样删除元素后集合结构发生变化，注意Collection集合结构只要发生变化 迭代器一定要重新获取
+                iterator.remove(); 删除元素时用迭代器删除
+                System.out.println(next);
+            }
+
+    Map：
+        map集合和collection集合没有关系
+        key和value都是存储java对象的内存地址
+        所有Map集合的key特点：无序不可重复
+        Map集合的key和Set集合存储元素的特点是相同的
+        key起到主导作用，value是key的一个附属品
+
+        Map接口中常用方法:
 
 
 
+        hashMap:底层四哈希表/散列表数据结构，数组初始容量16，扩容银子：0.75，达到75%的时候会开始扩容，扩容最好是2的倍数，可以达到散列分布均匀；非线程安全的；
+            哈希表数据结构：是数组和单向链表的结合体；是一个一维数组，这个数组中的每个元素是单向链表；单向链表里的节点有4个属性
+                            第一个哈希值（哈希值是key的hashCode()方法执行的结果，哈希值通过哈希算法转换成数组下标）
+                            第二个key
+                            第三个value
+                            第四个 下一个节点的内存地址
+                数组：在查询方面效率很高，随机增删效率较低
+                单向链表：在查询方面效率很低，随机增删效率较高
+            哈希表将以上两种数据结构结合在一起，充分发挥他们的优点
+                map.put(key,value)的原理：
+                    第一步：先将key,value封装成Node对象当中
+                    第二步：底层会调用key的hashcode()方法得出哈希值，然后通过哈希算法将哈希值转换成数组的下标，下标位置上
+                           如果没有任何元素，就把Node添加到这个位置上了；如果下标对应的位置上有Node（链表），此时会拿着key和
+                           这个数组下标上的链表上的每一个key进行equals，如果都返回false，那么将这个Node将被添加到链表的末尾，
+                           如果其中有一个equals返回了true，那么这个节点的value将会被覆盖；
+
+                           jdk8之后：如果哈希表单向链表中元素超过8个，单向链表数据结构会变成红黑树数据结构，当红黑树上的节点数量小于6时，
+                           会重新把红黑树变成单向链表数据结构；这种方式其实也是为了检索效率，二叉树的检索范围会再次缩小，提高了效率
+
+                map.get(key)的原理：
+                    先调用hashcode()方法得出哈希值，通过哈希算法得出数组下标，通过数组下标快速定位到某个位置上；如果这个位置上什么也没有，
+                    返回null；如果这个位置上有单向链表，那么会拿着这个参数key去和单向链表上的每个key进行equals，如果equals都返回false，那么返回null；
+                    只要其中一个返回true，那么此时这个节点就是我们要找的value，get方法返回这个value；
+                注意：同一个数组下标上的所有单向链表上的节点的hashcode值相同
+                    hashmap的key和value允许null值；
+                重点：放在hashMap集合key部分的元素和hashSet中的集合元素，需要同时重写hshCode和equals方法
+
+
+                为什么哈希表的随机增删以及查询效率都很高：增删是在链表上完成的；查询也不需要都扫描，只需要在某个数组下标上进行扫描链表；
+
+                为什么hashMap的key需要重写hashCode以及equals方法：默认的hashcode方法返回的是内存地址的哈希值；因为equals默认比较的是内存地址，我们应该比较内容；
 
 
 
+        hashTble：集合底层也是哈希表数据结构，初始化容量11，默认扩容因子0.75，扩容是原容量*2 +1 ；是线程安全的，所有方法都带有synchronized关键字，效率较低，现在使用较少
+                  有一个子类：Propertites（key和value必须是String，线程安全的，称为属性类）
+
+                hashTble的key和value不允许null值；
+
+        SortedTable继承Map，TreeMap实现SortedTtable，TreeMap集合的key可以自动按照大小顺序排序
 
 
 
+        Map集合的key其实就是Set的集合下
 
 
 
+进程和线程的关系：
+    进程和进程内存独立不共享
+
+    在java语言中：
+        一个进程中的不同线程，堆内存和方法区内存是共享的，但是栈内存是独立的，一个线程一个栈
+
+
+    实现线程的第一种方式
+        实现Thread类
+        Thread t1 = new Mythread();//实现Thread类
+        t1.start();//作用是在jvm中新开辟一个新的栈空间，这段代码瞬间就结束了，只要新的栈空间开出来，start()方法就结束了，线程就启动成功了，启动成功的线程会自动调用run方法
+
+        注意：亘古不变的道理，方法体中的代码永远都是从上而下的逐行执行
+
+    第二种方式
+        实现Runable接口
+            //这并不是一个线程类，只是一个可运行的类
+            class Mythread2 implements Runnable{
+
+                @Override
+                public void run() {
+                    System.out.println("分线程=======");
+                }
+            }
+
+
+            Thread t2 = new Thread(new Mythread2());
+            t2.start();
+
+    第三种方式
+        实现callable接口，这种方式实现的线程可以获取线程的返回值
+        之前讲解的两种方式是无法获取线程返回值的，因为run()方法返回的是void
+        缺点：效率较低，在获取t线程执行结果的时候，当前线程会阻塞
+
+         //第一步创建一个”未来类“对象
+        FutureTask futureTask = new FutureTask(new Callable() {
+            @Override
+            //相当于run方法，执行会有返回结果
+            public Object call() throws Exception {
+                System.out.println("call method begin");
+                Thread.sleep(10000);
+                System.out.println("call method end");
+                return 100;
+            }
+        });
+
+        Thread t = new Thread(futureTask);
+        t.start();
+        //在主线程如何获取t线程的执行结果
+        //主线程会阻塞吗？   会阻塞的，因为必须要等待get方法执行结束，get方法是为了拿另一个线程执行结果
+        Object o = futureTask.get();
+        System.out.println("分支线程结束了");
+
+    线程的生命周期
+        可运行状态-----运行状态（遇到阻塞事件，例如sleep或者用户键盘输入，就会变成阻塞状态，阻塞状态的线程会放弃之前占有的cpu时间片，阻塞结束之后会进入就绪状态，继续抢夺cpu时间片）----死亡状态
+
+
+    如何获取当前线程的对象
+        Thread t = Thread.currentThread()//返回当前线程
+
+    线程的sleep方法
+        1、静态方法
+        2、参数是毫秒
+        3、让当前的(当前的哦)线程进入休眠，阻塞状态，放弃占有的cpu时间片
+
+    终止睡眠线程：
+        重点：run()方法中的异常不能throws，只能try catch，因为父类中没有抛出异常
+
+        Thread t2 = new Thread(new Mythread2());
+        t2.start();
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        t2.interrupt();//干扰，一盆冷水过去
+
+    线程强制被终止
+        stop(),已经过时
+
+    常用和调度有关的方法
+        yield()，这是一个静态方法，会使当前线程放弃一个时间片，从运行状态转化为就绪状态
+        join()，只是一个实例方法，合并线程，
+        System.out.println("========1111111111=========");
+        Thread t1 = new Mythread();
+        t1.start();
+        try {
+            t1.join();//当前线程进入阻塞状态，需等待t1执行完，当前线程才可以执行
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("========222222=========");
+
+    关于多线程并发环境下，数据的安全问题
+        什么时候会存在安全问题
+            1、多线程并发
+            2、有共享数据
+            3、共享数据有修改行为
+
+        如何解决线程安全问题
+            使用线程同步机制，实际上就是线程不能并发了，排队执行
+
+        说到线程同步，涉及两个专业术语
+        异步编程模型：线程t1和t2，各自执行各自的，t1不管t2，t2不管t1，谁也不用等谁
+        同步编程模型：线程t1和t2，在其中一个执行的时候，另一个必须等待其执行完后才可以执行
+            异步就是并发，同步就是排队
+
+        synchronized不要嵌套使用，一不小心就有可能死锁,以下是死锁案例
+        public class Test {
+            public static void main(String[] args) {
+                Object o1 = new Object();
+                Object o2 = new Object();
+                Thread t1 =new MyThread(o1,o2);
+                Thread t2 =new MyThread2(o1,o2);
+                t1.start();
+                t2.start();
+            }
+        }
+
+        class MyThread extends Thread{
+            Object o1;
+            Object o2;
+            public MyThread(Object o1, Object o2) {
+                this.o1 = o1;
+                this.o2 = o2;
+            }
+
+            @Override
+            public void run() {
+                synchronized (o1){
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    synchronized (o2){
+                    }
+                }
+            }
+        }
 
 
 
+        class MyThread2 extends Thread{
+            Object o1;
+            Object o2;
+            public MyThread2(Object o1, Object o2) {
+                this.o1 = o1;
+                this.o2 = o2;
+            }
+            @Override
+            public void run() {
+                synchronized (o2){
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    synchronized (o1){
+                    }
+                }
+            }
+        }
+
+守护线程
+    Java语言中线程分为两大类：
+        一类是用户线程，一类是守护线程（后台线程）
+        其中是守护线程具有代表性的是垃圾回收器
+
+        守护线程的特点：
+            一般守护线程是一个死循环，所有的用户线程都结束后，守护线程自动结束
+            main线程属于用户线程
+
+            守护线程用在什么地方
+                每天零点的时候，数据自动备份
+                这个需要用到定时器，定时器其实也是一个线程，并且我们可以将定时器设置成守护线程
+
+            Thread t1 =new MyThread();
+            t1.setDaemon(true);//只要设置这个，t1线程就会变成守护线程，所有的用户线程都结束后，守护线程自动结束
+            t1.start();
+            for (int i = 0; i < 10; i++) {
+                System.out.println("主线程========"+i);
+            }
 
 
+    关于Object类中的wait方法和notify方法（生产者和消费者模式）
+    第一：wait和notify方法不是线程对象的方法，是java中任何一个java对象都带有的方法，因为是Object自带的
+    第二：wait方法作用
+        Object o = new Object();
+        o.wait();//会让当前线程进入等待状态，并且会释放之前占有的o对象的锁
+        表示：让正在o对象上活动的线程进入等待状态，无期限等待，直到被唤醒为止
+    第三：notify方法作用
+        Object o = new Object();
+        o.notify();
+        表示：让正在o对象上活动的线程被唤醒，不会释放之前占有的o对象的锁
+
+        还有一个方法：notifyAll() 这个方法是唤醒o对象上处于等待的所有线程
+
+反射机制
+    反射机制有什么作用
+        通过Java语言中的反射机制可以操作字节码文件，有点类似于黑客(可以读和修改字节码文件)
+        通过反射机制可以操作代码片段
+
+    反射机制的相关包在哪个包下
+        java.lang.reflect.*
+
+    相关类有哪些
+        Class           代表字节码文件，代表一个类型
+        Method          代表字节码中的方法字节码，
+        Constructor     代表字节码中的构造方法字节码
+        Filed           代表字节码中的属性字节码
+
+    要操作一个类的字节码，首先要获取到这个类的字节码，如何获取Class实例？
+    三种方式
+        第一种：Class.forName()
+            注意：这段代码的执行会导致：类加载
+            1、静态方法
+            2、方法的参数是一个字符串
+            3、字符串需要的是一个完整的类名
+            4、完整类名必须带有包名
+
+        第二种：java中任何一个对象都有一个方法：getClass()
+            Class c1 = Class.forName("java.lang.String"); //c1代表String的字节码文件，class文件
+            //c1和sClass引用在栈里直接指向方法区里的String.class文件
+            String s = "asd";
+            Class<? extends String> sClass = s.getClass();//sClass就代表String.class文件
+
+        第三种方式：在java语言中任何一种类型，包括基本数据类型，都有.class属性
+            Class y = String.class;
+            Class i = int.class;
+
+        反射获取类的机制比较灵活，可以 做到不同对象额实例化，非常之灵活
 
 
+    java.util包下提供了一个资源绑定器，便于获取属性配置文件中的内容
+    使用这种方式的时候，只能绑定properties文件，属性配置文件必须放到类路径下，写路径的时候，扩展名不用写
+    ResourceBundle resourceBundle = ResourceBundle.getBundle("属性文件名");
+    String string = resourceBundle.getString("");
+    System.out.println(string);
 
 
+    Filed
+        Class<?> aClass = Vip.class;
+        Field[] fields = aClass.getFields();//获取的是公共的修饰的属性
+        Field[] declaredFields = aClass.getDeclaredFields();//获取所有声明的属性
+
+    反射机制让蒂玛复杂了，但是为了一个灵活，这也是值得 的
+
+注解
+    注解是一种引用数据类型，编译之后也是生成class文件
+    怎么自定义注解呢？语法格式？
+
+    【修饰符列表】 @interface 注解类型名{
+
+    }
 
 
+    元注解
+        只修饰注解的注解叫做元注解
+        常见的元注解有：
+            Target
+                这是一个元注解，只能用来标注“注解类型”的注解
+                这个注解用来标注“被标注的注解”可以出现在哪些位置上
+                @Target(ElementType.METHOD):表示“被标注的注解”只能出现在方法上
+            Retention
+                这是一个元注解，用来标注“注解类型”的注解
+                这个注解用来标注“被标注的注解”可最终保存在哪
+                @Retention(RetentionPolicy.SOURCE)：表示该注解只被保留在java源文件中
+                @Retention(RetentionPolicy.CLASS)：表示该注解只被保留在CLASS文件中
+                @Retention(RetentionPolicy.RUNTIME)：表示该注解只被保留在CLASS文件中,并且可以被反射机制所读取
 
+        //我们通常在注解中可以定义属性，一下这个是MyAnnotation注解中的name属性
+        //看着像一个方法，但实际我们称之为属性name；如果一个注解当中有属性，那么必须给属性赋值
+        //属性有指定默认值时，注解后面的括号里就可以不写这个属性
+        //如果有且只有一个属性，名字是value的时候，在使用时，该value属性可以省略
 
+        String name();
+        int age() default 28; //属性有指定默认值，注解后面的括号里就可以不写这个属性
 
-
-
-
-
-
-
-
-
+        注解当中的属性可以是哪一种类型呢
+            八种基本数据类型和枚举类型和String类型和Class类型
+            以及以上每种类型的数组
