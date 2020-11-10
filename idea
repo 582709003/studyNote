@@ -12,7 +12,7 @@ idea卸载过程：
 	1：idea安装包路径：D:\sjd\softDownload\IntelliJ IDEA 2018.2
 	2：idea自动生成路径：C:\Users\Administrator\.IntelliJIdea2018.2
 
-.idea文件和.iml文件时idea特有的文件
+.idea文件和.iml文件是idea特有的文件
 
 idea没有工作空间的概念，但是又project和model的概念，一般如果项目较为复杂的话，那就最好建多个模块；但是如果比较简单，那就建一个模块或者也可以直接在project下直接写代码，不用建model
 
@@ -101,7 +101,7 @@ LocalHistory 目录。目录地址在： C:\Users\ 当 前 登 录 的 系 统 �
 25 选中数行，整体往后移动 tab
 26 选中数行，整体往前移动 shift + tab
 27 查看类的结构：类似于 eclipse 的 outline ctrl+o
-28 重构：修改变量名与方法名(rename) alt+shift+r
+28 重构：修改变量名与方法名(rename) alt+shift+r  ************
 29 大写转小写/小写转大写(toggle case) ctrl+shift+y IntelliJ IDEA 的安装、配置与使用
 30 生成构造器/get/set/toString alt +insert   ***
 
