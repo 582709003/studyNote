@@ -1,0 +1,60 @@
+什么是线程池
+    可以以new Thread ().start();这种形式开启一个线程，当run方法运行结束后，线程对象
+    会被GC回收；
+
+    在真实的环境中，可能需要很多线程来支撑很多线程来支撑整个应用，当线程非常多时
+    反而会耗尽CPU资源，如果不对线程进行控制和管理，反而会影响程序的性能；
+    线程开销包括：
+        创建与启动线程的开销，线程销毁的开销，线程调度的开销，线程数量受限于CPU处理器的数量
+
+
+    线程池就是有效使用线程的一种常用方式，线程池内部可以预先创建一定数量的工作线程，客户端代码
+    直接将任务作为一个对象提交给线程池，线程池直接将这些任务缓存在工作队列中，线程池的工作线程
+    不断的从队列中取出任务并执行；
+
+    java提供了一套Executor(接口)框架，可以帮助开发人员有效的使用线程池
+
+    Executors工具类中返回线程池的方法底层都使用了ThreadPoolExecutor线程池
+    ThreadPoolExecutor构造方法
+         public ThreadPoolExecutor(int corePoolSize,
+                                      int maximumPoolSize,
+                                      long keepAliveTime,
+                                      TimeUnit unit,
+                                      BlockingQueue<Runnable> workQueue,
+                                      ThreadFactory threadFactory,
+                                      RejectedExecutionHandler handler)
+
+            corePoolSize：线程池中核心线程数量
+            maximumPoolSize：线程池中最大的线程数量
+            keepAliveTime：当线程池中线程数量超过corePoolSize时，多余的空闲线程存活的时长
+            unit：keepAliveTime的单位
+            workQueue：任务队列，把任务提交到该任务队列中等待执行
+            threadFactory：线程工厂，用于创建线程
+            handler：拒绝策略，当任务太多来不及处理时，如何拒绝
+
+            说明：workQueue是指提交并未执行的工作队列
+
+            拒绝策略
+                当提交给线程池的任务量超过了实际承载能力时，如何处理？即线程池中的线程已经用完了，等待队列也慢了，无法为
+                新提交的任务服务，可以通过拒绝策略来处理
+
+                RejectedExecutionHandler的四种拒绝策略
+
+                    AbortPolicy：抛出异常
+
+                    DiscardPolicy：直接丢弃这个无法处理的任务
+
+                    DiscardOldestPolicy：将任务队列中最老的任务丢弃，尝试再次提交新任务
+
+                    CallerRunsPolicy：只要线程池没关闭，会在调用者线程中运行当前被丢弃的任务
+
+            ThreadFactory
+                这是一个接口，只有一个方法
+                Thread newThread(Runnable r);
+                当线程池中需要创建线程时就会调用这个方法
+                我们可以重写这个方法构造自己的线程工厂
+
+            ThreadPoolExecutor提供了两个方法
+            protected void beforeExecute(Thread t, Runnable r)：任务执行前执行
+            protected void afterExecute(Runnable r, Throwable t)：任务执行结束后，成功执行或者异常退出都会执行
+            我么可以重写这个两个方法
