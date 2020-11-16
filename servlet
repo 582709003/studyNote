@@ -1,0 +1,60 @@
+一、servlet规范
+    1、servlet规范来自于javaee中的一种
+    2、作用：
+        1)在servlet规范中，指定了[动态资源文件]开发步骤
+        2)在servlet规范中，指定了HTTP服务器调用动态资源文件的规则
+        3)在servlet规范中，指定了Http服务器管理动态资源文件实例对象(实现servlet的类实例对象)规则
+    3、servlet接口实现类
+        1、servlet接口来自于servlet规范下的一个接口，这个接口存在于我们当前的http服务器提供的jar包中
+        2、Tomcat服务器下lib文件下有一个servlet-api.jar存放servlet接口
+        3、在servlet规范中，在http服务器能调用的动态资源文件必须是一个servlet接口的实现类
+            class student{
+                //因为没有实现servlet，所以tomcat无权调用这个动态资源文件
+            }
+
+            class teacher implements servlet{
+                //因为实现servlet，合法的动态资源文件，所以tomcat可以调用这个动态资源文件
+            }
+
+二、servlet接口实现类的开发步骤
+    1、只有作为接口的实现类才有资格作为动态资源文件
+        1、创建一个java类继承与HttpServlet父类(之所以没有直接实现Servlet，是因为这样降低了实现的难度，这里面我们最需要的就是service方法
+        ，其他方法都对servlet实现类没啥用，所以继承HttpServlet，其他四个方法它已经实现了)，使之成为Servlet接口实现类
+        2、重写HttpServlet类中的两个方法，doget,dopost
+        3、将servlet接口实现类的信息注册到tomcat服务器
+            注册地点：网站--web文件夹--web-inf---web.xml
+            将servlet接口实现类的类路径地址交给tomcat
+            <servlet>
+                <servlet-name>mm
+                    声明一个变量存储servlet接口实现类的类路径
+                </servlet-name>
+                <servlet-calss>
+                    声明servlet接口实现类类路径
+                </servlet-calss>
+            </servlet>
+            相当于String mm = "servlet接口实现类的类路径";
+
+            为了降低用户访问servlet实现类的难度，需要设置简短请求名
+            <servlet-mapping>
+                <servlet-name>mm</servlet-name>
+                <url-pattern>/one</url-pattern>  设置简短的请求别名，书写的时候必须以‘/’开头
+            </servlet-mapping>
+
+    2、servlet接口由http服务器厂商负责提供
+
+三、servlet对象生命周期
+    1、网站中所有的servlet接口实现类的实例对象，只能由http服务器负责创建，开发人员不能手动创建
+    2、在默认情况下，当HTTP服务器接收到对于当前servlet接口实现类第一次请求时自动创建这个servlet实现类的实例对象
+        在手动配置情况下，要求HTTP服务器在启动时自动创建某个servlet接口实现类的实例对象
+        <servlet>
+            <servlet-name>mm
+                mm
+            </servlet-name>
+            <servlet-calss>
+                com.xx.xx.classs
+            </servlet-calss>
+            <load-on-startup></load-on-startup>  填写大于0的整数就会在服务器启动时自动创建servlet实现类对象
+        </servlet>
+
+    3、在HTTP服务器运行期间，一个servlet接口实现类只能被创建出一个实例对象
+    4、在HTTP服务器关闭的时候，自动将网站中所有的servlet实现类对象进行销毁

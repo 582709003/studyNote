@@ -58,3 +58,27 @@
             protected void beforeExecute(Thread t, Runnable r)：任务执行前执行
             protected void afterExecute(Runnable r, Throwable t)：任务执行结束后，成功执行或者异常退出都会执行
             我么可以重写这个两个方法
+
+
+        线程池数量优化
+            线程池数量过大过小都会无法发挥系统的最优性能，线程池大小不需要非常精确，只要避免极大或者极小的情况即可，一般来说
+            线程池大小需要考虑CPU数量，内存大小等因素
+
+            线程池大小 = CPU数量 * 目标CPU的使用率 * (1 + 等待时间与计算时间的比)
+
+        线程池可能会吃掉程序中的异常
+            解决方法：
+               1、把submit方法改为execute方法
+               2、对线程池submit方法进行包装
+               3、可以使用submit(callable call) 方法
+                    //演示线程池可能会吃掉程序中的异常
+                            for (int i = 0; i < 5; i++) {
+                                Future future = executorService.submit(new DivedTask(10, i));
+                                try {
+                                    Integer o = (Integer)future.get();
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                } catch (ExecutionException e) {
+                                    e.printStackTrace();
+                                }
+                            }
