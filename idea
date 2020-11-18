@@ -124,3 +124,4 @@ LocalHistory 目录。目录地址在： C:\Users\ 当 前 登 录 的 系 统 �
 47 快速搜索类中的错误(next highlighted error) shift + q
 48 选择要粘贴的内容(Show in Explorer) ctrl+shift+v
 49 查找方法在哪里被调用(Call Hierarchy) ctrl+shift+h
+50 查找接口的实现类：ctrl + alt +B

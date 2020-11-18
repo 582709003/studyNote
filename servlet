@@ -58,3 +58,224 @@
 
     3、在HTTP服务器运行期间，一个servlet接口实现类只能被创建出一个实例对象
     4、在HTTP服务器关闭的时候，自动将网站中所有的servlet实现类对象进行销毁
+
+四、HttpservletResponse接口
+       1、介绍
+             1)HttpservletResponse接口来自于servlet规范中，在tomcat的servlet-api.jar
+            2）HttpservletResponse接口实现类由HTTP服务器负责提供，我们并不需要知道具体是什么实现类
+             3)HttpservletResponse接口负责蒋doget/dopost方法执行结果写入到响应体中交给浏览器
+             4)开发人员习惯于将HttpservletResponse接口修饰的对象称为响应对象
+        2、主要功能
+               1)将执行结果以二进制的形式写入到响应体中
+                2)设置响应头中的content-type属性值，从而控制浏览器使用对应编译器将响应体二进制数据编译为 文字、图片、视频、命令
+                通过响应对象获得输出流使用后不需要我们手动关闭，因为这不是我们自己创建的，而是我们和tomcat要的；
+               通过响应对象，向tomcat索要输出流；通过输出流，将执行结果以二进制的形式写入到响应体；tomcat将响应体包推给浏览器;
+                如果执行结果是int类型时，out.write方法会把int当作ASCLL码，从而导致浏览器上出现的结果是ascll码对应的字符串；解决方法：实际开发过程中都是用out.print方法，就当没有write方法，以后都用print方法
+               当执行结果是字符串并且字符串是含有html指令来处理的情况，原因：浏览器接收到响应包之后，根据响应头中的content-type属性值，来采用对应的浏览器编译器对响应体中的二进制的响应结果进行编译处理；默认情况下，content-type默认值是text；此时浏览器将用文本编译器对响应体中的二进制数据进行解析；
+               解决方案：一定要在得到输出流之前，通过响应对象对响应头中的content-type属性进行一次重新的赋值，用于指定浏览器采用正确的编译器；例：Content-type:text/html;charset=utf-8
+
+              3)设置响应头中的location属性，将一个请求地址赋值给location，从而控制浏览器像指定的服务器发送请求
+                通过响应对象，将地址赋值响应头中的location属性
+                response.sendRedirect("www.baidu.com");
+                浏览器接收到响应包后，发现响应头中存在location属性，自动通过地址栏向location指定网站发送请求；sendRedirect方法远程控制浏览器请求行为【请求地址，请求方式，请求参数】
+                注意：如果由响应内容就用输出流，如果没有响应内容而只是要重定向，就用response.sendRedirect；
+
+五、HttpservletRequest
+        1、介绍
+              1)HttpservletRequest接口来自于servlet规范中，在tomcat的servlet-api.jar
+              2）HttpservletRequest接口实现类由HTTP服务器负责提供，我们并不需要知道具体是什么实现类
+              3)HttpservletRequest接口负责在doget/dopost方法运行时读取http请求协议包中的信息
+               4)开发人员习惯将HttpservletRequest接口修饰的对象称为请求对象
+        2、作用
+              1)可以读取http请求协议中请求行信息
+                  URI：资源文件精准定位地址；在请求行中并没有URI信息，实际上是从URL中截取的一个字符串
+                     这个字符串格式是 “/网站名/资源文件名”；URI用于让http服务器对被访问的资源文件进行定位
+               2)可以读取保存在http请求协议包中请求头/请求体中的请求参数信息
+                问题：以get方式返送中文参数内容，服务端获取的是正常的内容，但是以post方式发送中文参数内容后台出现乱码
+                 原因：浏览器以get方式发送请求，请求参数保存在请求头中的，当http请求协议包到达http服务器之后，
+                        第一件事就是解码，请求头中的二进制的内容是由tomcat负责解码，tomcat9.0默认使用utf-8解码，可以解释一切国家的文字
+                      浏览器以post方式发送请求，请求参数保存在请求体中的，当http请求协议包到达http服务器之后，第一件事就是解码，
+                       请求体中的二进制的内容是由当前请求对象request负责解码，request默认使用iso8859-1解码，此时如果请求参数中有中文，
+                       将无法解码只能得到乱码
+                 解决方案：在post请求方式下，在读取请求体内的内容之前，应该通知请求对象使用utf-8对请求体中的内容编码，而不是iso8859-1
+
+               3)可以代替浏览器向http服务器申请资源文件的调用
+六、请求对象和响应对象的生命周期
+    1、http服务器接收到浏览器发送的http请求协议包之后，自动为当前的http请求协议包生成一个请求对象和响应对象
+    2、在HTTP服务器准备推送http响应协议包之前，负责将本次请求关联的请求对象和响应对象销毁
+       请求对象和响应对象生命周期贯穿一次请求的处理过程中
+
+七、欢迎资源文件
+    1、前提：
+        用户可以记住网站名，但是不会记住网站资源文件名
+    2、默认欢迎资源文件：
+        用户向http服务器发送请求，针对某一个网站的默认请求时，此时由http服务器自动从当前网站返回的资源文件
+    3、tomcat对于默认欢迎资源文件定位规则
+        1)规则位置：tomcat安装位置/conf/web.xml
+        2) <welcome-file-list>
+              <welcome-file>index.html</welcome-file>
+              <welcome-file>index.htm</welcome-file>
+              <welcome-file>index.jsp</welcome-file>
+           </welcome-file-list>
+
+    4、设置自己网站的默认欢迎资源文件规则
+        1)设置规则位置：网站/web/web.xml
+        2)<welcome-file-list>
+            <welcome-file>index.html</welcome-file>
+            <welcome-file>index.htm</welcome-file>
+            <welcome-file>one</welcome-file>  //默认资源文件不仅仅可以是静态的也可以是servlet，用别名，servlet作为默认欢迎资源时，开头的斜杠波许抹掉
+         </welcome-file-list>
+
+         (http://localhost:8080/  这样访问tomcat时，会默认访问tomcat下的ROOT文件夹下的欢迎页面；)
+
+八、http状态码
+    1、分类
+        1)组成  100-599 分为5个大类
+        2)1xx：
+            最有特征 100：通知浏览器本次返回的资源文件并不是一个独立的资源文件，
+            需要浏览器在接收响应包之后，继续向http服务器索要依赖的其他资源文件
+        3)2xx:
+            最有特征200：通知浏览器本次返回的资源文件是一个独立的资源文件，
+                     需要浏览器在接收响应包之后，不需要向http服务器索要其他的关联资源文件
+        4)3xx:
+            最有特征302：通知浏览器本次返回的不是一个资源文件的内容，而是一个资源文件的地址，需要浏览器根据这个地址自动发起
+            请求来索要这个资源文件
+                response.sendRedirect("资源文件地址");//将地址写入到location属性中，从而导致tomcat将302状态码写入到状态行
+          4xx：
+            404：通知浏览器，由于在服务器中没有定位到资源文件，因此无法提供相关帮助
+            405：通知浏览器，在服务端已经定位到被访问的资源文件(能够出现405状态码，那么被访问的文件必须是个servlet)，
+            但是这个servlet对于浏览器采用的请求方式不能处理
+          5xx:
+            500:通知浏览器，在服务端已经定位到被访问的资源文件(能够出现500状态码，那么被访问的文件必须是个servlet)，
+            这个servlet可以接收浏览器的请求方式，但是这个servlet在处理这个请求期间java异常导致处理失败
+
+
+九、多个servlet之间调用规则
+    1)重定向解决方案
+        response.sendRedirect   请求方式肯定是get方式
+        请求地址：既可以把当前网站内部资源文件地址发送给浏览器，也可以把其他网站的资源文件发送给浏览器
+        缺点：重定向解决方案需要在浏览器在服务器之间进行多次往返，大量时间消耗在往返次数上，增加用户等待时间
+    2)请求转发解决方案
+        1)原理：通过当前请求对象代替浏览器向Tomcat发送请求，申请调用下一个servlet
+        2)实现命令：
+        //通过当前请求对象生成资源文件申请报告对象
+        RequestDispatcher requestDispatcher = request.getRequestDispatcher("/资源文件名");不要写网站名//一定要以“/”开头
+        //将报告对象发送给tomcat
+        requestDispatcher.forward(request,response);
+
+    3)优点：servlet之间的调用都是发生在服务端的计算机上，节省服务端与浏览器之间的往返次数
+      请求地址：只能向tomcat服务器申请调用当前网站下的资源文件地址
+      请求方式：与浏览器发送的请求方式一致
+
+十、多个servlet之间数据共享实现方案
+    1、数据共享：oneservlet工作完毕后，将产生的数据交给twoservlet来使用
+    2、servlet规范中提供了四种数据共享方案
+        1、servletContext接口
+
+        2、Cookie类
+
+        3、HttpSeesion接口
+
+        4、HttpServletRequest接口
+
+十一、servletContext接口
+    1、介绍
+        1)来自servlet规范中的一个接口，在tomcat中存在servlet-api.jar
+            在tomcat中负责提供这个接口的实现类
+
+        2)如果多个servlet来自于同一个网站，那彼此之间可以通过servletContext实例对象实现数据共享
+        3)开发人员习惯于将servletContext对象称为全局作用域对象
+
+    2)工作原理
+        每一个网站都存在一个全局作用域对象，相当于一个map
+
+    3)全局作用域对象生命周期
+        1)在HTTP服务器启动过程中会自动的为这个网站在内存中创建一个全局作用域对象
+        2)在http服务器运行期间时，一个网站只有一个全局作用域对象
+        3)在HTTP服务器运行期间，全局作用域一直处于存活状态
+        4)在HTTP服务器准备关闭时，负责将当前网站中额全局作用域对象进行销毁处理
+
+十二、cookie
+    cookie 是servlet规范中的一个工具类，存在于servlet-api. jar包中
+    如果两个servlet 来自于同一个网站并且为同一个浏览器/用户服务借助于cookie对象进行数据共享
+    coo kie存放当前用户的私人数据，在共享数据过程中提高服务质量
+    cookie只存放在请求头中，以及响应头中，cookie相当于一个map一个cookie中只能存放一个键值对，key和value必须是string，key不能是中文
+    cookie销毁时机：
+        1、默认情况下，cookie对象只要浏览器关闭，就会销毁
+    - 2、在手动设置情况下，可以要求浏览器将收到的cookie存放在客户端的计算机硬盘上，同时指定在硬盘上的存活时间，在存活时间内，关闭浏览器，客户端计算机以及服务器都不会导致cookie销毁，在存活时间到达时，cookie自动从从硬盘上被销毁
+
+
+
+十三、HttpSessoon接口
+    - 1、介绍
+    - servlet规范下的一个接口，实现类由http服务器提供，tomcat提供实现类
+    - 如果两个servlet 来自于同一个网站并且为同一个浏览器/用户服务借助于httpsession对象进行数据共享
+    - 习惯称为会话作用域对象，某一个用户和一个网站之间的完整交流
+    session和cookie区别
+    存储位置
+    cookie 存放在浏览器或者客户端计算机硬盘，session存放在服务器内存
+
+    数据类型
+    - cookie只能存放字符串类型，session 可以存储任意类型
+    - tomcat在创建session时自动为其创建一个ID，然后存放到cookie 中
+    - getSession()
+    - 有就返回，没有就造一个返回
+    - 和getSession(false)
+    有就返回 没有就返回Null
+- 十四、servlet规范扩展---------监听器
+1、介绍
+- 一组来自servlet规范下的接口，共有八个接口，在tomcat 的servlet-api. jar
+- 监听器接口需要开发人员亲自实现，http服务器提供jar包并没有对应的实现类
+- 监听器用于监控 ‘作用域对象生命周期变化时’ 以及  ‘作用域对象共享数据变化时’
+- 2，作用域对象
+- 在servlet 规范下，认为在服务端内存中可以在某些条件下为两个servlet之间提供数据共享得对象，被称为作用域对象
+- servlet规范夏作用域对象
+-   Servlet Context  全局作用域对象
+- HttpSession   会话作用域对象
+- HttpServletRequest  请求作用域对象
+    3、监听器接口实现类开发规范
+          1、根据监听的实际情况，选择对应的监听器接口进行实现
+          2、重写监听器接口声明（监听事件处理方法）
+          3、在web. xml文件种将监听器注册到http服务器tomcat
+    4、ServletContextListener接口
+     1）作用
+            通过这个接口合法的检测全局作用域对象被销毁时刻以及被初始化时刻
+   监听事件处理方法
+       contextInitlized()  在全局作用域对象被http服务器初始化时被调用
+        contextDestroy()  在全局作用域对象被http服务器销毁时候触发调用
+    5、ServletContextAttributeListener接口
+        1)作用：通过这个接口合法的检测全局作用域对象共享数据变化时刻
+        void attributeAdded(ServletContextAttributeEvent var1);在全局作用于对象添加共享数据
+
+        void attributeRemoved(ServletContextAttributeEvent var1);在全局作用于对象删除共享数据
+
+        void attributeReplaced(ServletContextAttributeEvent var1);在全局作用于对象添加更新数据
+
+        HttpSessionBindingListener接口是不要注册的,由类实现它
+        HttpSessionActivationListener接口是不要注册的,由类实现它；(服务器停掉时将session中的对象序列化到硬盘前会触发钝化事件，
+                                                               服务器启动时将对象反序列化到session中会触发活化事件)
+
+十五、servlet规范扩展----------过滤器接口
+    1、介绍
+        1)一个来自servlet规范下的接口，在tomcat 的servlet-api. jar
+        2)Filter接口实现类有开发人员负责提供，HTTP服务器不负责提供
+        3)Filter接口在HTTP服务器调用资源文件(动态资源文件以及静态资源文件)之前，对HTTP服务器进行拦截
+    2、具体作用
+        1)拦截HTTP服务器，帮助HTTP服务器检测当前请求的合法性
+        2)拦截HTTP服务器，对当前请求进行增强操作
+    3、Fileter接口实现类开发步骤
+        1)创建一个Java类实现Filter接口
+        2)重写Filter中的doFilter方法，在到达servlet之前可能由很多过滤器，那么就要把所有doFilter方法走完才能到达servlet的doget
+        dopost方法
+        3)在web.xml文件中将接口实现类注册到HTTP服务器
+
+
+
+
+
+
+
+
+
+
+
