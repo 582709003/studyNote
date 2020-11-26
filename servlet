@@ -180,8 +180,10 @@
 
 十一、servletContext接口
     1、介绍
+
         1)来自servlet规范中的一个接口，在tomcat中存在servlet-api.jar
             在tomcat中负责提供这个接口的实现类
+            一个应用程序只有一个servletContext
 
         2)如果多个servlet来自于同一个网站，那彼此之间可以通过servletContext实例对象实现数据共享
         3)开发人员习惯于将servletContext对象称为全局作用域对象
@@ -206,7 +208,7 @@
 
 
 
-十三、HttpSessoon接口
+十三、HttpSession接口
     - 1、介绍
     - servlet规范下的一个接口，实现类由http服务器提供，tomcat提供实现类
     - 如果两个servlet 来自于同一个网站并且为同一个浏览器/用户服务借助于httpsession对象进行数据共享
@@ -268,14 +270,155 @@
         2)重写Filter中的doFilter方法，在到达servlet之前可能由很多过滤器，那么就要把所有doFilter方法走完才能到达servlet的doget
         dopost方法
         3)在web.xml文件中将接口实现类注册到HTTP服务器
+    4、生命周期
+        实例化---初始化---diFilter---销毁，生命周期过程中，均由web服务器负责管理
+        Filter是在应用启动时被创建和初始化的，Filter是单例多线程的，服务器停止的时候就会被销毁
+          void init(FilterConfig var1)
+         初始化方法里的FilterConfig类似于ServletConfig
+         <filter>
+                 <filter-name>sjd</filter-name>
+                 <filter-class>com.sjd.controller.MyFileter</filter-class>
+                 <init-param>
+                     <param-name>name</param-name>
+                     <param-value>sjd</param-value>
+                 </init-param>
+                 <init-param>
+                     <param-name>age</param-name>
+                     <param-value>12</param-value>
+                 </init-param>
+             </filter>
+
+             <filter-mapping>
+                 <filter-name>sjd</filter-name>
+                 <url-pattern>/*</url-pattern>  注意：/* 表示当前servlet可以匹配所有请求，可以拦截所有请求
+                                                     请求，无论动态资源还是静态资源;
+                                                     /  不会拦截动态资源请求，既不会拦截对于jsp的请求；但会拦截静态资源请求
+                 //可以不指定url-pattern，但需要指定<servlet-name>，即当前拦截器只拦截对指定的servlet的请求
+                 <servlet-name>oneservlet</servlet-name>
+                 //FORWARD:表示当前过滤器只会拦截有一个Servlet通过RequestDispatcher的forward完成的跳转
+                 //INCLUDE:表示当前过滤器只会拦截有一个Servlet通过RequestDispatcher的include完成的跳转
+                 //ERROR:表示当跳转到指定错误页面时，这个跳转请求会被当前过滤器拦截
+                 //FORWARD:表示当前过滤器会拦截普通请求，但对于forward以及include的跳转不进行拦截，默认值
+
+                 <dispatcher>FORWARD</dispatcher>
+             </filter-mapping>
+                默认情况下，请求转发时是不会被拦截器拦截的；
 
 
 
+        请求和响应都会经过过滤器
 
 
+tomcat 的真正启动是在 catalina.bat 设置并启动的。startup.bat 只是找到catalina.bat 然后执行catalina.bat 来启动tomat的，
+现在安装tomcat的时候不需要配置catalina-home，因为在catalina. bat命令行里已经配置了相关参数
+
+打印war包后直接放到tomcat下并启动后会自动解压
+
+域名代表的是一个服务器的虚拟主机
+域名解析服务是一级一级找的 先从自己的电脑上的host文件找域名映射，找不到然后道当前运营商的域名解析服务找映射，
+直至全球域名服务映射；域名解析先将你的域名解析成IP从而找到服务器，然后再通过域名找到这个服务器上符合这个域名的虚拟主机；
+虚拟主机在我看来具体表现为存放应用的目录，就像webapps，当然你得要改名字，不然不同的虚拟主机就会去用一个webapps访问资源文件
+
+浏览器在请求服务器时如果请求地址中没有写端口号，浏览器默认访问80端口号，所以可以将服务器中的connector中的端口号改为80来适应
+浏览器的要求，这样可以实现只输入域名不用写端口号就可以访问应用
+
+tomcat指定虚拟主机的默认应用可以讲应用名改为Root
+修改host文件时先讲host文件复制出来修改完再粘回去
+Servlet是单例的
+servlet中有个方法getservletinfo，这个方法一般可以在里面返回一些说明性文字，譬如版本，作者
+ServletConfig类可以看做是web. xml中的一个servlet的类，见下，当访问一个servlet时，会将访问的这个servlet抽象成一个对象，这个类里面有几个方法，其中getinitParaName返回的是servlet配置文件web. xml中init-param里面的值
+一个servlet肯定是对应一个servletConfig
+<servlet>
+        <servlet-name>MyServlet</servlet-name>
+        <servlet-class>com.sjd.controller.MyServlet</servlet-class>
+        <init-param>
+            <param-name>namespace</param-name>
+            <param-value>sd</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+GenericServlet这个抽象类里面的init方法为什么会有一个重载
+这个重载是为了当servlet初始化时，我们开发人员可以做一些操作
+
+浏览器只接收iso8859-1的字节型编码，而不接收utf-8的字符型编码，先这样记着，后面相关知识点会继续更新
+
+servlet3.0三大组件时使用注解，而不用在web. xml种进行注册
+    servlet3.0是没有web. xml文件的，贵规范允许了在定义servlet. FIlter. LIstener，方法都是在相应的组件上使用注解@webservlet.  @webFIlter  @webListener
+
+注册servlet
+    1、若对于servlet 采用了两种方式同时进行注册，泽需要注意
+     1、若两方式的url-pattern值相同，则应用无法启动
+   2、瑞两种方式的url-pattern值不同，那么相当于该servlet具有两个url-pattern值
+  若对filter进行两种方式进行注册
+无论url-pattern的值是否相同，其都作为两个独立Filter进行注册
+
+若对listener进行两种方式进行注册，其都作为一个独立listener进行注册
+
+web. xml文件中有一个<web-app>注解，属性metadata-complete值若为true，则表示三大组件的注册方式，只有web. xml中的注册起作用，
+讲忽略注解的注册 若为false，则表示两种方式都起作用，值默认为false
 
 
+servlet3.0以上版本为文件上传专门提供了API，httpServletRequest的getPart方法可以完成单个文件得上传，
+而getParts方法可以完成多个文件的上传，方法参数name是表单中file属性的name值
+
+servlet异步处理
+    1、为什么要使用异步处理
+        servlet是单例多线程的，服务器会为每一个servlet创建一个线程池，如果线程池里的线程用完了，那下面的对该servlet的请求
+        就只能等着了
+
+     //获取异步上下文对象
+    AsyncContext asyncContext = req.startAsync();
+    Thread thread = new Thread(new ComputeThred(asyncContext));
+    //设置异步上下文对象的超时时间
+    //asyncContext.setTimeout(3000);
+    //开启异步上下文对象
+    asyncContext.start(thread);
+
+class ComputeThred implements Runnable{
+    private AsyncContext asyncContext;
+    public ComputeThred(AsyncContext asyncContext) {
+        this.asyncContext = asyncContext;
+    }
+    @Override
+    public void run() {
+        try {
+            HttpServletRequest request = (HttpServletRequest) asyncContext.getRequest();
+            HttpSession session = request.getSession();
+            session.setAttribute("sum",sum);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+虽然是servlet异步，但是用的还是一个输出流，所以servlet还是阻塞的；所以我们一般是将主线程的结果先返回，然后将异步线程里的数据放到
+session或者SetvletConteext里面，然后再另一个页面里去获取这个结果
 
 
+组件的可插性
+    所谓组件的可插性是指，支持将打成jar包的servlet、filter、listener直接插入到正在运行的web项目中
+    三个组件的操作是一样的
+
+servlet3.0的三大组件的动态注册
+    servlet
+        步骤：实现servletContextListener接口，在这个初始化方法里添加servlet
+        @WebListener
+        public class MyServletCintextListener implements ServletContextListener {
+            @Override
+            public void contextInitialized(ServletContextEvent servletContextEvent) {
+                String servletName = "someServlet";
+                String className = "com.sjd.controller.MyServlet";
+                ServletRegistration.Dynamic dynamic = servletContextEvent.getServletContext().addServlet(servletName, className);
+                dynamic.addMapping("/some2");
+                System.out.println("动态注册servlet222");
+            }
+
+            @Override
+            public void contextDestroyed(ServletContextEvent servletContextEvent) {
+
+            }
+        }
+
+filter以及listener动态添加的步骤类似吗、，都是用ServletContextListener
 
 
