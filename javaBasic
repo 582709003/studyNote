@@ -567,13 +567,7 @@ String.compareTo()方法：
 StringBuffer()是线程安全的，StringBuilder()是线程不安全的
 
 StringBuffer底层实际上是一个char数组，往StringBuffer放字符串实际是放到字节数组中
-String在频繁连接字符串时，操作过程是先生成"ab"字符串，在内存中占一个位置，然后在和"c"组成"abc"字符串;
-String s = "a" + "b" + "c";
-//而StringBuffer是一次性生成"abc"字符串，没有中间过渡的字符串；主要是StringBuffer底层的字节数组没有final修饰
-StringBuffer s2 = new StringBuffer();
-s2.append("a");
-s2.append("b");
-s2.append("c");
+
 
 
 包装类
