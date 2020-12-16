@@ -701,7 +701,7 @@ jvm优化在哪里   方法区和堆是线程共同享有的，这是jvm优化�
     c1(client)编译器会对字节码进行简单可靠的优化，耗时短，以达到更快的编译速度。
     c2（server）编译器会进行耗时较长的优化，以及激进优化，但代码的执行效率更高。
     一般来讲，JIT编译器编译出来的机器码性能比解释器高。
-    C2编译器启动时长比c1编译器慢，系统稳定后，，C2执行速度远远快于C1编译器。
+    C2编译器启动时长比c1编译器慢，系统稳定后，C2执行速度远远快于C1编译器。
 
 
     String 类型jdk1.8之前使用char数组存储，jdk1.9后用byte数组保存，相关的类也是使用同样的改变;
@@ -719,7 +719,7 @@ jvm优化在哪里   方法区和堆是线程共同享有的，这是jvm优化�
         String s3 = "javaeehadoop";
         String s4 = "javaee" + "hadoop"; //编译成字节码的时候就直接变成了“javaeehadoop” ，称为编译期优化
 
-        //如果拼接符号的前后出现了变量，则类似于在堆空间new了一个字符串对象，具体内容是拼接后的内容
+        //如果拼接符号的前后出现了变量，或者是以new的形式出现的，则类似于在堆空间new了一个字符串对象，具体内容是拼接后的内容
         String s5 = s1 + "hadoop";
         String s6 = "javaee" + s2;
 
@@ -771,6 +771,42 @@ jvm优化在哪里   方法区和堆是线程共同享有的，这是jvm优化�
             又要扩容，扩容实际上是重新new了一个容量更大的char数组，这样如果屡次扩容，以前的插入数组也会在堆中占用内存；
             所以可以在基本确定拼接的字符串长度时，可以在new  StringBuilder时，就直接使用构造器StringBuilder(int capacity)
 
+        intern()的理解
+            如果不是用双引号声明的String对象，可以使用String提供的intern方法；intern方法会从字符串常量池中查询当前字符串是否存在，
+            若不存在，就会将当前字符串放入常量池中。也就是说在任意的String对象上调用intern方法，其返回的结果所指向的类实例必须和直接以
+            常量形式出现的字符串实例完全相同。
+            String s1 = src.append("a").append("b").toString();//这个返回的是"ab"，但是其实在字符串常量池里没有这个值
+            String s1 = src.append("a").append("b").toString().intern();//但是这样的话就会将"ab"放入字符串常量池，
+                                                                        //并返回这个字符串在字符串常量池里的内存地址
+
+        String s3=new String(“zhangsan”);
+        String s4=new String(“zhangsan”);
+        s = s3 + s4;
+        两字符串相加本质就是()你可以用Xjad工具查看你编译后的代码：生成StringBuilder对象将其拼接起来再调用toString()方法返回新
+        的字符串hellowzhangsan（hello就是s1指向常量池中的字符串复制过来的，zhangsan也是s2指向常量池中的字符串复制过来的，
+        都放到StringBuilder对象中的数组里）(调用tostring()方法生成新的String，其实就是将StringBuilder中数组里的字符全都
+        拷贝到新String里的数组里)，堆中字符串是一个value数组，里面装着hellozhangsan，但它不会把hellozhangsan整个字符串放
+        到常量池中。
+
+        StringBuilder src =  new StringBuilder();
+       String s1 = src.append("a").append("b").toString(); //这里的toString其实没有在字符串常量池里创建“ab”字符串
+       String s2 = "ab";
+       System.out.println(s1 == s2);//false
+
+        StringBuffer是一次性生成"abc"字符串，没有中间过渡的字符串；主要是StringBuffer底层的字节数组没有final修饰
+        StringBuffer s2 = new StringBuffer();
+        s2.append("a");
+        s2.append("b");
+        s2.append("c");
+
+        使用intern()的执行效率：空间上使用的内存低，可以节省内存
+        String s = new String("asd");//先在堆里开辟内存，然后将“asd”放入常量池，然后将堆里字符串的地址给s
+        String s = new String("asd").intern();//先在堆里开辟内存，然后将“asd”放入常量池，然后将常量池的地址给s，
+                                              //这样在堆里的内存由于没有引用就会被gc掉，只留下常量池开辟的内存，可以节省内存
+
+
+    StringTable字符串常量池的垃圾回收：
+        -XX:PrintStringTableStatistics 打印字符串常量池中的统计信息
 
 
        GC算法总体概述:
