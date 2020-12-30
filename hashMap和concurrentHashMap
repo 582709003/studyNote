@@ -1,0 +1,84 @@
+hashMap的并发问题
+    当两个线程使用同一个hashmap对象，并发的区put值，key不同的情况下，获得的hashcode肯定不同，
+    但是最后放入到表中的索引的计算方法(tab.length - 1) & hash 有可能得到相同的索引，这样就会发生
+    不同的key在并发情况下都放到同一个索引里，也就是可能发生覆盖情况。
+
+hashTable为了解决这个问题就给整个数组加了把锁，这样的话同样的索引就会生成链表,但是影响性能；
+
+concurrentHashMap
+
+    final V putVal(K key, V value, boolean onlyIfAbsent) {
+            if (key == null || value == null) throw new NullPointerException();
+            //找到key的hash值
+            int hash = spread(key.hashCode());
+            //记录表格中某一个索引的地方链表的中元素个数
+            int binCount = 0;
+            //死循环
+            for (Node<K,V>[] tab = table;;) {
+                Node<K,V> f; int n, i, fh;
+                if (tab == null || (n = tab.length) == 0)
+                    //表为空时，初始化表，然后出循环再进
+                    tab = initTable();
+                    //tabAt(tab, i = (n - 1) & hash) 根据hash值以及表的长度找到这个表某个索引上有没有链表节点
+                else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
+                    //如果这个索引上没有节点，使用CAS判断这个节点上是不是null，如果是null再像这个索引上添加节点，
+                    //这是原子操作
+                    if (casTabAt(tab, i, null,
+                        new Node<K,V>(hash, key, value, null)))
+                    break;                   // no lock when adding to empty bin
+                }
+                //判断表格是否在扩容
+                else if ((fh = f.hash) == MOVED)
+                    tab = helpTransfer(tab, f);
+                else {
+                //判断是往链表里添加节点数据还是往红黑树里添加数据
+                    V oldVal = null;
+                    synchronized (f) {
+                        if (tabAt(tab, i) == f) {
+                        //如果是链表，哈希值肯定大于0
+                            if (fh >= 0) {
+                                binCount = 1;
+                                for (Node<K,V> e = f;; ++binCount) {
+                                    K ek;
+                                    if (e.hash == hash &&
+                                        ((ek = e.key) == key ||
+                                         (ek != null && key.equals(ek)))) {
+                                        oldVal = e.val;
+                                        if (!onlyIfAbsent)
+                                            e.val = value;
+                                        break;
+                                    }
+                                    Node<K,V> pred = e;
+                                    if ((e = e.next) == null) {
+                                        pred.next = new Node<K,V>(hash, key,
+                                                                  value, null);
+                                        break;
+                                    }
+                                }
+                            }
+                            //红黑树
+                            else if (f instanceof TreeBin) {
+                                Node<K,V> p;
+                                binCount = 2;
+                                if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,value)) != null) {
+                                    oldVal = p.val;
+                                    if (!onlyIfAbsent)
+                                        p.val = value;
+                                }
+                            }
+                        }
+                    }
+                    //
+                    if (binCount != 0) {
+                    //判断如果链表中的节点个数已经大于阈值，就将结构变成红黑树
+                        if (binCount >= TREEIFY_THRESHOLD)
+                            treeifyBin(tab, i);
+                        if (oldVal != null)
+                            return oldVal;
+                        break;
+                    }
+                }
+            }
+            addCount(1L, binCount);
+            return null;
+    }

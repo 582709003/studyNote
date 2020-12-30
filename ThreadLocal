@@ -1,0 +1,91 @@
+作用：
+    提供线程内部的局部变量，这种变量在多线程环境下访问(通过get,set方法访问)时能保证各个线程的变量相对独立与其他线程内的变量，
+    ThreadLocal实例通常来说都是private static类型的，用于联线程和线程上下文关。
+
+    提供线程内的局部变量，不同线程之间不会相互干扰，这种变量在线程的生命周期内起作用，减少同一个线程内多个函数或组件之间一些
+    公共变量传递的复杂度。
+
+    总结：1、线程并发  2、传递数据   3、线程隔离
+
+
+
+
+ 常用方法
+    ThreadLocat()     创建ThreadLocal()对象
+    public void set(T value)  设置当前线程绑定的局部变量
+        public void set(T value) {
+
+            Thread t = Thread.currentThread();
+            ThreadLocalMap map = getMap(t);
+            if (map != null)
+                map.set(this, value);
+            else
+                createMap(t, value);
+        }
+
+         //1、设置值的时候，会为当前的线程设置一个ThreadLocalMap，初始容量为16，把当前threadlocal对象和设置的值带进去
+         void createMap(Thread t, T firstValue) {
+            t.threadLocals = new ThreadLocalMap(this, firstValue);
+        }
+
+        //2、首先每个线程都会维护一个ThreadLocalMap，每个ThreadLocalMap里面维护着一个Entry类型的数组，初始值为16；
+            当往ThreadLocal里面设置值时，就会为当前的线程创建一个ThreadLocalMap，然后把ThreadLocal这个对象以及要绑定的值当作参数往
+            createMap(ThreadLocal t,T value)传；相当于每个线程里面都维护着一个独立的ThreadLocalMap
+            设置值的时候，会根据int i = key.threadLocalHashCode & (len-1)计算出这个值将放入数组中的哪个索引里面
+        private void set(ThreadLocal<?> key, Object value) {
+
+                    // We don't use a fast path as with get() because it is at
+                    // least as common to use set() to create new entries as
+                    // it is to replace existing ones, in which case, a fast
+                    // path would fail more often than not.
+
+                    Entry[] tab = table;
+                    int len = tab.length;
+                    int i = key.threadLocalHashCode & (len-1);
+
+                    for (Entry e = tab[i];
+                         e != null;
+                         e = tab[i = nextIndex(i, len)]) {
+                        ThreadLocal<?> k = e.get();
+                        //3.0判断在这个索引里面的entry里的key也就是threadlocal对象是不是同一个，同一个的话就覆盖值
+                        if (k == key) {
+                            e.value = value;
+                            return;
+                        }
+                        //4.0如果key也就是threadlocal可能为空，可能对象被回收，那么就重新赋值
+                        if (k == null) {
+                            replaceStaleEntry(key, value, i);
+                            return;
+                        }
+                    }
+
+                    tab[i] = new Entry(key, value);
+                    int sz = ++size;
+                    if (!cleanSomeSlots(i, sz) && sz >= threshold)
+                        rehash();
+                }
+
+    //这时候会找到当前线程，然后找到当前线程维护的map，然后根据通过下面的方法找到值
+    private Entry getEntry(ThreadLocal<?> key) {
+    //因为key.threadLocalHashCode设置值的时候以及赋值，并且时final修饰的，所以这时候值是之前的赋值，确定的不变的，所以找到的
+        索引也是之前赋值时获得索引
+        int i = key.threadLocalHashCode & (table.length - 1);
+        Entry e = table[i];
+        if (e != null && e.get() == key)
+            return e;
+        else
+            return getEntryAfterMiss(key, i, e);
+    }
+    public T get()      获取当前线程绑定的局部变量
+
+
+
+    public void remove()   移出当前线程绑定的局部变量
+    protected T initialValue()  返回当前线程局部变量的初始值
+
+ ThreadLocal类和syncronized区别
+     ThreadLocal：采用以空间换时间的方式，为每一个线程都提供了一份变量的副本，从而实现同时访问而相互不干扰
+                  侧重点在于：在多个线程中让每个线程之间的数据相互隔离
+     syncronized：同步机制，采用时间换空间的方式，只提供了一份变量，让不同的线程排队访问
+                           则重点在于：多个线程之间访问资源的同步
+
