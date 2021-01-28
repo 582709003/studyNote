@@ -1,0 +1,343 @@
+监听器设计模式
+观察者模式
+    将被监听者的状态改变定义为事件，被监听者定义为事件源，对监听器的通知称为触发监听器，本质与观察者模式是相同的
+    事件里面要可以获得事件源，也可以获得事件类型；事件源里面需要注册监听器，还得可以触发监听器；监听器要可以处理事件；
+
+   主要需要理解点：事件源在现有的servlet里面就是request,session,servletContext,当这些域被创建时(事件)，事件里面会获得
+   这个事件源，由事件源servlet等对象去调用触发监听器的方法，由监听器具体实现处理方法
+
+
+装饰者模式
+    //接口
+    public interface ISomeService
+    {
+
+        String doSome();
+
+    }
+
+    //需要装饰的类
+    public class SomeService implements ISomeService {
+        @Override
+        //待增强的方法
+        public String doSome() {
+            return "aasdf";
+        }
+    }
+
+    //装饰者父类
+    //要求1：要有无参构造器
+    //要求2：不对目标方法进行任何增强
+    public abstract class SomeServiceWapper implements ISomeService
+    {
+        private ISomeService someService;
+
+        public SomeServiceWapper() {
+        }
+
+        public SomeServiceWapper(ISomeService iSomeService) {
+            this.someService = iSomeService;
+        }
+
+        @Override
+        public String doSome() {
+            return someService.doSome();
+        }
+    }
+
+    //装饰者
+    public class SomeServiceDecorator extends SomeServiceWapper {
+
+        public SomeServiceDecorator(ISomeService iSomeService) {
+            super(iSomeService);
+        }
+
+        @Override
+        public String doSome() {
+            String s = super.doSome();
+            String s1 = s.toUpperCase();
+            return s1;
+        }
+    }
+
+    //装饰者
+    class OtherServiceDecorator extends SomeServiceWapper {
+
+        public OtherServiceDecorator(ISomeService iSomeService) {
+            super(iSomeService);
+        }
+
+        @Override
+        public String doSome() {
+            String s = super.doSome();
+            String s1 = s.trim();
+            return s1;
+        }
+    }
+
+
+    使用
+        ISomeService iSomeService = new SomeService();
+        SomeServiceWapper someServiceWapper = new SomeServiceDecorator(iSomeService);
+        SomeServiceWapper someServiceWapper1 = new OtherServiceDecorator(someServiceWapper);
+        String s = someServiceWapper1.doSome();
+        System.out.println(s);
+
+    实际使用：完整的装饰模式包括四部分
+        一个抽象的蛋糕类： InputStream;
+        多个具体的待装饰的蛋糕类：FileInputStream;ByteArrayInputStream
+        一个抽象的装饰类 ：FileInputStream;
+        多个具体的装饰类：BufferedInputStream, DataInputStream
+
+
+
+代理模式
+    代理模式的作用
+        1、功能增强：原有的功能上增加了新的功能
+        2、控制访问：代理类不让你访问目标，例如商家不让你访问厂家
+    实现代理的方式
+        1、静态代理
+            1）代理类是我们自己手工实现的，自己创建一个java类，表示代理类
+            2）同时你所需要代理的目标类是确定的
+
+        2、动态代理
+            在静态代理类中目标类有很多的时候，可以使用动态代理，避免静态代理的缺点
+            动态代理中目标类即使很多，1）代理类数量可以很少 2）当你修改了接口中的方法时，不会影响代理类
+
+            动态代理：在程序的执行过程中，使用jdk的反射机制，创建代理类对象，并动态的指定要代理的目标类
+                    换句话说，动态代理是一种创建java对象的能力，让你不用创建taobao类就能创建代理类对象
+                    jdk动态代理必须有接口，目标类必须实现接口，没有接口时，需要使用cglib动态代理
+            实现方式有两种
+                1、jdk动态代理(理解)：使用java反射包中的类和接口实现动态代理的功能
+
+                    ISomeService iSomeService = new SomeService();
+                    InvocationHandler in = new MyInvocationHandler(iSomeService);
+                    ISomeService o = (ISomeService) Proxy.newProxyInstance(iSomeService.getClass().getClassLoader(), iSomeService.getClass().getInterfaces(), in);
+                    String s = o.doSome();
+                    System.out.println(s);
+                2、clib动态代理
+                    需要第三方cglib  jar包
+                        SomeServiceImpl someService =  new SomeServiceImpl();
+                        SomeServiceImpl o = (SomeServiceImpl)Enhancer.create(someService.getClass(), new MethodInterceptor() {
+                            @Override
+                            public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
+                                System.out.println("目标方法执行之前");
+                                Object invoke = method.invoke(someService, objects);
+                                System.out.println("目标方法执行之后");
+                                return invoke;
+                            }
+                        });
+                        o.doSome();
+
+工厂模式
+   工厂方法模式(Factory Method)
+
+        public interface Phone {
+            void make();
+        }
+
+        //AbstractFactory类：生产不同产品的工厂的抽象类
+        public interface AbstractFactory {
+            Phone makePhone();
+        }
+
+        //XiaoMiFactory类：生产小米手机的工厂（ConcreteFactory1）
+        public class XiaoMiFactory implements AbstractFactory{
+            @Override
+            public Phone makePhone() {
+                return new MiPhone();
+            }
+        }
+
+        //AppleFactory类：生产苹果手机的工厂（ConcreteFactory2）
+        public class AppleFactory implements AbstractFactory {
+            @Override
+            public Phone makePhone() {
+                return new IPhone();
+            }
+        }
+
+        演示：
+        public class Demo {
+            public static void main(String[] arg) {
+                AbstractFactory miFactory = new XiaoMiFactory();
+                AbstractFactory appleFactory = new AppleFactory();
+                miFactory.makePhone();            // make xiaomi phone!
+                appleFactory.makePhone();        // make iphone!
+            }
+        }
+
+  抽象工厂模式(Abstract Factory)
+    //PC类：定义PC产品的接口(AbstractPC)
+    public interface PC {
+        void make();
+    }
+
+    //MiPC类：定义小米电脑产品(MIPC)
+    public class MiPC implements PC {
+        public MiPC() {
+            this.make();
+        }
+        @Override
+        public void make() {
+            // TODO Auto-generated method stub
+            System.out.println("make xiaomi PC!");
+        }
+    }
+
+    //MAC类：定义苹果电脑产品(MAC)
+    public class MAC implements PC {
+        public MAC() {
+            this.make();
+        }
+        @Override
+        public void make() {
+            // TODO Auto-generated method stub
+            System.out.println("make MAC!");
+        }
+    }
+
+    下面需要修改工厂相关的类的定义：
+    //AbstractFactory类：增加PC产品制造接口
+    public interface AbstractFactory {
+        Phone makePhone();
+        PC makePC();
+    }
+
+    //XiaoMiFactory类：增加小米PC的制造（ConcreteFactory1）
+    public class XiaoMiFactory implements AbstractFactory{
+        @Override
+        public Phone makePhone() {
+            return new MiPhone();
+        }
+        @Override
+        public PC makePC() {
+            return new MiPC();
+        }
+    }
+
+    //AppleFactory类：增加苹果PC的制造（ConcreteFactory2）
+    public class AppleFactory implements AbstractFactory {
+        @Override
+        public Phone makePhone() {
+            return new IPhone();
+        }
+        @Override
+        public PC makePC() {
+            return new MAC();
+        }
+    }
+
+    //演示：
+    public class Demo {
+        public static void main(String[] arg) {
+            AbstractFactory miFactory = new XiaoMiFactory();
+            AbstractFactory appleFactory = new AppleFactory();
+            miFactory.makePhone();            // make xiaomi phone!
+            miFactory.makePC();                // make xiaomi PC!
+            appleFactory.makePhone();        // make iphone!
+            appleFactory.makePC();            // make MAC!
+        }
+    }
+
+
+工厂模式-构建者模式
+    产品类：一般是一个较为复杂的对象，也就是说创建对象的过程比较复杂，一般会有比较多的代码量。
+    在本类图中，产品类是一个具体的类，而非抽象类。实际编程中，产品类可以是由一个抽象类与它的不同实现组成，
+    也可以是由多个抽象类与他们的实现组成。
+    抽象建造者：引入抽象建造者的目的，是为了将建造的具体过程交与它的子类来实现。这样更容易扩展。
+    一般至少会有两个抽象方法，一个用来建造产品，一个是用来返回产品。
+    建造者：实现抽象类的所有未实现的方法，具体来说一般是两项任务：组建产品；返回组建好的产品。
+    导演类：负责调用适当的建造者来组建产品，导演类一般不与产品类发生依赖关系，与导演类直接交互的是建造者类。
+    一般来说，导演类被用来封装程序中易变的部分。
+
+    //超人模板
+    public class SuperMan {
+        private String body;
+        private String spcialTalent;
+        private String spcialSymbol;
+
+        public String getBody() {
+            return body;
+        }
+
+        public void setBody(String body) {
+            this.body = body;
+        }
+
+        public String getSpcialTalent() {
+            return spcialTalent;
+        }
+
+        public void setSpcialTalent(String spcialTalent) {
+            this.spcialTalent = spcialTalent;
+        }
+
+        public String getSpcialSymbol() {
+            return spcialSymbol;
+        }
+
+        public void setSpcialSymbol(String spcialSymbol) {
+            this.spcialSymbol = spcialSymbol;
+        }
+
+        @Override
+        public String toString() {
+            return "SuperMan{" + "body='" + body + '\'' + ", spcialTalent='" + spcialTalent + '\'' + ", spcialSymbol='" + spcialSymbol + '\'' + '}';
+        }
+    }
+
+    //构建者抽象类
+    public abstract class Builder {
+        SuperMan superMan = new SuperMan();
+
+        abstract SuperMan createSuperMan();
+    }
+
+
+    //黑人构建者
+    public class BlackSuperManBuilder extends Builder {
+        @Override
+        SuperMan createSuperMan() {
+            superMan.setBody("非常强壮");
+            superMan.setSpcialTalent("跑得非常快，刀枪不入");
+            superMan.setSpcialSymbol("黑色的");
+            return superMan;
+        }
+    }
+
+    //黄种人构建者
+    public class YellowSuperManBuilder extends Builder {
+        @Override
+        SuperMan createSuperMan() {
+            superMan.setBody("非常强壮");
+            superMan.setSpcialTalent("跳的非常高，刀枪不入");
+            superMan.setSpcialSymbol("黄色的");
+            return superMan;
+        }
+    }
+
+    //相当于工厂
+    public class Director{
+            public static SuperMan getBalckSuperMan() {
+                return new BlackSuperManBuilder().createSuperMan();
+            }
+            public static SuperMan getYellowSuperMan() {
+                return new YellowSuperManBuilder().createSuperMan();
+            }
+    }
+
+
+    在mybatis里，SqlSessionFactoryBuilder相当于导演类，
+    public SqlSessionFactory build(Reader reader, String environment, Properties properties) ；这个方法相当于
+    导演类里面的getBalckSuperMan方法；
+    XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
+   parser.parse()这两句方法相当于new BlackSuperManBuilder().createSuperMan();这个是
+    组装Configuration配置文件的，
+
+ var5 = this.build(parser.parse());//这个就相当于返回了需要的对象SuperMan
+
+
+
+
+ 适配器模式

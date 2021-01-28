@@ -2,7 +2,7 @@
     可以以new Thread ().start();这种形式开启一个线程，当run方法运行结束后，线程对象
     会被GC回收；
 
-    在真实的环境中，可能需要很多线程来支撑很多线程来支撑整个应用，当线程非常多时
+    在真实的环境中，可能需要很多线程来支撑整个应用，当线程非常多时
     反而会耗尽CPU资源，如果不对线程进行控制和管理，反而会影响程序的性能；
     线程开销包括：
         创建与启动线程的开销，线程销毁的开销，线程调度的开销，线程数量受限于CPU处理器的数量
@@ -35,7 +35,7 @@
             说明：workQueue是指提交并未执行的工作队列
 
             拒绝策略
-                当提交给线程池的任务量超过了实际承载能力时，如何处理？即线程池中的线程已经用完了，等待队列也慢了，无法为
+                当提交给线程池的任务量超过了实际承载能力时，如何处理？即线程池中的线程已经用完了，等待队列也满了，无法为
                 新提交的任务服务，可以通过拒绝策略来处理
 
                 RejectedExecutionHandler的四种拒绝策略
@@ -57,7 +57,7 @@
             ThreadPoolExecutor提供了两个方法
             protected void beforeExecute(Thread t, Runnable r)：任务执行前执行
             protected void afterExecute(Runnable r, Throwable t)：任务执行结束后，成功执行或者异常退出都会执行
-            我么可以重写这个两个方法
+            我们可以重写这个两个方法
 
 
         线程池数量优化
@@ -75,7 +75,7 @@
                             for (int i = 0; i < 5; i++) {
                                 Future future = executorService.submit(new DivedTask(10, i));
                                 try {
-                                    Integer o = (Integer)future.get();
+                                    Integer o = (Integer)future.get();//当前线程会出现阻塞
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 } catch (ExecutionException e) {

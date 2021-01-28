@@ -11,7 +11,7 @@
 
 
  常用方法
-    ThreadLocat()     创建ThreadLocal()对象
+    ThreadLocal()     创建ThreadLocal()对象
     public void set(T value)  设置当前线程绑定的局部变量
         public void set(T value) {
 
@@ -33,11 +33,6 @@
             createMap(ThreadLocal t,T value)传；相当于每个线程里面都维护着一个独立的ThreadLocalMap
             设置值的时候，会根据int i = key.threadLocalHashCode & (len-1)计算出这个值将放入数组中的哪个索引里面
         private void set(ThreadLocal<?> key, Object value) {
-
-                    // We don't use a fast path as with get() because it is at
-                    // least as common to use set() to create new entries as
-                    // it is to replace existing ones, in which case, a fast
-                    // path would fail more often than not.
 
                     Entry[] tab = table;
                     int len = tab.length;
@@ -67,7 +62,7 @@
 
     //这时候会找到当前线程，然后找到当前线程维护的map，然后根据通过下面的方法找到值
     private Entry getEntry(ThreadLocal<?> key) {
-    //因为key.threadLocalHashCode设置值的时候以及赋值，并且时final修饰的，所以这时候值是之前的赋值，确定的不变的，所以找到的
+    //因为key.threadLocalHashCode设置值的时候已经赋值，并且时final修饰的，所以这时候值是之前的赋值，确定的不变的，所以找到的
         索引也是之前赋值时获得索引
         int i = key.threadLocalHashCode & (table.length - 1);
         Entry e = table[i];

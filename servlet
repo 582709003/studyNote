@@ -6,7 +6,7 @@
         3)在servlet规范中，指定了Http服务器管理动态资源文件实例对象(实现servlet的类实例对象)规则
     3、servlet接口实现类
         1、servlet接口来自于servlet规范下的一个接口，这个接口存在于我们当前的http服务器提供的jar包中
-        2、Tomcat服务器下lib文件下有一个servlet-api.jar存放servlet接口
+        2、Tomcat服务器下lib文件下有一个servlet-api.jar存放了servlet接口
         3、在servlet规范中，在http服务器能调用的动态资源文件必须是一个servlet接口的实现类
             class student{
                 //因为没有实现servlet，所以tomcat无权调用这个动态资源文件
@@ -18,7 +18,8 @@
 
 二、servlet接口实现类的开发步骤
     1、只有作为接口的实现类才有资格作为动态资源文件
-        1、创建一个java类继承与HttpServlet父类(之所以没有直接实现Servlet，是因为这样降低了实现的难度，这里面我们最需要的就是service方法
+        1、创建一个java类继承与HttpServlet父类(之所以没有直接实现Servlet，是因为这样降低了实现的难度，
+        这里面我们最需要的就是service方法
         ，其他方法都对servlet实现类没啥用，所以继承HttpServlet，其他四个方法它已经实现了)，使之成为Servlet接口实现类
         2、重写HttpServlet类中的两个方法，doget,dopost
         3、将servlet接口实现类的信息注册到tomcat服务器
@@ -67,18 +68,23 @@
              4)开发人员习惯于将HttpservletResponse接口修饰的对象称为响应对象
         2、主要功能
                1)将执行结果以二进制的形式写入到响应体中
-                2)设置响应头中的content-type属性值，从而控制浏览器使用对应编译器将响应体二进制数据编译为 文字、图片、视频、命令
+                2)设置响应头中的content-type属性值，从而控制浏览器使用对应的编译器将响应体二进制数据编译为 文字、图片、视频、命令
                 通过响应对象获得输出流使用后不需要我们手动关闭，因为这不是我们自己创建的，而是我们和tomcat要的；
                通过响应对象，向tomcat索要输出流；通过输出流，将执行结果以二进制的形式写入到响应体；tomcat将响应体包推给浏览器;
-                如果执行结果是int类型时，out.write方法会把int当作ASCLL码，从而导致浏览器上出现的结果是ascll码对应的字符串；解决方法：实际开发过程中都是用out.print方法，就当没有write方法，以后都用print方法
-               当执行结果是字符串并且字符串是含有html指令来处理的情况，原因：浏览器接收到响应包之后，根据响应头中的content-type属性值，来采用对应的浏览器编译器对响应体中的二进制的响应结果进行编译处理；默认情况下，content-type默认值是text；此时浏览器将用文本编译器对响应体中的二进制数据进行解析；
-               解决方案：一定要在得到输出流之前，通过响应对象对响应头中的content-type属性进行一次重新的赋值，用于指定浏览器采用正确的编译器；例：Content-type:text/html;charset=utf-8
+                如果执行结果是int类型时，out.write方法会把int当作ASCLL码，从而导致浏览器上出现的结果是ascll码对应的字符串；
+                解决方法：实际开发过程中都是用out.print方法，就当没有write方法，以后都用print方法
+               当执行结果是字符串并且字符串是含有html指令来处理的情况，原因：浏览器接收到响应包之后，根据响应头中的content-type
+               属性值，来采用对应的浏览器编译器对响应体中的二进制的响应结果进行编译处理；默认情况下，content-type默认值是text；
+               此时浏览器将用文本编译器对响应体中的二进制数据进行解析；
+               解决方案：一定要在得到输出流之前，通过响应对象对响应头中的content-type属性进行一次重新的赋值，
+               用于指定浏览器采用正确的编译器；例：Content-type:text/html;charset=utf-8
 
               3)设置响应头中的location属性，将一个请求地址赋值给location，从而控制浏览器像指定的服务器发送请求
                 通过响应对象，将地址赋值响应头中的location属性
                 response.sendRedirect("www.baidu.com");
-                浏览器接收到响应包后，发现响应头中存在location属性，自动通过地址栏向location指定网站发送请求；sendRedirect方法远程控制浏览器请求行为【请求地址，请求方式，请求参数】
-                注意：如果由响应内容就用输出流，如果没有响应内容而只是要重定向，就用response.sendRedirect；
+                浏览器接收到响应包后，发现响应头中存在location属性，自动通过地址栏向location指定网站发送请求；
+                sendRedirect方法远程控制浏览器请求行为【请求地址，请求方式，请求参数】
+                注意：如果有响应内容就用输出流，如果没有响应内容而只是要重定向，就用response.sendRedirect；
 
 五、HttpservletRequest
         1、介绍
@@ -93,7 +99,8 @@
                2)可以读取保存在http请求协议包中请求头/请求体中的请求参数信息
                 问题：以get方式返送中文参数内容，服务端获取的是正常的内容，但是以post方式发送中文参数内容后台出现乱码
                  原因：浏览器以get方式发送请求，请求参数保存在请求头中的，当http请求协议包到达http服务器之后，
-                        第一件事就是解码，请求头中的二进制的内容是由tomcat负责解码，tomcat9.0默认使用utf-8解码，可以解释一切国家的文字
+                        第一件事就是解码，请求头中的二进制的内容是由tomcat负责解码，tomcat9.0默认使用utf-8解码，可以解释
+                        一切国家的文字；
                       浏览器以post方式发送请求，请求参数保存在请求体中的，当http请求协议包到达http服务器之后，第一件事就是解码，
                        请求体中的二进制的内容是由当前请求对象request负责解码，request默认使用iso8859-1解码，此时如果请求参数中有中文，
                        将无法解码只能得到乱码
@@ -121,12 +128,15 @@
     4、设置自己网站的默认欢迎资源文件规则
         1)设置规则位置：网站/web/web.xml
         2)<welcome-file-list>
-            <welcome-file>index.html</welcome-file>
+            <welcome-file>index.html</welcome-file>   就在webapps路径下
             <welcome-file>index.htm</welcome-file>
-            <welcome-file>one</welcome-file>  //默认资源文件不仅仅可以是静态的也可以是servlet，用别名，servlet作为默认欢迎资源时，开头的斜杠波许抹掉
+            <welcome-file>/one</welcome-file>  //默认资源文件不仅仅可以是静态的也可以是servlet，用别名；servlet作为默认欢迎资源时，开头的斜杠不许抹掉
          </welcome-file-list>
 
-         (http://localhost:8080/  这样访问tomcat时，会默认访问tomcat下的ROOT文件夹下的欢迎页面；)
+         (http://localhost:8080/  这样访问tomcat时，会默认访问tomcat下的ROOT文件夹下的欢迎页面；（这里是指手动启动tomcat
+         而不是基于idea）)
+
+tomcat服务器的首页里面点击Manager App进入能看见所有的应用，账号root 密码582709
 
 八、http状态码
     1、分类
@@ -154,7 +164,7 @@
     1)重定向解决方案
         response.sendRedirect   请求方式肯定是get方式
         请求地址：既可以把当前网站内部资源文件地址发送给浏览器，也可以把其他网站的资源文件发送给浏览器
-        缺点：重定向解决方案需要在浏览器在服务器之间进行多次往返，大量时间消耗在往返次数上，增加用户等待时间
+        缺点：重定向解决方案需要在浏览器和服务器之间进行多次往返，大量时间消耗在往返次数上，增加用户等待时间
     2)请求转发解决方案
         1)原理：通过当前请求对象代替浏览器向Tomcat发送请求，申请调用下一个servlet
         2)实现命令：
@@ -162,6 +172,12 @@
         RequestDispatcher requestDispatcher = request.getRequestDispatcher("/资源文件名");不要写网站名//一定要以“/”开头
         //将报告对象发送给tomcat
         requestDispatcher.forward(request,response);
+
+        forward与include的区别主要是标准输出流的开启时间,forward时原servlet里的response和转发后的servlet里的response是同一个对象；
+                但是include转发时，转发之后进入的servlet里的response和之前的servlet里的response不是同一个对象
+        forward：说明当前的请求还未结束，需要继续向前，所以服务器就不会在这里先打开标准输出流，所以在forward之前往输出流
+                里写的数据是不会写入到浏览器的；
+        include:此时已经打开了输出流，但是它也将转发后的servlet里的响应数据也写到了转发前的servlet里的响应流里
 
     3)优点：servlet之间的调用都是发生在服务端的计算机上，节省服务端与浏览器之间的往返次数
       请求地址：只能向tomcat服务器申请调用当前网站下的资源文件地址
@@ -195,16 +211,18 @@
         1)在HTTP服务器启动过程中会自动的为这个网站在内存中创建一个全局作用域对象
         2)在http服务器运行期间时，一个网站只有一个全局作用域对象
         3)在HTTP服务器运行期间，全局作用域一直处于存活状态
-        4)在HTTP服务器准备关闭时，负责将当前网站中额全局作用域对象进行销毁处理
+        4)在HTTP服务器准备关闭时，负责将当前网站中的全局作用域对象进行销毁处理
 
 十二、cookie
     cookie 是servlet规范中的一个工具类，存在于servlet-api. jar包中
     如果两个servlet 来自于同一个网站并且为同一个浏览器/用户服务借助于cookie对象进行数据共享
-    coo kie存放当前用户的私人数据，在共享数据过程中提高服务质量
-    cookie只存放在请求头中，以及响应头中，cookie相当于一个map一个cookie中只能存放一个键值对，key和value必须是string，key不能是中文
+    cookie存放当前用户的私人数据，在共享数据过程中提高服务质量
+    cookie只存放在请求头中，以及响应头中，cookie相当于一个map，一个cookie中只能存放一个键值对，key和value必须是string，
+    key不能是中文
     cookie销毁时机：
         1、默认情况下，cookie对象只要浏览器关闭，就会销毁
-    - 2、在手动设置情况下，可以要求浏览器将收到的cookie存放在客户端的计算机硬盘上，同时指定在硬盘上的存活时间，在存活时间内，关闭浏览器，客户端计算机以及服务器都不会导致cookie销毁，在存活时间到达时，cookie自动从从硬盘上被销毁
+    - 2、在手动设置情况下，可以要求浏览器将收到的cookie存放在客户端的计算机硬盘上，同时指定在硬盘上的存活时间，在存活时间内，
+    关闭浏览器，客户端计算机以及服务器都不会导致cookie销毁，在存活时间到达时，cookie自动从从硬盘上被销毁
 
 
 
@@ -267,8 +285,9 @@
         2)拦截HTTP服务器，对当前请求进行增强操作
     3、Fileter接口实现类开发步骤
         1)创建一个Java类实现Filter接口
-        2)重写Filter中的doFilter方法，在到达servlet之前可能由很多过滤器，那么就要把所有doFilter方法走完才能到达servlet的doget
-        dopost方法
+        2)重写Filter中的doFilter方法，在到达servlet或静态资源之前可能由很多过滤器，那么就要把所有doFilter方法走完才能
+        到达servlet的doget
+        dopost方法或静态资源
         3)在web.xml文件中将接口实现类注册到HTTP服务器
     4、生命周期
         实例化---初始化---diFilter---销毁，生命周期过程中，均由web服务器负责管理
@@ -293,8 +312,14 @@
                  <url-pattern>/*</url-pattern>  注意：/* 表示当前servlet可以匹配所有请求，可以拦截所有请求
                                                      请求，无论动态资源还是静态资源;
                                                      /  不会拦截动态资源请求，既不会拦截对于jsp的请求；但会拦截静态资源请求
+                                                1、精确匹配：/pic/a.jsp  直接拦截指定的请求
+                                                2、路径匹配：/pic/*      拦截pic下的所有请求
+                                                3、*.jsp:拦截所有以jsp结尾的请求
+                                                /pic/*.jsp  这样是不可以的，不符合以上三种匹配模式
+
                  //可以不指定url-pattern，但需要指定<servlet-name>，即当前拦截器只拦截对指定的servlet的请求
                  <servlet-name>oneservlet</servlet-name>
+
                  //FORWARD:表示当前过滤器只会拦截有一个Servlet通过RequestDispatcher的forward完成的跳转
                  //INCLUDE:表示当前过滤器只会拦截有一个Servlet通过RequestDispatcher的include完成的跳转
                  //ERROR:表示当跳转到指定错误页面时，这个跳转请求会被当前过滤器拦截
@@ -304,15 +329,43 @@
              </filter-mapping>
                 默认情况下，请求转发时是不会被拦截器拦截的；
 
+        过滤器对编码的校正只对get请求方式有效
+
+装饰者设计模式
+    能够在不修改目标类也不继承的情况下，动态扩展一个类的功能，他是通过扩展一个包装对象，也就是装饰者来达到增强目标类的目的；
+
+    装饰者设计模式的实现有两个要求
+    1、装饰者类与目标类要实现相同的接口或继承自相同的抽象类
+    2、装饰者中要有目标类的引用作为成员变量，而具体的赋值一般通过带参构造器完成
+        这两个要求的目的是，在装饰者类中的方法可以调用目标类中的方法，以增强这个方法，而增强这个方法是通过重
+        写的方式进行增强，所以要求实现相同的接口或继承相同的抽象类
+
+        装饰者父类
+            要求1：要有无参构造器
+            要求2：不对目标方法进行任何增强
+        具体装饰者
+            继承自装饰者父类；要由带参构造器，参数是接口；具体装饰者只对装饰者父类业务方法进行某一种增强
+
 
 
         请求和响应都会经过过滤器
+一般情况下，一次请求只会经过过滤器来回一次，但是由于不同的容器版本等原因，其实不一定时只经过一次，所以为了解决这个问题，
+spring为我们封装了一个类OncePerRequestFilter，这个类帮我们解决了这个问题，我们只需要实现了里面的doFilterInternal方法即可；
+一般情况下我们自定义的过滤器最好继承这个类以实现一次请求只会经过过滤器来回一次的目的；
+            SomeServiceWapper装饰者父类
+
+        ISomeService iSomeService = new SomeService();//iSomeService：要增强的目标类对象
+        ISomeService iSomeService2 = new TrimDecorator(iSomeService);//TrimDecorator：对需要增强的目标类如何增强的实现类
+        String s = iSomeService2.doSome();
+        System.out.println(s);
 
 
 tomcat 的真正启动是在 catalina.bat 设置并启动的。startup.bat 只是找到catalina.bat 然后执行catalina.bat 来启动tomat的，
 现在安装tomcat的时候不需要配置catalina-home，因为在catalina. bat命令行里已经配置了相关参数
 
 打印war包后直接放到tomcat下并启动后会自动解压
+
+DNS：域名解析服务，就是将域名和ip进行映射的服务，而提供这种服务的服务器称为DNS服务器
 
 域名代表的是一个服务器的虚拟主机
 域名解析服务是一级一级找的 先从自己的电脑上的host文件找域名映射，找不到然后道当前运营商的域名解析服务找映射，
@@ -322,11 +375,77 @@ tomcat 的真正启动是在 catalina.bat 设置并启动的。startup.bat 只�
 浏览器在请求服务器时如果请求地址中没有写端口号，浏览器默认访问80端口号，所以可以将服务器中的connector中的端口号改为80来适应
 浏览器的要求，这样可以实现只输入域名不用写端口号就可以访问应用
 
-tomcat指定虚拟主机的默认应用可以讲应用名改为Root
-修改host文件时先讲host文件复制出来修改完再粘回去
+server.xml解析
+<?xml version="1.0" encoding="UTF-8"?>
+
+ <!--只有一个server -->
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <!--APR library loader. Documentation at /docs/apr.html -->
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+
+  <GlobalNamingResources>
+    <Resource name="UserDatabase" auth="Container"
+              type="org.apache.catalina.UserDatabase"
+              description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+              pathname="conf/tomcat-users.xml" />
+  </GlobalNamingResources>
+
+   <!--像这样的service可以有多个，如果浏览器想使用这个服务，那么就要使用连接器Connector，所以浏览器输入这个端口号 -->
+  <Service name="Catalina">
+	<!--连接器，协议是http协议 -->
+    <Connector port="8080" protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="8443" />
+
+    <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+
+	<!--连上服务之后，如何提供服务呢，那么就通过服务引擎，通过服务引擎提供服务，这个引擎在文件夹上的体现就是
+	apache-tomcat-8.5.24\conf\Catalina这个文件夹，删掉会自动创建，这个文件夹下面辉仔顶创建主机以及虚拟主机的文件夹;
+	 defaultHost="localhost" 如果有主机和多个虚拟主机，那么这是会默认访问localhost这个主机-->
+    <Engine name="Catalina" defaultHost="localhost">
+		   <!--用来安全管理的-->
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+               resourceName="UserDatabase"/>
+      </Realm>
+
+		<!--为什么开发的时候把应用放到webapps里面，就是因为appBase="webapps"指定好了；unpackWARs="true" 自动解压war包；autoDeploy="true" 自动部署，war包放到运行着的服务器中时，war包自动部署了，无需重新启动服务器-->
+      <Host name="localhost"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true">
+
+			<!--docBase="d:/course/myWeb" 虚拟目录，作用就像webapps这个应用目录，里面放着应用；path="/xxx" 应用路径，
+			URI -->
+			<!--<context path="/xxx" docBase="d:/course/myWeb" />	   -->
+
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+               prefix="localhost_access_log" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+
+      </Host>
+	  <!--虚拟主机name其实对应了域名，但是域名如果没有对应的虚拟主机，则会找defaultHost -->
+	  <Host name="eureka3000.com"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true">
+		</Host>
+    </Engine>
+  </Service>
+</Server>
+
+
+tomcat指定虚拟主机的默认应用可以将应用名改为Root
+修改host文件时需要先将host文件复制出来修改完再粘回去，不然即使在host文件中修改了也不会让你保存
 Servlet是单例的
 servlet中有个方法getservletinfo，这个方法一般可以在里面返回一些说明性文字，譬如版本，作者
-ServletConfig类可以看做是web. xml中的一个servlet的类，见下，当访问一个servlet时，会将访问的这个servlet抽象成一个对象，这个类里面有几个方法，其中getinitParaName返回的是servlet配置文件web. xml中init-param里面的值
+ServletConfig类可以看做是web. xml中的一个servlet的类，见下，当访问一个servlet时，会将访问的这个servlet抽象成一个对象，
+这个类里面有几个方法，其中getinitParaName返回的是servlet配置文件web. xml中init-param里面的值
 一个servlet肯定是对应一个servletConfig
 <servlet>
         <servlet-name>MyServlet</servlet-name>
@@ -343,13 +462,14 @@ GenericServlet这个抽象类里面的init方法为什么会有一个重载
 
 浏览器只接收iso8859-1的字节型编码，而不接收utf-8的字符型编码，先这样记着，后面相关知识点会继续更新
 
-servlet3.0三大组件时使用注解，而不用在web. xml种进行注册
-    servlet3.0是没有web. xml文件的，贵规范允许了在定义servlet. FIlter. LIstener，方法都是在相应的组件上使用注解@webservlet.  @webFIlter  @webListener
+servlet3.0三大组件使用注解，而不用在web. xml中进行注册
+    servlet3.0是没有web. xml文件的，该规范允许了在定义servlet. FIlter. LIstener，方法都是在相应的组件上使
+    用注解@webservlet.  @webFIlter  @webListener
 
 注册servlet
-    1、若对于servlet 采用了两种方式同时进行注册，泽需要注意
+    1、若对于servlet 采用了两种方式同时进行注册，则需要注意
      1、若两方式的url-pattern值相同，则应用无法启动
-   2、瑞两种方式的url-pattern值不同，那么相当于该servlet具有两个url-pattern值
+   2、若两种方式的url-pattern值不同，那么相当于该servlet具有两个url-pattern值
   若对filter进行两种方式进行注册
 无论url-pattern的值是否相同，其都作为两个独立Filter进行注册
 
@@ -422,3 +542,6 @@ servlet3.0的三大组件的动态注册
 filter以及listener动态添加的步骤类似吗、，都是用ServletContextListener
 
 
+servlet的线程安全问题
+    因为servlet时单例多线程的，所以有可能出现线程安全问题，为了避免此类问题的发生，对于servlet的使用，
+    一般不声明成员变量，若必须声明成员变量，那么只能通过线程同步机制syncronized来避免。

@@ -1,5 +1,5 @@
 hashMap的并发问题
-    当两个线程使用同一个hashmap对象，并发的区put值，key不同的情况下，获得的hashcode肯定不同，
+    当两个线程使用同一个hashmap对象，并发的去put值，key不同的情况下，获得的hashcode肯定不同，
     但是最后放入到表中的索引的计算方法(tab.length - 1) & hash 有可能得到相同的索引，这样就会发生
     不同的key在并发情况下都放到同一个索引里，也就是可能发生覆盖情况。
 
@@ -25,13 +25,13 @@ concurrentHashMap
                     //这是原子操作
                     if (casTabAt(tab, i, null,
                         new Node<K,V>(hash, key, value, null)))
-                    break;                   // no lock when adding to empty bin
+                        break;                   // no lock when adding to empty bin
                 }
                 //判断表格是否在扩容
                 else if ((fh = f.hash) == MOVED)
                     tab = helpTransfer(tab, f);
                 else {
-                //判断是往链表里添加节点数据还是往红黑树里添加数据
+                //这里是在某个数组索引上有了节点，此时通过锁同步往链表添加数据；判断是往链表里添加节点数据还是往红黑树里添加数据
                     V oldVal = null;
                     synchronized (f) {
                         if (tabAt(tab, i) == f) {

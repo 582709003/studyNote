@@ -1,0 +1,262 @@
+为什么使用lambda表达式
+    Lambda是一个匿名函数，我们可以把Lambda表达式理解为是一段可以传递的代码
+    (将代码像数据一样可以传递)，可以写出更简洁灵活的代码;
+
+lambda表达式的基础语法(其实lambda是函数式接口中的抽象方法中的实现体)
+    1、java8引入了一个新的操作符"->"，该操作符称为箭头操作符或lambda操作符
+        箭头操作符将lambda表达式拆分成两部分左侧、右侧
+        左侧：lambda表达式的参数列表，接口中抽象方法的参数，带括号
+        右侧：lambda表达式所需执行的功能，即lambda体，此抽象方法的实现体
+
+        以下语法格式基础是，接口是函数式接口
+        语法格式一：无参且无返回值
+           例：Runnable r = () -> System.out.println("hello lambda");
+
+        语法格式二：一个参数且无返回值
+            例：Consumer<String> c = (x) -> System.out.println(x);
+
+        语法格式三：如果只有一个参数，那么括号可以不写
+            例：Consumer<String> c = x -> System.out.println(x);
+
+        语法格式四：lambda体中有多条语句
+                多条语句的话必须用大括号括起来
+            例：Comparator<Integer> com = (x,y) -> {
+                  System.out.println("函数式接口");
+                  return Integer.compare(x,y);
+               };
+
+        语法格式五：有返回值且lambda体中只有一条语句，return和大括号都可以省略不写
+             例：Comparator<Integer> com = (x,y) -> Integer.compare(x,y);
+
+        语法格式六：lambda表达式的参数列表的数据类型可以写，也可以省略不写，因为jvm编译器可以通过上下文推断出数据类型，即类型推断
+             例：Comparator<Integer> com = (Integer x,Integer y) -> Integer.compare(x,y);
+
+        总结：左右遇一(左：参数，右：语句)括号省，左侧推断类型省
+
+lambda表达式需要"函数式接口"的支持
+    函数式接口：1、@FunctionalInterface该注解只能标记在"有且仅有一个抽象方法"的接口上。
+              2、JDK8接口中的静态方法和默认方法，都不算是抽象方法。
+              3、接口默认继承java.lang.Object，所以如果接口显示声明覆盖了Object中方法，那么也不算抽象方法。
+              4、该注解不是必须的，如果一个接口符合"函数式接口"定义，那么加不加该注解都没有影响。加上该注解能够更好地让
+              编译器进行检查。如果编写的不是函数式接口，但是加上了@FunctionInterface，那么编译器会报错。
+
+java8内置的四大核心的函数式接口
+    Consumer<T>：消费型接口 void accept(T t);
+
+    Supplier<T>：供给型接口 T get();
+
+    Function<T,R>:函数型接口  R apply(T t);
+
+    Predicate<T>: 断言型接口  boolean test(T t);
+
+    还有一些内置接口，看截图
+
+方法引用：若lambda体中的内容有方法已经实现了，我们可以使用"方法引用"
+        （可以理解为方法引用是 lambda表达式的另外一种表现形式）
+
+     主要有三种表达形式
+     1、对象::实例方法名(是名字，不需要括号以及参数),其实这些都是函数式接口中的抽象方法中的实现体
+     2、类::静态方法名(是名字，不需要括号以及参数),其实这些都是函数式接口中的抽象方法中的实现体
+     3、类::实例方法名(是名字，不需要括号以及参数)，这个有点不一样
+
+     注意：1、之前lambda方法体中的内容是我们自己实现，但是我们发现有方法已经实现了，那我们就可以把那个方法引用过来，所以此时
+                这个方法的参数以及返回值必须得是和当前这个抽象方法的参数和返回值一样才可以引用
+          2、若Lambda参数列表中的第一参数是实例方法的调用者，而第二个参数是实例方法的参数时,可以使用className::method
+                例子： MyInterface<String> myInterface = String::equals;
+                      System.out.println(myInterface.test("1","2"));
+
+                    public interface MyInterface<T> {
+                        boolean test(T o1, T o2);
+                    }
+构造器引用：
+    格式： ClassName::new
+    首先要保证调用的构造器的参数列表与函数式接口中抽象方法参数列表保持一致,其实这些都是函数式接口中的抽象方法中的实现体
+
+数组引用
+    Type[]::new;
+
+
+强大的Stream API
+   流到底是什么？
+    是数据渠道，用于操作数据源(集合、数组等)所生成的元素序列。集合讲的是数据，流讲的是计算！
+    1、Stream 自己不会存储元素
+    2、Stream 不会改变源对象。相反，他们会返回一个持有结果的新Stream
+    3、Stream 操作时延迟执行的。这意味着他们会等到需要结果的时候才执行
+
+  Stream的三个操作步骤
+    1、创建Stream
+                //1、可以通过Collection系列集合提供的stream()或parallelStream()
+                List<String> list = new ArrayList<>();
+                Stream<String> stream = list.stream();
+
+                //2、通过Arrays中的静态方法stream()获取数组流
+                String[] str = new String[2];
+                Stream<String> stream1 = Arrays.stream(str);
+
+                //3、通过stream类中的静态方法 of()
+                Stream<String> aa = Stream.of("aa", "bb", "cc");
+
+                //4、创建无线流
+                    //迭代
+                Stream<Integer> iterate = Stream.iterate(0, (x) -> x + 2);
+                iterate.limit(10).forEach(x -> System.out.println(x));
+
+                //5、生成
+                Stream.generate(() -> Math.random()).limit(5).forEach(System.out::println);
+    2、中间操作
+        多个中间操作可以 连接起来形成一个流水线，除非流水线上触发终止操作，
+        否则中间操作不会执行任何的处理，而在终止操作时一次性全部处理，称为“惰性求值”；
+
+        内部迭代：迭代操作是由Stream API完成，是短路迭代，不需要迭代所有的，满足条件后,譬如limit(3),
+        数目等于3后就不会继续迭代，停止迭代
+    3、终止操作（终端操作）
+        终止操作时一次性全部处理，称为“惰性求值”
+
+映射
+    map-接收Lambda，将元素转换成其他形式或提取信息，接收一个函数作为参数，该函数会被应用到每个元素上，并将其映射成一个新的元素。
+        例子： List<String> list2 = Arrays.asList("aaa","bbb","ccc","ddd","eee");
+              list2.stream().map((x) -> x.toUpperCase()).forEach(System.out::println);
+              结果：
+                AAA
+                BBB
+                CCC
+                DDD
+                EEE
+    flatMap-接收一个函数作为参数，将流中的每个值根据函数转换成另一个流，然后把所有流连接成一个流。
+        例子：List<String> list2 = Arrays.asList("aaa","bbb","ccc","ddd","eee");
+             Stream<Character> characterStream = list2.stream().flatMap(LambdaTest::filterCharacter);
+             characterStream.forEach(x -> System.out.println(x));
+
+            public  static  Stream<Character> filterCharacter(String str){
+                    List<Character> list2 = new ArrayList<>();
+                    char[] chars = str.toCharArray();
+                    for (int i = 0; i < chars.length; i++) {
+                        list2.add(chars[i]);
+                    }
+                    return list2.stream();
+                }
+
+                结果：
+                    a
+                    a
+                    a
+                    b
+                    b
+                    b
+                    c
+                    c
+                    c
+                    d
+                    d
+                    d
+                    e
+                    e
+                    e
+
+    排序
+        sorted() 自然排序
+            list2.stream().sorted().forEach(x -> System.out.println(x));
+
+        sorted(Comparator com) 定制排序
+
+    查找与匹配
+        allMatch-检查是否匹配所有元素
+        anyMatch-检查是否至少匹配一个元素
+        noneMatch-检查手否没有匹配所有元素
+        findFirst-返回第一个元素
+        findAny-返回当前流中任意的元素
+        count-返回流中元素的总个数
+        max-返回流中最大值
+        min-返回流中最小值
+
+    归约
+        reduce(T identity,BinaryOperator) / reduce(BinaryOperator)  --可以将流中元素反复结合起来，得到一个值
+            List<Integer> ins = Arrays.asList(1,2,3,4,5,6,7);
+                    Integer reduce = ins.stream().reduce(0, (s, y) -> s + y);
+                    System.out.println(reduce);
+                    结果：28
+
+    收集
+        collect--将流转换为其他形式，接收一个Collector接口的实现，用于给Stream中元素做汇总的方法。
+                具体实现的功能要看Collectors的调用方法
+            List<Integer> ins = Arrays.asList(1,2,3,4,6,6,7);
+            Set<Integer> collect = ins.stream().collect(Collectors.toSet());
+            collect.forEach(System.out::println);//实现了Iterable接口的也可以进行这种迭代了
+
+
+并行流和串行流
+    parallel--并行流
+    sequential--串行流
+            Instant start = Instant.now();
+            LongStream.rangeClosed(0,100000000000L)//生成0到100000000000L之间的所有连续的数字
+                      .parallel()//并行流的形式处理数据
+                      .reduce(0,Long::sum);//归约
+            Instant end = Instant.now();
+            System.out.println("耗费时间：" + Duration.between(start,end).toMillis());
+
+
+Optional类
+    Optional<T> 类是一个容器类，代表一个值存在或不存在，原来用null表示一个值不存在，现在Optional可以更好的表达这个
+    概念，并且可以避免这个空指针异常；
+
+    常用方法：
+        Optional.of(T t):创建一个Optional实例，为空的话会报java.lang.NullPointerException
+        Optional.empty()：创建一个空的Optional实例
+        Optional.ofNullable(T t)：若t不为null，创建Optional实例，否则创建空实例
+            Optional<Person> op = Optional.ofNullable(null);
+            Person person = op.get();//报 java.util.NoSuchElementException: No value present
+            System.out.println(person);
+        isPresent()：判断是否包含值
+        op.orElse(T t)：如果调用对象包含此前对象的值，返回该值，否则返回新建的对象实例t
+        orElseGet(Supplier s)：如果调用对象包含值，返回该值，否则返回s获取的值
+        map(Function f)：如果有值对其处理，并返回处理后的Optional，否则返回Optional.empty()
+        flatMap(Function mapper)：与map类似，要求返回值必须是Optional
+
+接口中新增的默认方法与静态方法
+    实现default关键字修饰默认方法;
+    接口默认方法的“类优先”原则
+        若一个接口中定义了一个默认方法，而另外一个父类或接口中又定义了一个同名的方法时
+        1、选择父类中的方法。如果一个父类提供了具体的实现，那么接口中具有相同名称和参数的默认方法会被忽略；
+        2、接口冲突：如果一个父接口提供一个默认方法，而另一个接口也提供了一个具有相同名称和参数的方法（不管方法
+            是否是默认方法），那么子类必须重写方法来解决冲突
+
+  静态方法就和正常的静态方法一样使用，接口名+静态方法
+
+
+新时间日期API
+    使用localDate、localTime、localDateTime
+    这些类的实例是不可变对象(final修饰的类，属性也是final修饰的)，分别表示使用ISO-8601日历系统的日期、时间、日期和时间。
+
+    Instant:时间戳（以UNIX元年：1970年1月1日00:00:00到某个时刻之间的毫秒值）
+
+    Duration：计算两个时间之间的间隔
+
+    Period:计算两个日期之间的间隔
+
+    TemporalAdjuster:时期校正器.有时我们可能需要获取例如：将日期调整到“下个周日”等操作
+
+    TemporalAdjusters：该类通过静态方法提供了大量的常用TemporalAdjuster的实现
+        LocalDateTime with = localDateTime.with(TemporalAdjusters.firstDayOfMonth());//这边的with可以理解为指定
+                System.out.println(with);
+
+    DateTimeFormatter:格式化时间/日期 作用类似于simpleDateFormat
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_DATE;
+        LocalDateTime localDateTime1 = LocalDateTime.now();
+        String format = dateTimeFormatter.format(localDateTime1);
+        System.out.println(format);
+
+    java8中加入了对时区的支持，带时区的时间分别为：
+    ZonedDate、ZonedTime、ZonedDateTime
+    其中每个时区都对应着ID，地区ID都为“{区域}|{城市}”的格式
+    例如：Asia/Shanghai
+    zoneId：该类中包含了所有的时区信息
+    getAvaliableZoneIds():可获取所有时区信息
+    of(Id):用指定的时区信息获取zoneId对象
+    Set<String> availableZoneIds = ZoneId.getAvailableZoneIds();
+    availableZoneIds.forEach(x -> System.out.println(x));
+    结果：
+        Europe/Athens
+        US/Pacific
+        Europe/Monaco  等等有很多
+    LocalDateTime now = LocalDateTime.now(ZoneId.of("America/Cuiaba"));
+    System.out.println(now);

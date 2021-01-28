@@ -13,8 +13,8 @@ Java程序的运行需要经过编译阶段以及执行阶段
 
 jdk、jre、jvm三者关系
     首先jdk和jre是独立的两个东西，两者可以独立下载安装
-    jdk是程序开发包，程序员需要使用里面的各种包工具进行开发，如果仅仅是为了开发但是你不需要测试就只安装jdk即可，但是程序员是不可能
-    不运行程序的，所以一般下载安装jdk时会默认下载安装jre；
+    jdk是程序开发包，程序员需要使用里面的各种包工具进行开发，如果仅仅是为了开发但是你不需要测试就只安装jdk即可，
+    但是程序员是不可能不运行程序的，所以一般下载安装jdk时会默认下载安装jre；
     jre：这个是运行时环境，类加载器就是jre提供的，一般会在下载jdk时自动下载这个jre，但如果不要jdk可以单独安装；
     jvm：这个就是安装jre最大的用处，jvm不可以单独下载安装，jvm是jre的一个功能；
     在安装jdk时会问你要不要再安装jre，你也可以选择不安装，因为你的额jdk下已经有了jre；
@@ -27,7 +27,8 @@ jdk、jre、jvm三者关系
     系统变量和用户变量的区别
         系统变量配置的话会作用整个系统，不区别哪个用户；用户变量会作用于这个用户；
 
-    springboot项目，一般springboot项目里classpath目录指的是resources文件夹，src目录下的main，编译后它下面的内容会被放到classpath下
+    springboot项目，一般springboot项目里classpath目录指的是resources文件夹，src目录下的main，
+    编译后它下面的内容会被放到classpath下
 
 注释
     javadoc注释
@@ -80,7 +81,7 @@ public class和class的区别
             char
 83
 64 32 16 8 4 2 1
-1   0  1  0 0 1 1
+1  0  1  0 0 1 1
     字符串不属于基本数据类型，属于引用类型，字符属于基本数据类型
 
     基本数据类型               占用空间大小(单位：字节)
@@ -169,7 +170,7 @@ public class和class的区别
 
 
    基本数据类型之间的相互转换
-        1、八种借本数据类型除布尔类型外，其他都可以相互转换
+        1、八种基本数据类型除布尔类型外，其他都可以相互转换
         2、小容量向大容量转换，可自动转换
             byte<short<int<long<float<double
             byte<char<int<long<float<double
@@ -216,7 +217,7 @@ while循环语句可能执行0次；但是do while 最起码执行一次；
 for循环三个表达式中特殊情况
     第二个表达式为空，默认是true，无限循环，除非break；
 break语句使用在for,while,do...while循环语句跳出循环；
-默认情况下，break语句中断的时距离它最近的循环语句;但是也可以给循环语句起名，用来中断指定的循环语句
+默认情况下，break语句中断时距离它最近的循环语句;但是也可以给循环语句起名，用来中断指定的循环语句
            a:for (int j = 0; j < 10; j++) {
                 b:for (int l = 0; l < 5; l++) {
                     System.out.println(l);
@@ -338,7 +339,7 @@ super关键字
             既没有this()有没有super()，默认会有一个super();
             表示通过当前字类的构造器调用父类的无参构造器，
             所以必须保证父类的无参构造器必须存在；
-            super不是引用，也不保存内存地址，也不止像任何对象，他只代表当前对象内部的那一块父类型的特征；
+            super不是引用，也不保存内存地址，也不指向任何对象，他只代表当前对象内部的那一块父类型的特征；
 访问控制权修饰符
     Public  所有地方均可被访问
     protected  同包以及子类可被访问
@@ -377,6 +378,7 @@ ping命令
     运行阶段：动态绑定子类型对象的方法
     多种形态
 
+父类里一定要有无参构造方法
 
 instanceof
     1、可以在运行阶段动态判断引用指向的对象的类型
@@ -571,7 +573,8 @@ StringBuffer()是线程安全的，StringBuilder()是线程不安全的
 StringBuffer底层实际上是一个char数组，往StringBuffer放字符串实际是放到字节数组中
 String在频繁连接字符串时，操作过程是先生成"ab"字符串，在内存中占一个位置，然后在和"c"组成"abc"字符串;
 String s = "a" + "b" + "c";
-//而StringBuffer是一次性生成"abc"字符串，没有中间过渡的字符串；主要是StringBuffer底层的字节数组没有final修饰
+//而StringBuffer是一个个放到字符数组中，最后tostring时将数组中的内容拼接起来然后放到new String()里生成字符串；
+主要是StringBuffer底层的字节数组没有final修饰
 StringBuffer s2 = new StringBuffer();
 s2.append("a");
 s2.append("b");
@@ -633,8 +636,9 @@ Random随机类：
 
 try catch finally 语法中这三个部分，catch和finally都可以单独没有，但是不可以都没有
 
-发生异常时，被try catch finally包裹的方法之后的代码是不会执行的，finally内的代码是必定会执行的，不管有没有发生异常；finally里面的代码执行完后；
-finally后面的代码理论上如果没有抛出异常或者return的话是可以正常执行的，除非try里有异常，或者catch抛出异常或者return，或者finally里return
+发生异常时，被try catch finally包裹的方法之后的代码是不会执行的，finally内的代码是必定会执行的，不管有没有发生异常；
+finally里面的代码执行完后；
+finally后面的代码，理论上如果try没有return，catch抛出异常或者return，或者finally里return的话，是可以正常执行的
 
 
 
@@ -759,7 +763,7 @@ finally后面的代码理论上如果没有抛出异常或者return的话是可�
 
 
 
-        hashMap:底层四哈希表/散列表数据结构，数组初始容量16，扩容银子：0.75，达到75%的时候会开始扩容，扩容最好是2的倍数，可以达到散列分布均匀；非线程安全的；
+        hashMap:底层是哈希表/散列表数据结构，数组初始容量16，扩容因子：0.75，达到75%的时候会开始扩容，扩容最好是2的倍数，可以达到散列分布均匀；非线程安全的；
             哈希表数据结构：是数组和单向链表的结合体；是一个一维数组，这个数组中的每个元素是单向链表；单向链表里的节点有4个属性
                             第一个哈希值（哈希值是key的hashCode()方法执行的结果，哈希值通过哈希算法转换成数组下标）
                             第二个key
@@ -938,11 +942,6 @@ finally后面的代码理论上如果没有抛出异常或者return的话是可�
            乐观锁的实现：
            1：CAS 实现：Java 中java.util.concurrent.atomic包下面的原子变量使用了乐观锁的一种 CAS 实现方式。
            2：CAS可能出现ABA问题，所以加入版本号控制会更好
-
-            作者：bootaiRocketQ
-            链接：https://www.jianshu.com/p/d2ac26ca6525
-            来源：简书
-            著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
 
         class MyThread extends Thread{
             Object o1;

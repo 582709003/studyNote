@@ -44,7 +44,7 @@
                 this.seasonDesc = seasonDesc;
             }
 
-            //默认的枚举类的toString打印出的值是对象名
+            //默认的枚举类的toString打印出的值是对象名称
 
         }
 
@@ -84,3 +84,25 @@
                 }
             };
 
+    OPERATION(0, "操作"),
+    LOGIN(1, "登录");
+
+    private int value;
+    private String desc;
+
+    LogType(int value, String desc) {
+        this.value = value;
+        this.desc = desc;
+    }
+
+    @Override
+    //获取值
+    public Integer getValue() {
+        return this.value;
+    }
+
+    @Override
+    //获取描述
+    public String toString() {
+        return this.desc;
+    }

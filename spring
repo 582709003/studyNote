@@ -1,0 +1,305 @@
+IOC
+    底层原理
+        xml的解析
+        工厂模式
+        反射
+        ioc目的：解耦
+
+        ioc的思想基于IOC容器完成，IOC容器底层就是对象工厂；
+        Spring提供IOC容器实现的两种方式（两个接口）
+        1、BeanFactory
+            IOC容器基本实现，是spring内部的实现接口，不提供开发人员使用；
+            加载配置文件的时候不会创建对象，而是在获取的时候创建对象
+        2、ApplicationContext
+            BeanFactory接口的子接口，提供更多强大的功能，一般开发人员使用；
+            加载配置文件的时候创建对象
+
+    bean管理
+        1、基于xml的创建方式创建对象，默认执行的是无参构造方法
+        2、设置属性的null值
+            <bean id="role" class="com.happiness.com.sjd.common.Role">
+                  <property name="roleDesc">
+                      <null/>
+                  </property>
+              </bean>
+        3、设置属性带有特殊符号值
+            <bean id="role" class="com.happiness.com.sjd.common.Role">
+                    <property name="roleDesc">
+                        <value>
+                            <![CDATA[<<南京>>]]>
+                        </value>
+                    </property>
+                </bean>
+
+             bean可以理解为对象
+
+        4、IOC操作Bean管理(FactoryBean)
+            1、Spring中有两种bean，一种普通的bean，一种是工厂bean(FactoryBean)，这是sping内置的bean
+                1、普通bean：配置文件中配置什么类型返回的就是什么类型
+                2、FactoryBean：在配置文件中定义的bean类型返回的类型不一样
+                    public class MyFactoryBean  implements FactoryBean<Role>{
+                        @Override
+                        public Role getObject() throws Exception {
+                            return new Role();
+                        }
+
+                        @Override
+                        public Class<?> getObjectType() {
+                            return Role.class;
+                        }
+                    }
+
+
+                   ApplicationContext applicationContext = new ClassPathXmlApplicationContext("beans.xml");
+                   MyFactoryBean myFactoryBean = applicationContext.getBean("myFactoryBean", MyFactoryBean.class);
+                   System.out.println(myFactoryBean);
+
+        5、bean的作用域
+            1、在spring中可以设置创建的bean实例是单例的还是多例的
+            2、在spring中，默认情况下创建的实例是一个单例的
+            基于xml文件中可以使用scope属性，值singleton：单例  prototype：多例
+
+        6、bean的生命周期
+            1、生命周期
+                1）通过构造器创建bean实例（无参构造器）
+                2）为bean属性设置值和对其他bean引用（调用set方法）
+                3）调用bean的初始化方法（需要进行配置）
+                4）bean的使用
+                5）当容器关闭的时候，调用bean的销毁方法（需要进行配置）
+            不能是接口以及实现类
+            <bean id="role" class="com.happiness.com.sjd.common.Role" init-method="init"
+                destroy-method="destroy"></bean>
+        7、bean的后置处理器，在初始化方法前后调用
+            生命周期
+                1）通过构造器创建bean实例（无参构造器）
+                2）为bean属性设置值和对其他bean引用（调用set方法）
+                3）把bean实例传递给后置处理器的方法
+                4）调用bean的初始化方法（需要进行配置）（如果没有初始化方法，也会运行后置处理器的方法）
+                5）把bean实例传递给后置处理器方法
+                6）bean的使用
+                7）当容器关闭的时候，调用bean的销毁方法（需要进行配置）
+
+                创建后置处理器(创建对象的过程中会用到后置处理器，和AOP不一样，那是对象创建完毕后，增强对象内某个方法)
+                    1、创建类，实现BeanPostProcessor
+                    2、注册到xml文件中
+                    配置好的后置处理器会作用于spring容器里的所有对象
+
+        8、自动装配
+            当启用扫描的时候会有一个默认的过滤器去扫描bean，但是我们也可以不适用这个默认的过滤器
+            我们可以配置其他的，例如以下，这个过滤器就只会拦截用@Controller的注解的类进行创建bean
+                <context:component-scan base-package="com.happiness.com.sjd" use-default-filters="false">
+                    <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+                    //或者不包含
+                    <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+                </context:component-scan>
+
+        9、基于注解方式实现属性注入
+            1、@AutoWired
+                根据属性类型自动装配
+            2、@Qualifier
+                根据属性名称自动装配；这个注解的使用需要和@Autowired一起使用
+            3、@Resource
+                可以根据类型注入，也可以根据名称注入
+                @Resource这样是根据类型注入
+                @Resource(name="xxx")这样根据名称注入
+            4、@Value
+                普通类型注入
+
+
+    AOP
+        底层原理
+            1、使用动态代理
+        专用术语
+            连接点
+                类里面哪些方法可以被增强，这些方法称为连接点
+            切入点
+                实际被真正增强的方法称为切入点
+            通知（也可以理解为增强）
+                实际增强的逻辑部分称为通知
+                通知类型
+                    前置通知
+                    后置通知@afterReturning 有异常就不执行
+                    环绕通知
+                    异常通知@afterThrowing 有异常就执行
+                    最终通知@after  不管有没有异常都会执行
+            切面
+                这是一个动作：把通知应用到切入点的过程
+        AOP操作
+            1、Spring框架一般都是使用AspectJ实现AOP操作
+                什么是Aspectj
+                    它不是spring的组成部分，独立于AOP，一般把Aspectj和spring框架一起使用，进行AOP操作
+
+            2、切入点表达式
+                execution([权限修饰符][返回类型][类全路径][方法名称]([参数列表]))
+
+    事务（ACID）
+        事务是数据库操作的最基本的单元，逻辑上一组操作，要么成功，如果有一个失败就都失败
+        特性
+            1、原子性
+                要么成功，要么就失败
+            2、一致性
+                操作前后总量不变
+            3、隔离性
+                在多事务操作同一个数据源的时候不会相互影响
+            4、持久性
+                保存在硬盘上
+
+        在spring中进行声明式事务管理，底层使用的是AOP原理
+        spring事务管理API
+        1、提供一个接口，代表事务管理器，这个接口针对不同的框架提供了不同的实现类
+
+        @Transactional参数
+            propagation：事务的传播行为，多“事务方法”（对数据库数据进行变化的操作）之间进行调用，这个过程中事务是如何进行管理的
+            isolation：事务隔离级别；为解决事务的隔离性；
+                不考虑隔离性的话会产生
+                    脏读：
+                    不可重复读：
+                    幻读：
+            timeout：超时时间
+            readOnly：是否只读
+            rollbackFor：回滚，设置出现哪些异常出现回滚
+            noRollbackFor：设置出现哪些异常不出现回滚
+
+    spring5框架自带了通用的日志框架
+        1、spring5已经移除了Log4jConfigListener，官方建议使用Log4j2
+        2、官方框架整合了Log4j2
+        第一步引入jar包
+
+
+spring mvc
+    引入jar包spring-web，这个jar包里面包含了@RequestMapping等一些请求使用到的东西
+    1、表单提交参数到后端时，不管是什么类型的参数，其实提交的都是字符串，然后到后端时通过类型转换器将参数转换成相应类型的数据
+        自定义类型转换器
+        1）、实现convertor接口
+            public class MyConvertor implements Converter<String, Date> {
+                @Override
+                public Date convert(String s) {
+                    return null;
+                }
+
+                @Override
+                public <U> Converter<String, U> andThen(Converter<? super Date, ? extends U> after) {
+                    return null;
+                }
+            }
+        2）、<bean id="myConverter" class="org.springframework.context.support.ConversionServiceFactoryBean">
+                  <property name="converters">
+                      <set>
+                          <bean class="com.happiness.com.sjd.convertor.MyConvertor"></bean>
+                      </set>
+                  </property>
+              </bean>
+
+            <mvc:annotation-driven conversion-service="myConverter"></mvc:annotation-driven>
+            注意：我们添加自定义类型转换器到spring容器中，并不会把原来springmvc中定义好的默认类型转换器覆盖。只是在原来的基础上增
+            加我们写的自定义类型转换器。
+
+
+     2、如何在spring mvc框架中的controller方法中使用原生servlet的api获取参数（request.getParameter()）
+        public void testServlet(HttpServletRequest request, HttpServletResponse response){
+        //直接获取就行了
+            }
+
+     3、注解说明
+        @RequestParam  不传参数也会报错
+
+        @@RequestBody 用于获取请求体的内容，直接得到的是key=value结构的数据，get请求不适用，因为没有请求体;
+            required:是否必须有请求体，默认值true；当为true时，get请求会报错，如果取值false，get请求得到null；
+
+        @PathVariable springmvc支持rest风格url的一个重要标志；
+            @RequestMapping("/testServlet/{sid}")
+            public void testServlet(@PathVariable("sid") String id){
+                System.out.println(id);
+            }
+            注意：restFul风格：请求资源url相同，但是可以根据请求方式或者@PathVariable格式来请求具体的资源
+
+        @RequestHeader 用于获取请求消息头，属性value提供消息头的名称，required：是否必须有次消息头；实际开发中一般不适用此注解
+            //可以获取请求头中属性的相关值
+            @RequestMapping("/testServlet/{sid}")
+                public void testServlet(@RequestHeader("access-control-allow-origin") String id){
+                    System.out.println(id);
+                }
+
+        @CookieValue 用于把指定cookie名称的值传入控制器方法参数 属性value：指定cookie名称  required：是否必须有此cookie
+            @RequestMapping("/testServlet/{sid}")
+                public void testServlet(@CookieValue("JSESSIONID") String id){
+                    System.out.println(id);
+                }
+
+        @ModelAttribute 用于修饰方法和参数上；出现在方法上，表示当前方法会在控制器的方法执行之前先执行。
+                它可以修饰没有返回值的方法，也可以修饰有具体返回值的方法；
+                出现在参数上，获取指定的数据给参数赋值；
+                属性：value：用于获取数据的key。key可以是POJO的属性名称，也可以是map的结构的key。
+
+
+                1、没有返回值的情况
+                @RequestMapping("/testServlet/{sid}")
+                                    public void testServlet(@ModelAttribute("role") Role role){
+                                        System.out.println(role);
+                                    }
+                    @ModelAttribute
+                    public void testModelAttribute(String id, Map<String,Role> map) {
+                        Role role = new Role(id,"111","222");
+                        map.put("role",role);
+                    }
+                2、有返回值的情况
+                    @RequestMapping("/testServlet/{sid}")
+                    public void testServlet(@ModelAttribute Role role){
+                        System.out.println(role);
+                    }
+                    @ModelAttribute
+                    public Role testModelAttribute(String id) {
+                        Role role = new Role(id,"111","222");
+                        return role;
+                    }
+
+            @SessionAttributes 用于多次执行控制器方法间的参数共享; value用于指定存入 的属性名称，type 用于指定存入的数据类型
+                若希望在多个请求之间共用数据，则可以在控制器类上标注一个 @SessionAttributes,配置需要在session中存放的数据范围，Spring MVC将存放在model中对应的数据暂存到
+                HttpSession 中。
+                @SessionAttributes只能使用在类定义上。
+                @SessionAttributes 除了可以通过属性名指定需要放到会 话中的属性外，还可以通过模型属性的对象类型指定哪些模型属性需要放到会话中 例如：
+                @SessionAttributes(types=User.class)会将model中所有类型为 User的属性添加到会话中。
+                @SessionAttributes(value={“user1”, “user2”}) 会将model中属性名为user1和user2的属性添加到会话中。
+                @SessionAttributes(types={User.class, Dept.class}) 会将model中所有类型为 User和Dept的属性添加到会话中。
+                @SessionAttributes(value={“user1”,“user2”},types={Dept.class})会将model中属性名为user1和user2以及类型为Dept的属性添加到会话中。
+                value和type之间是并集关系
+
+            ①Model
+            Model是一个接口，它的实现类为ExtendedModelMap，继承ModelMap类
+            ②ModelMap
+            ModelMap继承LinkedHashMap，spring框架自动创建实例并作为controller的入参，用户无需自己创建
+            ③ModelAndView
+            顾名思义，ModelAndView指模型和视图的集合，既包含模型 又包含视图；ModelAndView的
+            实例是开发者自己手动创建的，这也是和ModelMap主要不同点之一；ModelAndView其实就是两个作用，
+            一个是指定返回页面，另一个是在返回页面的同时添加属性
+            数据设置到request作用域里
+
+    4、响应方式
+        //返回值是void的情况下，如何响应
+         @RequestMapping("/testServlet/testSessionAttribute")
+             public void testSessionAttribute(HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+                 //1、方式1，请求转发
+                 request.getRequestDispatcher("").forward(request,response);
+                 //2、请求重定向
+                 response.sendRedirect("");
+                 //3、直接响应
+                 response.getWriter().println("");
+             }
+
+         //有返回值的情况下，如何响应
+             @RequestMapping("/testServlet/testSessionAttribute")
+             public String testFowardOrRedirect(HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+                 //使用关键字：请求转发
+                 //return "forward:/WEB-INF/pages/successful.jsp";
+                 //使用关键字：重定向（默认是当前项目下的页面）
+                 return "redirect:/successful.jsp";
+                 //或者直接返回字符串，通过视图解析器进行跳转
+             }
+
+
+
+    4、浏览器form表单只支持get和post请求，而delete以及put等请求方式是不支持的，基于HiddenHttpMethodFilter,可以将你的请求方式修改为其他方式，
+        基于表单实现更改请求方式的过程
+            1、在web.xml中配置过滤器
+            2、请求方式必须使用post
+            3、表单中提供隐藏域，name固定的是_method，这里写你想要转换的请求方式
