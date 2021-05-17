@@ -1,22 +1,24 @@
 监听器设计模式
 观察者模式
-    将被监听者的状态改变定义为事件，被监听者定义为事件源，对监听器的通知称为触发监听器，本质与观察者模式是相同的
+    将被监听者的状态改变定义为事件，譬如servletContext创建事件，被监听者定义为事件源也称为被观察者，监听器称为观察者，
+    对监听器的通知称为触发监听器，本质与观察者模式是相同的
     事件里面要可以获得事件源，也可以获得事件类型；事件源里面需要注册监听器，还得可以触发监听器；监听器要可以处理事件；
 
-   主要需要理解点：事件源在现有的servlet里面就是request,session,servletContext,当这些域被创建时(事件)，事件里面会获得
-   这个事件源，由事件源servlet等对象去调用触发监听器的方法，由监听器具体实现处理方法
+   被观察者里面可以注册观察者并且可以发布事件，发布事件的方法里调用观察者里面的方法（也就是触发监听器），监听器里面有事件属性，
+   这个事件是自定义的，但是要实现事件接口，这样就可以实现在监听器里面对你想要处理的对象，譬如request,session,servletContext
+   进行自定义的逻辑处理。
 
+    spring源码中是通过事件类型找到对应处理的监听器，如何找的呢，是通过在创建监听器时，类的泛型给以对应的事件类型
 
 装饰者模式
     //接口
     public interface ISomeService
     {
-
         String doSome();
 
     }
 
-    //需要装饰的类
+    //需要被装饰的类
     public class SomeService implements ISomeService {
         @Override
         //待增强的方法
@@ -89,6 +91,8 @@
         一个抽象的装饰类 ：FileInputStream;
         多个具体的装饰类：BufferedInputStream, DataInputStream
 
+        装饰者模式重点在于装饰类的父类，这个父类里面有一个待装饰类的接口属性，然后通过构造器将待装饰的对象传进来，
+        然后进行装饰；
 
 
 代理模式
@@ -317,6 +321,7 @@
         }
     }
 
+
     //相当于工厂
     public class Director{
             public static SuperMan getBalckSuperMan() {
@@ -341,3 +346,97 @@
 
 
  适配器模式
+    使用多个适配器编程，每个适配器只处理对应的逻辑
+    public interface ICooker{
+        String cook();
+    }
+
+    public interface IProgramer {
+        String iProgramer();
+    }
+
+    public interface IMultiWorkerAdapter {
+        String work(Object worker);
+
+        boolean supports(Object worker);
+    }
+
+
+    public class ProgramerAdapter implements IMultiWorkerAdapter {
+        @Override
+        public String work(Object worker) {
+            return ((IProgramer)worker).iProgramer();
+        }
+
+        @Override
+        public boolean supports(Object worker) {
+            return worker instanceof IProgramer;
+        }
+    }
+
+
+    public class CookAdapter implements IMultiWorkerAdapter {
+        @Override
+        public String work(Object worker) {
+            return ((ICooker)worker).cook();
+        }
+
+        @Override
+        public boolean supports(Object worker) {
+            return worker instanceof ICooker;
+        }
+    }
+
+
+    public class JdProgramer implements IProgramer {
+        @Override
+        public String iProgramer() {
+            return "京东程序员";
+        }
+    }
+
+
+    public class QjdCooker implements ICooker {
+        @Override
+        public String cook() {
+            return "全聚德厨师";
+        }
+    }
+
+
+    public static void main(String[] args) {
+            ICooker qjdCooker = new QjdCooker();
+            IProgramer jdProgramer = new JdProgramer();
+            List list = new ArrayList<>();
+            list.add(qjdCooker);
+            list.add(jdProgramer);
+
+            //使用多个适配器编程，每个适配器只处理对应的逻辑
+            for (int i = 0; i < list.size(); i++) {
+                IMultiWorkerAdapter adapter = getAdapter(list.get(i));
+                System.out.println(adapter.work(list.get(i)));
+            }
+        }
+
+        private static IMultiWorkerAdapter getAdapter(Object worker) {
+            List<IMultiWorkerAdapter> adapters = getAllAdapters();
+            for (IMultiWorkerAdapter adapter:adapters) {
+                if(adapter.supports(worker)){
+                    return adapter;
+                }
+            }
+            return null;
+        }
+
+        private static List<IMultiWorkerAdapter> getAllAdapters() {
+            List list = new ArrayList<IMultiWorkerAdapter>();
+            list.add(new CookAdapter());
+            list.add(new ProgramerAdapter());
+            return list;
+        }
+
+不同的适配器共同实现一个接口，不同的适配器处理不同的目标，多所以目标也是要共同实现同一个接口，然后通过适配器里面的supports方法
+判断传进来的目标应该使用哪一个适配器；
+
+       适配器模式和代理模式的区别：代理模式的代理类需要实现被代理类，代理方法名是一样的；
+                                适配器模式的
