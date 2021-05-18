@@ -4,6 +4,8 @@
 
 如果卸载idea，workspace是不会被删除的
 
+
+
 idea各种配置所保存的文件夹，如果你的配置坏了，可以删掉目录，idea会帮你生成一个全新的默认配置目录：C:\Users\Administrator\.IntelliJIdea2018.2\config
 
 idea配置所保存的文件夹：C:\Users\Administrator\.IntelliJIdea2018.2\config
