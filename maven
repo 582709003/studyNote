@@ -2,10 +2,6 @@
 用maven管理jar包后，开发时其实项目里是没有jar包的，包都是通过引用maven仓库的；但是部署到服务器时
 是会把涉及到的包打包 部署到服务器的
 
-maven还通过两条依赖原则：最短路径者优先和优先声明者优先 来解决jar包间的依赖关系
-这两条原则是针对依赖的传递性来说的，就是说在有多个依赖之间有传递性时遵守以上原则
-然后会在以上两条原则淘汰后到达本项目时会产生一个最终的依赖
-
 之所以会有jar包冲突，不同版本的jar包有不一样的方法或者方法体，可能项目里依赖的方法在新版本的jar包里被取消导致异常
 
 基于开发工具开发时，tomcat里部署项目的时候，访问项目的根路径（其实就是上下文路径）其实不一定和项目名称一样，你可以随便起名字
@@ -23,6 +19,9 @@ project
             java （测试文件）
             resources
     pom.xml
+    target(编译后内容放置的文件夹)
+        classes(项目编译后的文件)
+        项目的jar包(此jar包会放到本地maven仓库)
 
 
 
@@ -42,101 +41,219 @@ maven坐标
 
 新建maven项目时，可以选择quick start,也可以不选择任何选项，直接创建
 
+<!-- dependencies标签中的依赖会被子项目完全继承：即父项目中有的依赖都会出现在子项目中 -->
+<!-- 依赖管理中声明的依赖并不会被子项目直接继承，在子项目中需要声明，但是只需要声明groupId和artifactId -->
+
+
 maven项目类型
         jar  表示java项目（默认值）
         war  表示web项目
-        pom  表示父工程
+        pom  表示父工程或聚合工程，用来做jar包的版本控制，这个工程不写任何代码，只做jar包的版本控制
 
-maven简介依赖：A直接依赖B，B直接依赖C，A间接依赖C
-    依赖的传递性：当存在间接依赖的情况时，主工程对间接依赖是否可以访问主要间接依赖引入时的scope，
-    只有scope为compile时可以访问，
+maven工程关系
+    1、maven间接依赖：A直接依赖B，B直接依赖C，A间接依赖C
+        依赖的传递性：当存在间接依赖的情况时，主工程对间接依赖是否可以访问主要间接依赖引入时的scope，
+        只有scope为compile时可以访问，
+        maven还通过两条依赖原则：第一原则：最短路径者优先和第二原则：优先声明者优先 来解决jar包间的依赖关系
+        这两条原则是针对依赖的传递性来说的，就是说在有多个依赖之间有传递性时遵守以上原则
+        然后会在以上两条原则淘汰后到达本项目时会产生一个最终的依赖；
+        maven依赖范围作用域：
+            compile：（默认compile）
+                1、main目录下的java代码可以使用这个范围的依赖
+                2、test目录下的java代码可以使用这个范围的依赖
+                3、部署到tomcat服务器上运行时要放在web-inf的lib目录下，参与打包
+            test：
+                1、main目录下的java代码不可以使用这个范围的依赖
+                2、test目录下的java代码可以使用这个范围的依赖
+                3、不参与部署到tomcat服务器
+                   例如junit包
+
+            provided：（提供范围）
+                1、main目录下的java代码可以使用这个范围的依赖
+                2、test目录下的java代码可以使用这个范围的依赖
+                3、不参与部署到tomcat服务器,因为tomcat本身提供了这个包，只在开发时使用
+                   例如servlet-api包
+
+             runtime：（提供范围）
+                1、main目录下的java代码不可以使用这个范围的依赖
+                2、test目录下的java代码可以使用这个范围的依赖
+                3、参与部署到tomcat服务器,部署到tomcat服务器上运行时要放在web-inf的lib目录下
+                   例如jdbc驱动包，只在测试运行以及服务器上运行时才决定使用什么样的数据库连接
+
+             import:
+                1、import scope只能用在dependencyManagement里面使用
+                2、是为了解决子模块对父工程里面的依赖的单继承问题
+                3、相当于在父工程pom文件里可以有多个依赖
+                注意：scope=import只能用在dependencyManagement里面,且引入的依赖必须是type=pom的dependency(父工程)
+                例：
+                <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.springframework.cloud</groupId>
+                                <artifactId>spring-cloud-dependencies</artifactId>
+                                <version>Greenwich.SR1</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                            </dependency>
+
+                            <dependency>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-starter-parent</artifactId>
+                                <version>2.1.7.RELEASE</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
 
 
+             system：
+                1、system范围依赖与provided类似，但是你必须显式的提供一个对于本地系统中JAR文件的路径。systemPath
+                2、这么做是为了允许基于本地对象编译，而这些对象是系统类库的一部分。
+                3、这样的构建应该是一直可用的，Maven 也不会在仓库中去寻找它。
+                4、如果你将一个依赖范围设置成系统范围，你必须同时提供一个systemPath元素。注意该范围是不推荐使用的
+                （建议尽量去从公共或定制的 Maven 仓库中引用依赖）
 
-maven依赖范围作用域：
-    compile：（默认compile）
-        1、main目录下的java代码可以使用这个范围的依赖
-        2、test目录下的java代码可以使用这个范围的依赖
-        3、部署到tomcat服务器上运行时要放在web-inf的lib目录下
-    test：
-        1、main目录下的java代码不可以使用这个范围的依赖
-        2、test目录下的java代码可以使用这个范围的依赖
-        3、不参与部署到tomcat服务器
-           例如junit包
+    2、maven继承
+        首先必须得是父子工程关系，子工程需要指定父工程pom文件路径，子工程的jar才会引入
+        例：<relativePath>../pom.xml</relativePath>，子工程有<parent>标签
 
-    provided：（提供范围）
-        1、main目录下的java代码可以使用这个范围的依赖
-        2、test目录下的java代码可以使用这个范围的依赖
-        3、不参与部署到tomcat服务器,因为tomcat本身提供了这个包，只在开发时使用
-           例如servlet-api包
-
-     runtime：（提供范围）
-        1、main目录下的java代码不可以使用这个范围的依赖
-        2、test目录下的java代码可以使用这个范围的依赖
-        3、参与部署到tomcat服务器,部署到tomcat服务器上运行时要放在web-inf的lib目录下
-           例如jdbc驱动包，只在测试运行以及服务器上运行时才决定使用什么样的数据库连接
-
-     import:
-        1、import scope只能用在dependencyManagement里面使用
-        2、是为了解决子模块对父工程里面的依赖的单继承问题
-        3、相当于在父工程pom文件里可以有多个依赖
-        注意：scope=import只能用在dependencyManagement里面,且仅用于type=pom的dependency
-        例：
-        <dependencyManagement>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.springframework.cloud</groupId>
-                        <artifactId>spring-cloud-dependencies</artifactId>
-                        <version>Greenwich.SR1</version>
-                        <type>pom</type>
-                        <scope>import</scope>
-                    </dependency>
-
-                    <dependency>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-starter-parent</artifactId>
-                        <version>2.1.7.RELEASE</version>
-                        <type>pom</type>
-                        <scope>import</scope>
-                    </dependency>
-                </dependencies>
-            </dependencyManagement>
+        <dependencies>:这个是依赖管理标签，jar会被当前项目引入，子项目继承当前项目时，会自动引入该依赖，无需显式引用
+        <dependencyManagement>:依赖管理配置声明标签，声明配置，当前项目并不会直接引入jar，
+                                子项目继承该项目后，子项目不能直接使用jar包，子项目如果要用，必须得显式的声明
+                                好处：由父工程管理jar版本，子工程只需引用即可
 
 
-     system：
-        1、system范围依赖与provided类似，但是你必须显式的提供一个对于本地系统中JAR文件的路径。
-        2、这么做是为了允许基于本地对象编译，而这些对象是系统类库的一部分。
-        3、这样的构建应该是一直可用的，Maven 也不会在仓库中去寻找它。
-        4、如果你将一个依赖范围设置成系统范围，你必须同时提供一个systemPath元素。注意该范围是不推荐使用的（建议尽量去从公共或定制的 Maven 仓库中引用依赖）
+    3、maven聚合（当前项目有<modules>
+                         <module></module>
+                         <modules>的，这个是当前项目）
+        聚合工程中，父工程必须是一个pom工程，模块和父工程之间有继承关系，聚合包含了继承的特性
+        好处：对当前项目的父项目进行任何maven生命周期的操作，被聚合的项目都跟着做相同的操作
 
+ maven的生命周期
+    1、清理：将以前编译得到的旧的class字节码文件删除，为下一次编译做准备
+    2、编译：将java源程序编译成class字节码文件
+    3、测试：自动测试，自动调用juint程序
+    4、报告：测试程序执行的结果
+    5、打包：动态web工程打包war包，Java工程打jar包
+    6、安装：将打包得到的文件复制到仓库中的指定位置
+    7、部署：将动态web工程工程的war包复制到servlet容器的指定目录下，使其可以运行
+    顺序不能打乱，maven核心程序中定义了抽象的生命周期，生命周期中各个阶段的具体任务是由插件来完成的
 
 插件和目标
     maven的生命周期有三个独立的阶段
-        clean
-        site
-        default (这个里面是除了clean和site外的阶段)
+        clean：再进行真正的构建 之前进行一些清理工作
+            包含三个阶段
+            1、pre-clean:执行一些需要在clean之前完成的工作
+            2、clean：移除上一次构建生成的文件
+            3、post-clean:执行一些需要在clean之后完成的工作
+        site：生成项目报告，站点，发布站点
+            1、pre-site：
+            2、site：生成项目的站点文档
+            3、post-site
+            4、site-deploy：将生成的站点文档部署到特定的服务器上
+        default (这个里面是除了clean和site外的阶段)：核心部分，编译，测试，打包，安装，部署
+            1、validate
+            2、generate-sources
+            3 process-sources
+            4 generate-resources
+            5 process-resources 复制并处理资源文件，至目标目录，准备打包
+            6 complie 编译项目的源代码
+            7 process-classes
+            8 generate-test-sources
+            9 process-test-sources
+            10  generate-test-resources
+            11 process-test-resources 复制并处理资源文件，至目标目录，准备打包
+            12 test-compile 编译测试源代码
+            13 process-test-classes
+            14 test 使用合适的单元测试框架进行测试，这些测试代码不会被打包或部署
+            15 prepare-package
+            16 package 接受编译好的代码，打包成可发布的格式，如jar
+            17 pre-integration-test
+            18 integration-test
+            19 post-integration-test
+            20 verify
+            21 install 将最终的包复制到本地仓库
+            22 deploy 将最终的包复制到远程的仓库
         这三个阶段执行时都不会影响其他阶段，但是每个独立周期阶段里，执行属于这个阶段里后面的命令时都会执行这个阶段里前面的命令
+        当然你也可以直接运行mvn clean install site运行所有这三套生命周期
 
-
-    整个生命周期都是用插件来完成的，每个插件都能实现多个功能，每个功能都是一个插件目标
-    maven的生命周期和插件目标相互绑定，已完成某个具体的构建任务
+    整个生命周期各个阶段都是用插件来完成的，每个插件都能实现多个功能，每个功能都是一个插件目标
+    maven的生命周期和插件目标相互绑定的，以完成某个具体的构建任务
     例如：compile就是maven-compile-plugin 的一个功能；
          pre-clean是插件的一个目标
 
-maven继承
-    首先必须得是父子工程关系，子工程需要指定父工程pom文件路径，子工程的jar才会引入
-    例：<relativePath>../pom.xml</relativePath>，子工程有<parent>标签
-
-    <dependencies>:这个是依赖管理标签，jar会被当前项目引入，子项目继承当前项目时，会自动引入该依赖，无需显式引用
-    <dependencyManagement>:依赖管理配置声明标签，声明配置，当前项目并不会直接引入jar，
-                            子项目继承该项目后，子项目不能直接使用jar包，子项目如果要用，必须得显式的声明
-                            好处：由父工程管理jar版本，子工程只需引用即可
 
 
-maven聚合（当前项目有<modules>
-                     <module></module>
-                     <modules>的，这个是当前项目）
-    好处：对当前的父项目进行任何maven生命周期的操作，被聚合的项目都跟着做相同的操作
+idea创建maven工程
+    1、创建maven时，可以不勾选模板，可以看到标准的maven工程结构是什么样
 
-Spring Boot Maven plugin的最主要goal就是repackage，其在Maven的package生命周期阶段，能够将mvn package生成的软件包再次打包为可执行的软件包，
-并将mvn package生成的软件包重命名为*.original。
+常见maven插件
+    编译插件
+        plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.2</version>
+          <configuration>
+            //1.8版本的jdk源码
+            <source>1.8</source>
+            //1.8版本编译源码
+            <target>1.8</target>
+            <encoding>UTF-8</encoding>
+          </configuration>
+        </plugin>
+
+    资源拷贝文件
+        maven打包时默认只将src/main/resources里的配置文件拷贝到项目中并做打包处理，而非resources目录下的配置文件
+        在打包时不会添加到项目里，我们的配置文件一般都在src/main/resources，然后打包后配置文件就会在target的classes下面放着
+         <resources>
+                    <resource>
+                        <directory>src/main/java</directory>
+                        <includes>
+                            <include>**/*.xml</include>
+                        </includes>
+                    </resource>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <includes>
+                            <include>**/*.xml</include>
+                            <include>**/*.properties</include>
+                        </includes>
+                    </resource>
+                </resources>
+
+    Spring Boot Maven plugin的最主要goal就是repackage，其在Maven的package生命周期阶段，能够将mvn package生成的软件包再次打包为可执行的软件包，
+    并将mvn package生成的软件包重命名为*.original。
+    spring-boot-maven-plugin插件是将springboot的应用程序打包成fat jar的插件。首先我们说一下啥叫fat jar。fat jar 我们暂且
+    叫他胖jar吧。我们一般的jar，里面放的是.class文件以及resources目录下的东西，但是fat jar 它可以把jar作为内容包含进去。
+    也就是说，spring boot 借助spring-boot-maven-plugin将所有应用启动运行所需要的jar都包含进来，从逻辑上将具备了独立运
+    行的条件
+
+IDEA-Maven项目的jdk版本设置
+    1、在 Intellij IDEA 中，我们需要设置 Settings 中的 Java Compiler
+    2、 Project Structure 中的 Language Level中的 jdk 版本为自己目前使用的版本，否则会经常提示我们 jdk 版本不正确
+    导致的语法错误。在 Maven 项目中，jdk 的配置也有一些额外需要注意的地方。
+    3、但是在 Maven 项目中，Java Compiler 和 Language level 中的设置会自动变回到 pom.xml 文件中设置的 jdk 版本或
+    者默认的 jdk1.5 版本。所以我们需要在 pom.xml 文件中修改 jdk 版本的配置或者自己添加配置：
+    <!-- 这里一般有 maven 的默认配置，修改即可 -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+     </properties>
+    或者：
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    注意： 如果 properties 和 build 里面都有配置的话，那么 properties
+    会覆盖掉 build 里面的配置，即以 properties 里面的配置为准。

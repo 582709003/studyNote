@@ -9,12 +9,25 @@ idea各种配置所保存的文件夹，如果你的配置坏了，可以删掉�
 idea配置所保存的文件夹：C:\Users\Administrator\.IntelliJIdea2018.2\config
 
 idea卸载过程：
-	1：idea安装包路径：D:\sjd\softDownload\IntelliJ IDEA 2018.2
-	2：idea自动生成路径：C:\Users\Administrator\.IntelliJIdea2018.2
+    删除以下路径的文件夹
+	1：安装文件：idea安装包路径：D:\sjd\softDownload\IntelliJ IDEA 2018.2
+	2：缓存和配置：idea自动生成路径：C:\Users\Administrator\.IntelliJIdea2018.
+
+idea安装
+    安装包解压就可以用了
+破解过程有两种
+    1、将破解包(D:\sjd\softDownload\idea破解包)放到idea安装包下的bin路径下，然后编辑idea64.exe.vmoptions文件
+    然后在文件最上面添加-javaagent:D:\sjd\softDownload\IntelliJ IDEA 2018.2\IntelliJ IDEA 2018.2\bin\JetbrainsIdesCrack-4.2-release-sha1-3323d5d0b82e716609808090d3dc7cb3198b8c4b.jar
+    然后重启
+    2、下载一个jetbrains-agent.jar包，然后放到合适的文件夹内，(一般都放在idea的安装位置路径下，可随意，不建议有中文路径)
+    点击idea菜单，找到 help--edit custom vm options，在最下面一行添加
+    -javaagent:jetbrains-agent.jar包的路径，然后重启
+    然后点击help-register-license server,再点击discover server,然后再点击active，然后再重启
 
 .idea文件和.iml文件是idea特有的文件
 
-idea没有工作空间的概念，但是又project和model的概念，一般如果项目较为复杂的话，那就最好建多个模块；但是如果比较简单，那就建一个模块或者也可以直接在project下直接写代码，不用建model
+idea没有工作空间的概念，但是又project(相当于workspace)和model(相当于eclipse的project)的概念，一般如果项目较为复杂的话，那就最好建多个模块；但是如果比较简单，
+那就建一个模块或者也可以直接在project下直接写代码，不用建model
 
 
 idea主题效果可以去这边下载：http://www.riaway.com/
@@ -27,9 +40,24 @@ idea主题效果可以去这边下载：http://www.riaway.com/
 
 书写代码时如果首字母写的是小写的，idea依然给以提示设置：editor--general--code completion 去掉勾选
 
+设置行号以及方法间的分隔符editor--general--appearence--勾选show line numbers....
+
 设置取消显示单行tabs的操作：editor--general--editortabs--去掉勾选show tabs in single row
 
-设置字体大小：editor--general--font
+设置默认字体大小(编辑区以及控制台都会变化)：editor--general--font
+
+设置单行注释(//)、多行注释(/*  */)、文档注释(/**  */)的颜色:editor--colour scheme --language default
+
+文件的文档注释信息(对新建的文件才有效)：设置里 editor--file and code template
+
+方法的注释：设置里 editor--live templates 这个里面有很多模板，譬如fori等等
+
+自动编译：设置里 build,execution,deployment--complier 勾选自动编译以及下面那个
+
+添加序列化版本号：设置里 editor--inspections--勾选Serializable class without serialVersionUID
+然后alt + enter生成serialVersionUID
+
+项目文件的文件编码： editor--file encoding 全勾选utf-8
 
 如果导入的文件不是utf-8,可以在右下角选择编码方式，reload：暂时的以新编码方式显示  convert：以新编码方式修改文件并加载到编辑器
 
@@ -46,7 +74,7 @@ idea主题效果可以去这边下载：http://www.riaway.com/
 生成 javadoc 在tools菜单栏下选择generate javadoc  输入 Locale：输入语言类型：zh_CN
                                                     Other command line arguments：-encoding UTF-8 -charset UTF-8
 idea导入项目时的操作
-    open：使用open时，项目必须是.idea的，然后找到项目目录，打开即可；
+    open：使用open时，项目必须是.idea的，然后找到项目根目录，打开即可；
     new:project from existing sources类似于import project,可能项目不是.idea的，但是通过这边可以将项目转化为.idea格式的，maven项目导入pom文件即可
         module from existing sources 这个必须是.idea的，maven项目导入pom文件即可
 
@@ -127,5 +155,8 @@ LocalHistory 目录。目录地址在： C:\Users\ 当 前 登 录 的 系 统 �
 46 关闭打开的所有代码栏(close all) ctrl + shift + w
 47 快速搜索类中的错误(next highlighted error) shift + q
 48 选择要粘贴的内容(Show in Explorer) ctrl+shift+v
-49 查找方法在哪里被调用(Call Hierarchy) ctrl+shift+h
-50 查找接口的实现类：ctrl + alt +B
+49 查找方法在哪里被调用(Call Hierarchy) ctrl+shift+h ***
+50 查找接口的实现类：ctrl + alt +B **
+
+idea创建项目
+    java enterprise就是java ee项目(web项目)，项目创建完之后就是很经典一个结构，有web.xml文件...
