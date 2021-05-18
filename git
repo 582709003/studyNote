@@ -36,7 +36,6 @@ git仓库分本地仓库和远程仓库
 
     本地库和远程库的交互方式
         见图
-        将远程仓库关联到本地仓库分支命令：git remote add origin(自定义远程名) 具体远程仓库地址
 
     托管中心分类
         局域网环境下：可以搭建gitlab服务器作为代码托管中心，gitlab可以自己去搭建
@@ -87,6 +86,9 @@ git仓库分本地仓库和远程仓库
        --hard
        删除工作空间的改动代码，撤销commit且撤销add
 
+        git checkout -- <file> 是一个危险的命令。 你对那个文件在本地的任何修改都会消失——Git 会用最近提交的版本覆盖掉它。
+         除非你确实清楚不想要对那个文件的本地修改了，否则请不要使用这个命令
+
        另外一点，如果commit注释写错了，先要改一下注释，有其他方法也能实现，如：
        git commit --amend
        这时候会进入vim编辑器，修改完成你要的注释后保存即可。
@@ -115,25 +117,116 @@ git仓库分本地仓库和远程仓库
     分支的好处
         同时多个分支可以并行开发，互相不耽误，互相不影响，提高开发效率
         如果功能开发失败，只要删除此分支，不会影响主分支
+    查看分支
+         git branch -v
+    创建分支
+        git branch 新分支名
+        git 创建新分支时，会复制当前分支的所有内容以及当前分支之前的提交记录版本，切换分支时会实时显示当前分支的修改内容
+        git log --oneline  查看当前分支的提交记录
+    切换分支
+        git checkout 分支名
+        git checkout origin(远程主机别名)/<remotebranch>
+    删除分支
+        git branch -d (branchname)
+    分支合并
+        将a分支合并到主分支的话，那就先进入主分支，然后执行
+        git merge a 进行合并
+        如果命令窗口显示(master|merging)代表处于合并状态中
+
+    合并冲突
+        不同分支对同一个文件同一个位置进行修改会导致冲突
+        具体见图
+    解决冲突
+        人为决定，留下想要的，然后add并commit即可，commit之后命令窗口的显示(master)
+
+本地库和远程库的交互
+    1、创建一个本地库
+    2、创建一个远程库
+    3、在本地为远程库地址创建别名
+        查看别名：git remote -v
+        在本地为远程库地址创建别名：git remote add origin(自定义远程名) 具体远程仓库地址
+    4、推送操作
+            git push origin(远程库的别名) master(你要推送的分支，选择一个分支即可)
+        命令格式如下：
+            git push <远程主机名> <本地分支名>:<远程分支名>
+        如果本地分支名与远程分支名相同，则可以省略冒号：
+            git push <远程主机名> <本地分支名>
+    5、克隆操作
+        git clone 具体的远程仓库地址
+        克隆操作可以完成三件事
+        1、初始化本地库
+        2、将远程库内容完整的克隆到本地，创建一个指向它的 master 分支的指针，并且在本地将其命名为 origin/master。
+            同时Git 也会给你一个与 origin 的master 分支在指向同一个地方的本地 master 分支
+        3、替我们创建远程库的别名为 origin
+    6、远程库修改的拉取
+        pull操作=fetch+merge
+        git fetch <远程主机名> <远程分支名>：将远程库库特定分支的版本内容更新到本地版本库，但是不更新到工作区
+        查看远程分支的内容是否正确 git checkout origin(远程主机别名)/<remotebranch>
+        进行合并
+        git merge origin(远程主机别名)/<remotebranch>
+
+        或者我们直接通过pull操作
+        git pull <远程主机名> <远程分支名>:<本地分支名>
+
+    7、协同开发合作时冲突的解决方法
+        在冲突的情况下先拉取下来，然后解决冲突，然后再提交
 
 
-
-
-git 创建新分支时，会复制当前分支的所有内容以及当前分支之前的提交记录版本，切换分支时会实时显示当前分支的修改内容
-    git log --oneline  查看当前分支的提交记录
+a、b团队进行合作，fork操作
+    1、b团队在github登录之后，进入远程仓库地址中，然后点击下面的fork按钮，然后看可以看到账号下面显示forked
+       from 。。。。。说明fork成功
+    2、b团队的开发人员在本地某个文件夹直接git bash here ，然后clone就能复制下来，修改文件并add，commit，push之后，
+        想要将修改合并到a团队
+    3、进行pull request操作
+        b团队的github上选择pull request，然后点击new pull request--create pull request
+    4、pull request提交之后，a团队进入github，进入pull request，查看收到的请求进行审核
+        点击files changed 查看具体提交的内容
+    5、如果a团队确认没有问题就点击 merge pull request，然后就合并了
 
 分支合并：快速合并和三方合并
-
         三方合并：主分支的只针会形成一个新的版本，但是dev分支的只针不变，是不会将主分支的改变合并到dev分支的
-
         git log --oneline --graph  带有简易图形的日志
 
-合并冲突：同一个文件不同分支进行修改
+git整合idea
+    1、在idea中的设置里找到git，将git.exe路径配置到path to git executeable
+    2、在设置中找到gitHub，把github服务器网址，账户密码配置好
+
+    配置git仓库的几种方式
+        假如你是创建项目的，需要将项目与远程仓库关联
+            方式一
+                1、首先初始化项目的本地仓库，在vcs--import into version controll--create git respority
+                2、同步到远程仓库，在vcs--import into version controll--share project on github
+            方式二
+                1、首先初始化项目的本地仓库，在vcs--import into version controll--create git respority
+                2、创建远程仓库 git remotes .....
+                3、git push将本地库推到远程库
+
+        假如你是拉取项目的
+            直接在idea上git clone
+
+    创建分支
+        a开发人员在工作区创建了本地分支dev，并提交到了远程仓库；那么b开发人员在idea上如何更新dev分支？
+        b开发人员可以使用git feach来拉取远程仓库的最新状态
+
+    本地分支冲突的解决
+        冲突出现在合并分支的时候，选择merge，出现三个子窗口，最左边的是你本地的代码，中间的是合并结果，最右边的是他人的代码。
+        根据需要选择是保留自己的修改还是他人的修改。选择自己的就Accept Left，选择他人的就Accept Right。或者选择左箭头右箭头。
+        当然也可以全部选择保留。
+
+    上传远程仓库出现冲突的解决
+        也是同样的操作，选择merge，后面是一样的；
+        或者先git pull，如果存在有冲突的文件，会提示冲突；这时候我一般选择stash changes，把自己修改的暂存起来，再更新代码；
+            更新代码后，再unstash changes，选择刚才stash的代码恢复，文件报错，发现git pull强制的进行了合并，这时候你可以根据实际
+            需要选择保留的代码。
+            Updated upstream是更新的代码，Stashed changes是你暂存的修改。
+
+            我们本地进行了一些代码编辑，使用git的stash Changes功能，查看本地代码变化，可以看到自己新加的方法没有了，
+            又回到了从git上pull下来的最新状态；
+            查看git的UnStash Changes功能，点击上图view，可以对比代码，点击 apply stash ，可以将stash的代码恢复到本地
+
+
 
 忽略文件：在项目根目录下创建忽略文件
-
-
-
 Git忽略规则(.gitignore配置）不生效原因和解决
 第一种方法:
 .gitignore中已经标明忽略的文件目录下的文件，git push的时候还会出现在push的目录中，或者用git status查看状态，想要忽略的文件
