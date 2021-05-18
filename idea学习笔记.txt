@@ -14,7 +14,6 @@ idea卸载过程：
     删除以下路径的文件夹
 	1：安装文件：idea安装包路径：D:\sjd\softDownload\IntelliJ IDEA 2018.2
 	2：缓存和配置：idea自动生成路径：C:\Users\Administrator\.IntelliJIdea2018.
-
 idea安装
     安装包解压就可以用了
 破解过程有两种
