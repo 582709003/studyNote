@@ -1,0 +1,110 @@
+1、mysql
+     where：数据库中常用的是where关键字，用于在初始表中筛选查询。它是一个约束声明，用于约束数据，在返回结果集之前起作用。
+
+group by:对select查询出来的结果集按照某个字段或者表达式进行分组，获得一组组的集合，然后从每组中取出一个指定字段或者表达式的值。
+
+having：用于对where和group by查询出来的分组经行过滤，查出满足条件的分组结果。它是一个过滤声明，是在查询返回结果集以后对查询结果进行的过滤操作。
+
+执行顺序
+
+select –>where –> group by–> having–>order by
+
+
+2、UNION 语句：用于将不同表中相同列中查询的数据展示出来；（不包括重复数据）
+
+UNION ALL 语句：用于将不同表中相同列中查询的数据展示出来；（包括重复数据）
+
+
+
+3、oracle和mysql  group by用法的区别
+    两者之间最明显的区别在于：Oracle里，SELECT子句后面的所有目标列或目标表达式要么是分组列，要么是分组表达式，要么是聚集函数，即Oracle分组查询必须查询分组字段或分组字段构成的表达式或聚集函数；而MySQL里SELECT后面的字段并没有这样的限制，MySQL里SELECT后面可以是表里的任何字段或这些字段的表达式。不过，Oracle里使用聚集函数的时候，聚集函数的参数可以是该表里的任意合法字段。
+
+
+
+
+mysql:GROUP BY 子句必须在 FROM 和 WHERE 子句后出现。 在GROUP BY 关键字之后要使用逗号分隔列或表达式列表作为标准分组行。
+  oracle:   SELECT子句中的列名必须为分组列或列函数。列函数对于GROUP BY子句定义的每个组各返回一个结果;
+     在SELECT语句中指定的每个列名也在GROUP BY子句中提到。未在这两个地方提到的列名将产生错误。
+     1、sum、avg一般用于处理数值型
+          max、min、count可以处理任何类型
+     2、以上分组函数都忽略null值
+     3、可以和distinct搭配实现去重的运算
+ 
+     4、count函数的单独介绍
+         一般使用count(*)用作统计行数
+ 
+     5、和分组函数一同查询的字段要求是group by后的字段；只查询分组函数的话，group by的子句里用到的列名也不是必须要写在select里；但select里出现别的列就会报错；
+
+     6、mysql:group by 必须放在 order by 和 limit之前，不然会报错；group by 分组之后的数据总是显示出第一条
+
+mysql:select distinct name, id from A
+          实际上是根据“name+id”来去重，distinct同时作用在了name和id上。
+
+         select id, distinct name from A;   --会提示错误，因为distinct必须放在开头
+
+    7、distinct多个字段，当然相同的功能也可用group by 完成；
+         MySQL也允许我们按升序或降序对分组的订单行记录进行排序，而标准SQL是不可以的，它默认顺序是升序。例如，如果我们想要查询每种订单状态的订单数量并按订单状态（status 字段）降序排列，可以使用GROUP BY 子句及 DESC，如下查询：
+SELECT 
+    status, COUNT(*)
+FROM
+    orders
+GROUP BY status DESC;
+
+
+
+4、oracle  也可使用rownum between ** and ** 实现分页。
+
+
+5、oracle: TO_CHAR(SQLCODE)           mysql:date_format/ time_format
+     to_date(str,format)                                    STR_TO_DATE(str,format)
+
+6、语法：NVL2(expr1,expr2,expr3)；
+     含义：如果expr1值为空，就返回expr2,否则就返回expr3（类似与java的三元表达式）；
+
+   语法：NVL(expr1,expr2)；如果expr1是null，就用expr2替换数据库值；
+   含义：如果expr1值为空，就返回expr2；
+    
+IFNULL(u.email_address, 10)；如果u.email_address=NULl,显示结果中是10，而不是在DB中用10替换其值；
+
+7、连接字符串在Oracle中用|| ,SqlServer中用+,MySQL中用concat('a','b','c')；
+    orcale 生成唯一序列是 select sys.guid() from dual ，mysql是 select uuid() from dual；
+
+    Oracle则需要通过序列（Sequence）来实现主键自动增长；
+插入的时候实例
+    insert into 表名(id,name)values(seqtest.Nextval,'sequence 插入测试');
+
+   mysql可以用双引号来引用字符串（当然单引号也行）；Oracle只能用单引号。
+
+mysql的查询可以 select sysdate(); ；而Oracle需要引用虚表（select sysdate from dual;）。
+mysql中的命令默认是直接commit的；Oracle默认不是；
+
+
+8、IF语句格式:(expr1,expr2,expr3)；
+     mysql If语法说明
+功能: 如果 expr1 是TRUE (expr1 <> 0 and expr1 <> NULL)，则 IF()的返回值为expr2;
+否则返回值则为 expr3。IF() 的返回值为数字值或字符串值，具体情况视其所在
+语境而定。
+用法:
+mysql: SELECT IF(1>2,2,3);
+
+   decode(条件,值1,翻译值1,值2,翻译值2,...值n,翻译值n,缺省值)
+该函数的含义如下：
+IF 条件=值1 THEN
+　　　　RETURN(翻译值1)
+ELSIF 条件=值2 THEN
+　　　　RETURN(翻译值2)
+　　　　......
+ELSIF 条件=值n THEN
+　　　　RETURN(翻译值n)
+ELSE
+　　　　RETURN(缺省值)
+END IF
+
+
+9、
+
+
+
+
+
+

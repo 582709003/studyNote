@@ -1,0 +1,137 @@
+swagger
+    集成到spring boot项目
+        <dependency>
+
+            <groupId>io.springfox</groupId>
+
+            <artifactId>springfox-swagger2</artifactId>
+
+            <version>2.2.2</version>
+
+        </dependency>
+
+        <dependency>
+
+            <groupId>io.springfox</groupId>
+
+            <artifactId>springfox-swagger-ui</artifactId>
+
+            <version>2.2.2</version>
+
+        </dependency>
+  配置类
+    @Configuration
+    @EnableSwagger2
+    public class SwaggerConfig
+    {
+        /** 系统基础配置 */
+        @Autowired
+        private RuoYiConfig ruoYiConfig;
+
+        /**
+         * 创建API
+         */
+        @Bean
+        public Docket createRestApi(Environment environment)
+        {
+            //指定swagger在哪些环境下能够激活
+            Profiles profiles = Profiles.of("test","dev");
+            //判断当前环境是否在我指定的环境里面
+            boolean b = environment.acceptsProfiles(profiles);
+            return new Docket(DocumentationType.SWAGGER_2)
+                    // 用来创建该API的基本信息，展示在文档的页面中（自定义展示的信息）
+                    .apiInfo(apiInfo())
+                    // 设置哪些接口暴露给Swagger展示
+                    .select()
+                    // 扫描所有有注解的api，用这种方式更灵活
+                    .apis(RequestHandlerSelectors.withMethodAnnotation(ApiOperation.class))
+                    // 扫描指定包中的swagger注解
+                    //.apis(RequestHandlerSelectors.basePackage("com.ruoyi.project.tool.swagger"))
+                    // 扫描所有 .apis(RequestHandlerSelectors.any())
+                    //paths 过滤什么路径
+                    .paths(PathSelectors.any())
+                    .build()
+                    //是否启动swagger，false：不能在浏览器中访问swagger
+                    .enable(b)
+                    //配置api文档的分组，可以配置多个Docket的bean实例即可以此来进行分组，可能每个开发者有自己的一套api组
+                    .groupName("狂神")
+                    ;
+        }
+
+        /**
+         * 添加摘要信息
+         */
+        private ApiInfo apiInfo()
+        {
+            // 用ApiInfoBuilder进行定制
+            return new ApiInfoBuilder()
+                    // 设置标题
+                    .title("标题：管理系统_接口文档")
+                    // 描述
+                    .description("描述：用于管理集团旗下公司的人员信息,具体包括XXX,XXX模块...")
+                    // 作者信息
+                    .contact(new Contact(ruoYiConfig.getName(), null, null))
+                    // 版本
+                    .version("版本号:" + ruoYiConfig.getVersion())
+                    .build();
+        }
+    }
+
+Swagger使用的注解及其说明：
+
+@Api：用在类上，说明该类的作用。
+
+@ApiOperation：注解来给API增加方法说明。
+
+@ApiImplicitParams : 用在方法上包含一组参数说明。
+
+@ApiImplicitParam：用来注解来给方法入参增加说明。
+
+@ApiResponses：用于表示一组响应
+
+@ApiResponse：用在@ApiResponses中，一般用于表达一个错误的响应信息
+
+    l   code：数字，例如400
+
+    l   message：信息，例如"请求参数没填好"
+
+    l   response：抛出异常的类
+
+@ApiModel：描述一个Model的信息（一般用在请求参数无法使用@ApiImplicitParam注解进行描述的时候）
+
+    l   @ApiModelProperty：描述一个model的属性
+
+
+
+注意：@ApiImplicitParam的参数说明：
+
+paramType：指定参数放在哪个地方
+
+header：请求参数放置于Request Header，使用@RequestHeader获取
+
+query：请求参数放置于请求地址，使用@RequestParam获取
+
+path：（用于restful接口）-->请求参数的获取：@PathVariable
+
+body：（不常用）
+
+form（不常用）
+
+name：参数名
+
+
+
+dataType：参数类型
+
+
+
+required：参数是否必须传
+
+true | false
+
+value：说明参数的意思
+
+
+
+defaultValue：参数的默认值
+

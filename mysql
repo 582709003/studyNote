@@ -1,0 +1,832 @@
+mysql的配置文件路径
+    C:/Program Files/MySQL/MySQL Server 5.5/my.ini
+
+
+常见命令
+    show DATABASES  查看有多少数据库
+    use test   进入某个数据库
+    show tables  查看这个数据库有多少表
+    select DATABASE();  查看你当前所在的数据库
+    desc role(表名)  查看表结构
+    select VERSION();  查看数据库服务器版本
+
+查询时细节
+    select `name` from student；
+    这个类似引号的东西其实是着重号，可以删掉，但是有时候也是有用的，当查找的字段和mysql里的关键字相同时，譬如name就是关键字，
+    这里我们就可以用上着重号告诉其他人其实这里是我的一个字段，不是关键字
+
+查询常量、表达式、函数
+    常量值
+    select 100;
+    select 'john';
+    表达式
+    select 100*90;
+    函数
+    select VERSION();
+
+起别名
+    select 100 as xxx 使用as
+     select 100  xxx  空格；建议别名使用双引号，也可以单引号
+
+去重
+    select distinct id from employee;
+
++号的作用
+    mysql中的+号只有一个作用:运算符
+    select "80"+90 ; 试图将字符型转换为数值型，如果转换成功就运算；如果失败，就将字符型数值转换为0
+    select null+90; 只要其中一方为null，结果都为null
+
+mo模糊查询
+    like: %:匹配多个的通配符   _:匹配单个的通配符  可以通过\对_进行转义；也可以这样指定转义符然后进行转义
+        select * from dept where dname like '_#_' ESCAPE '#';  #就是我们指定的转义符
+    between and：包含临界值  等同于>=  <=
+    in
+    is null | is not null
+
+排序查询
+    order by 后面可以跟字段、表达式、别名，函数
+
+    order by 执行顺序：from---where---select---order by
+
+    order by语句一般是放在查询语句最后面，limit语句除外
+
+
+常见函数
+    1、单行函数
+      如concat、length、ifnull等
+      一、字符函数
+        length(str)：获取参数值的字节个数，不是字符个数，一个中文的话出来的个数就比较多了，主要看编码
+        cancat();
+        upper();
+        lower();
+        substr("asdf",6);索引从1开始；从6开始截取到最后
+        substr("asdf",1,3):从指定索引处截取指定长度
+        instr("asdfasf","asd"):查询出子字符串在大的字符串里面的起始索引
+        trim("  asdf "):将两边的空格全部删除
+            例：select TRIM("a" FROM "aaaaaaaaaasundsfgaaaaaaaaaaaaaaaaaaaa")  也可以将指定的两边的某个字符删除
+        lpad("dgf",10,"a"):用指定的字符在左边实现填充指定的长度
+        rpad("dgf",10,"a"):用指定的字符在右边实现填充指定的长度
+        replace("qwerqwert","w","s"):将主字符串中的w换成s
+      二、数学函数
+        round(4.567，2):4.57  四舍五入
+        cell(234.4):向上取整
+        floor(34.7):向下取整
+        truncate(1.65，1):1.6  截断
+        mod(10,3):取余
+      三、日期函数
+        now():当前系统的时间
+        curdate():当前系统日期，不包含时间
+        curtime():当前系统时间，不包含日期
+        str_to_date("2021-04-13","%Y-%m-%d"):字符转换成日期
+        date_format():日期转成字符
+      四、流程控制函数
+        select if(10>5,"true","false");
+
+        case 要判断的字段或者表达式
+        when 常量1 then 要显示的值或语句；
+        when 常量2 then 要显示的值或语句；
+        ......
+        else 要显示的值或者语句；
+        end
+
+        case
+        when 条件1 then 要显示的值1或者语句1
+        when 条件2 then 要显示的值2或者语句2
+        .。。。。。
+        else 要显示的值n或者语句n
+        end
+
+    2、分组函数
+        做统计使用，又称为聚合函数、组函数
+        sum():求和
+        avg():平均值
+        max()：最小值
+        min():最小值
+        count()：计数
+
+        分组函数使用特点
+          1、参数支持哪些类型
+            sum和avg适用于处理数值型参数
+            max和min和count():支持任何类型
+          2、是否忽略null
+            以上分组函数都忽略null值
+          3、可以和distinct搭配实现去重
+            select sum(distinct salary) from employee;
+            去重之后再求和
+          4、和分组函数一同查询的字段要求是group by后的字段，其他的不行
+
+        group by
+            将表中的数据分成若干组
+            语法
+                select column(要求出现在group by后面),分组函数
+                from table
+                where condition
+                group by group by expression
+                order by column
+             注意：
+             明确：where一定放在from后面
+
+        添加分组后的筛选条件
+            语法
+                select column(要求出现在group by后面),分组函数
+                from table
+                where condition
+                group by group by expression
+                having 分组后筛选条件
+                order by column
+
+            特点
+                1、分组查询中的筛选条件分为两类
+                                 数据源            位置          关键字
+                       分组前筛选：原始表            group by前面
+                       分组后筛选：分组后的结果集
+
+        等值连接
+            查询到的数据是表之间的交接
+
+        非等值连接
+
+        自连接
+
+
+        内连接
+            inner join
+        外连接
+            left join
+                特点：外连接的查询结果为主表中的所有记录；如果从表中有和它匹配的值，则显示匹配的值；
+                      如果没有就显示null；外连接查询结果=内连接查询结果+主表中有但从表中没有的
+            right join
+            full outer join  能查到关联的表中所有数据，内连接的结果+表1中有单表2中没有的+表2中有但表1中没有的
+        交叉连接
+            cross join
+                就是笛卡尔乘积
+
+    子查询
+        出现在其他语句中的select语句，称为子查询
+        特点：子查询放在小括号内；子查询一般放在条件的右侧
+      分类
+        按子查询出现的位置
+            select后面
+                仅支持标量子查询
+            from后面
+                支持表子查询
+            where或having后面 ***
+                标量子查询
+                列子查询
+                行子查询
+            exists后面
+                表子查询
+        按功能
+            标量子查询(结果集只有一行一列)
+            列子查询(结果集只有一列多行)
+            行子查询(结果集有多行多列)
+            表子查询(结果集一般为多行多列)
+
+
+    联合查询
+        将多条查询语句的结果合并成一个结果
+        特点：1、要求多条查询语句的查询列数是一致的
+             2、要求多条查询语句的查询的每一列的类型和顺序最好一致
+
+ insert语句
+    insert into table select xx,xx,xx from table2;
+
+ update语句
+    多表更新
+    update table1 inner|left|right table2 on 连接条件
+    set column=value,.....
+    where 筛选条件
+
+ delete语句
+    多表删除
+        delete table1的别名,table2的别名 from table1 inner|left|right join table2 on 连接条件 where 筛选条件
+
+    truncate table table名；清空表数据
+
+    两者区别
+        1、加入要删除的列是自增长的列，用delete删除后，在插入数据，自增长的列是从断点开始的，
+        而truncate删除后，在出入数据，自增长的列的值从1开始
+
+ 数据类型
+    数值型
+        整型：
+            tinyint、smallint、mediumint、int\integer、bigint
+            int(10)z:这个10 不是值的范围，而是显示的长度，如果再创建表的时候使用的int(10) zerofill 那么当数值长度不足时，
+                     就会使用0填充；但是如果没有使用zerofill，数值长度不足时，就正常显示
+        小数：
+            定点数:精度更高
+                dec(M,D)
+                decimal(M,D)
+
+            浮点数
+                float(M,D)
+                double(M,D)
+
+          特点
+            1、M,D的意思，可省略；D：小数点后面保留的位数，不够以0填充，多了就四舍五入；M：小数点前和小数点后的位数的总和
+                如果超过则插入最大临界值；
+
+                如果是decimal：省略时，默认 M：10  D：0  只要超过了md的范围则无法插入；
+                float和double：会根据插入的数值的精度来决定精度
+
+           2、定点型的精度更高点，ruu'guo要求插入的数值的精度较高，如货币运算就考虑使用定点
+    字符型
+        短的文本：char、varchar
+                        M的意思                        特点              效率
+          char(M)       最大的字符数，可省略，默认1      固定长度的字符       高
+          varchar(M)    最大的字符数，不可省略          可变长度的字符        低
+        较长的文本：text、blob、clob
+
+        enum枚举型
+        create table tab(c1 enum('a','b','c'));
+        然后只能插入这些中的某一个，五十大小写
+
+        set类型
+        create table tab(c1 set('a','b','c','d'));
+        能插入这些中的所有
+
+        日期型
+            date
+            time
+            datetime
+            year
+            timestamp
+
+
+   约束
+      not null
+      default
+      primary key :可以组合主键  使用：primary(a,b) 当初如的数据中a,b两列插入的数据完全一样时就会报错
+      unique：可以为null，但只能有一个null；可以组合唯一约束，unique(a,b)当初如的数据中a,b两列插入的数据完全一样时就会报错
+      check
+      foreign key：关联的外键必须是主键或者是unique约束的
+
+
+   自增长列
+    必须是主键或者是唯一约束的key；只能有一个，只能是数值型
+
+分支结构
+    if函数
+        if(表达式1，表达式2，表达式3)
+            执行顺序：如果表达式1成立则返回表达式2的值，否则返回表达式3的值
+
+    case结构
+        语法1：
+        case 变量|表达式|字段
+        when 值1 then 返回的值
+        ......
+        else 返回的值
+        end
+
+        语法2：
+        case
+        when 要判断的条件 then 返回的值
+        ......
+        else 返回的值
+        end
+
+        以上这是结合select、update等语句使用时的语法；
+        case可以作为表达式，嵌套在其他语句中使用，可以放在任何地方，begin end里或begin end外面；
+        case结构也可以作为独立使用的语句，**当作为独立使用的语句时只能放在begin  end里使用
+             语法1：
+                case 变量|表达式|字段
+                when 值1 then 语句;
+                ......
+                else 语句;
+                end case;
+
+             语法2：
+                case
+                when 要判断的条件 then 语句;
+                ......
+                else 语句;
+                end case;
+
+            举例
+                create PROCEDURE myPro(in score int)
+                BEGIN
+                	CASE
+                	WHEN score >90 THEN select "A";
+                	WHEN score >80 then select "B";
+                	else select "C";
+                	END CASE;
+                END
+
+    if 结构
+        语法
+            if 条件1 then 语句1；
+            elseif 条件2  then 语句2；
+            ......
+            【else 语句n;】
+             end if;
+
+             **这种结构只能放在begin end中
+             举例
+             create function myfun(score int) returns varchar(2)
+             begin
+             	if score > 90 then return "a";
+             	elseif score >80 and score <=90 then return "b";
+             	else return "c";
+             	end if;
+             END
+
+
+    循环结构
+        分类：while、loop、repeat   **必须放在begin end里面
+
+        循环控制
+            iterate类似于continue；
+            leave类似于break，跳出
+
+        while语法
+            【标签名:】while 循环条件 do
+                循环体;
+            end while 【标签】;
+            举例
+            create PROCEDURE mypro2(in counts int)
+            BEGIN
+            	declare i int default 1;
+            	k:while i<counts do
+            		insert into dept(dname,ddesc) values ("a","ss");
+                if i > 4 then leave k;
+                end if;
+            		set i = i+1;
+            end while;
+            END
+
+
+         loop语法
+            【标签名:】loop
+                        循环体;
+                    end loop 【标签】;
+
+
+
+高级
+    mysql逻辑架构简介
+    1、连接层
+    2、服务层
+    3、引擎层：存储引擎真正的负责了mysql中数据的存储和提取，服务器通过api与存储引擎进行通信，不同的存储引擎具有不同的功能，
+    这样我们可以根据自己的实际需要进行选择
+    4、存储层：主要是江苏据存储在运行于裸设备的文件系统之上，并完成与存储引擎的交互
+
+    mysql存储引擎
+        对比项                myisam                                                   innodb
+        主外键                 不支持                                                     支持
+        事务                   不支持                                                     支持
+        行表锁                 表锁，即使操作一条记录也会锁住整张表，不适合高并发操作         行锁，操作时只锁某一行，不对其他行有影响，适合高并发操作
+        缓存                   只缓存索引，不缓存真实数据                                 不仅缓存索引还缓存真实数据，对内存要求高，而且内存大小对性能有决定性影响
+        表空间                 小                                                       大
+        关注点                 性能                                                      事务
+        默认安装                Y                                                         Y
+
+
+    sql性能下降的原因
+        sql执行慢：
+            1、索引失效
+                创建索引：create index xxx on table(column);
+            2、关联查询太多join
+            3、服务器调优及各个参数设置
+
+    sql执行加载顺序
+        from <left table>(笛卡尔积)
+        on <join condition>(主表保留)
+        <join type> join <right table>
+        where <where condition>
+        group by
+        having
+        select <select list>
+        order by
+        limit
+
+    索引
+        是什么：本质上索引是一种数据结构，可以理解为：排好序的快速查找数据结构
+        在数据之外，数据库系统还维护着满足特定查找算法的数据结构，这些数据结构以某种方式引用指向数据
+        索引文件本身也很大，不可能全部存储在内存中，因此往往是以索引文件的形式存储在磁盘上
+
+
+        索引的分类
+            单值索引：一个索引只包含单个列，一个表可以有多个单列索引
+            唯一索引：索引列的值必须唯一，可以有空值
+            复合索引：一个索引包含多个列
+
+            注意：复合索引优于单值索引
+        基本语法
+            创建：create 【unique】 index indexname on mytable(columnname(length));
+
+                  alter table add 【unique】 index 【indexname】 on (columnname(length));
+            删除：drop index 【indexname】 on mytable
+
+            查看：show index from table_name\G
+
+        索引结构
+            BTree索引
+                原理：
+            hash索引
+
+            full-text索引
+
+            R-Tree索引
+
+
+        B+树结构
+         一般说的索引都是B+树索引；
+            增删改的时候会使得索引也在修改，所以比查询慢；
+           正常增删改数据会导致 索引慢慢失效；所以不要在增删改平率较高的字段上建立索引
+
+            为什么要创建索引呢？这是因为，创建索引可以大大提高系统的性能。
+           第一，通过创建唯一性索引，可以保证数据库表中每一行数据的唯一性。 
+           第二，可以大大加快 数据的检索速度，这也是创建索引的最主要的原因。 
+           第三，可以加速表和表之间的连接，特别是在实现数据的参考完整性方面特别有意义。 
+           第四，在使用分组和排序 子句进行数据检索时，同样可以显著减少查询中分组和排序的时间。 
+           第五，通过使用索引，可以在查询的过程中，使用优化隐藏器，提高系统的性能。 
+
+           也许会有人要问：增加索引有如此多的优点，为什么不对表中的每一个列创建一个索引呢？这种想法固然有其合理性，然而也有其片面性。虽然，索引有许多优点，但是，为表中的每一个列都增加索引，是非常不明智的。这是因为，增加索引也有许多不利的一个方面。 
+
+           第一，创建索引和维护索引要耗费时间，这种时间随着数据量的增加而增加。 
+           第二，索引需要占物理空间，除了数据表占数据空间之外，每一个索引还要占一定的物理空间，如果要建立聚簇索引
+           ，那么需要的空间就会更大。 
+           第三，当对表中的数据进行增加、删除和修改的时候，索引也要动态的维护，这样就降低了数据的维护速度。 
+
+           索引是建立在数据库表中的某些列的上面。因此，在创建索引的时候，应该仔细考虑在哪些列上可以创建索引，
+           在哪些列上不能创建索引。一般来说，应该在这些列上创建索引，例如： 
+           主键自动建立唯一索引
+           在经常需要搜索的列上，可以加快搜索的速度； 
+           在作为主键的列上，强制该列的唯一性和组织表中数据的排列结构； 
+           在经常用在连接的列上，这 些列主要是一些外键，可以加快连接的速度； 
+           在经常需要根据范围进行搜索的列上创建索引，因为索引已经排序，其指定的范围是连续的； 
+           在经常需要排序的列上创 建索引，因为索引已经排序，这样查询可以利用索引的排序，加快排序查询时间； 
+           在经常使用在WHERE子句中的列上面创建索引，加快条件的判断速度。 
+           查询中统计或者分组字段
+
+
+           同样，对于有些列不应该创建索引。一般来说，不应该创建索引的的这些列具有下列特点： 
+
+           第一，对于那些在查询中很少使用或者参考的列不应该创建索引。这是因为，既然这些列很少使用到，因此有索引或者无索引，
+           并不能提高查询速度。相反，由于增加了索引，反而降低了系统的维护速度和增大了空间需求。 
+           第二，对于那些只有很少数据值的列也不应该增加索引。这是因为，由于这些列的取值很少，例如人事表的性别列，
+           在查询的结果中，结果集的数据行占了表中数据行的很大比例，即需要在表中搜索的数据行的比例很大。增加索引，
+           并不能明显加快检索速度。 
+           第三，对于那些定义为text, image和bit数据类型的列不应该增加索引。这是因为，这些列的数据量要么相当大，
+           要么取值很少。 
+           第四，当修改性能远远大于检索性能时，不应该创建索 引。这是因为，修改性能和检索性能是互相矛盾的。
+           当增加索引时，会提高检索性能，但是会降低修改性能。当减少索引时，会提高修改性能，降低检索性能。
+           因此，当修改性能远远大于检索性能时，不应该创建索引。 
+
+           性能分析
+            explain简介
+                查看执行计划；使用explain关键字可以模拟优化器执行sql查询语句，从而知道mysql是如何处理你的sql语句的。
+                分析你的查询语句或是表结构的性能瓶颈。
+             能干嘛？
+                表的读取顺序
+                数据读取操作的操作类型
+                哪些索引可以使用
+                哪些索引被实际使用
+                表之间的引用
+                每张表有多少行被优化器查询
+             怎么玩？
+                explain+sql语句
+                执行计划包含的信息
+             各字段的解释
+                id(反映表的加载顺序)：select查询的序列号，包含一组数字，表示查询中执行select字句或操作表的顺序
+                    三种情况：id相同:执行顺序由上至下；
+                         id不同:如果是子查询，id序号会递增，id值越大优先级越高，越先被执行；
+                         id相同不同：id如果相同，可以认为是一组，从上往下顺序执行；在所有组中，id值越大，优先级越高
+
+                         DERIVED = 衍生
+
+                select_type:
+                    常见值：simple:简单的select查询，查询中不包含子查询或者union
+                           primary：查询中如果包含任何复杂的子查询，最外层的查询称为primary
+                           subquery：在select或where中包含的子查询
+                           derived：在from列表中包含的子查询被标记为derived(衍生)，mysql会递归执行这些子查询，
+                                    把结果放在临时表
+                            union：若第二个select出现在union之后，则被标记为union；若union包含在from子句的子查询中，外层select
+                                    将被标记为derived
+                           union result:从union表获取结果的select
+
+                type
+                    访问类型排列
+                       显示查询使用了何种类型，从最好到最差依次是：system>const>eq_ref>ref>range>index>ALL
+                       一般来说，得保证查询至少达到range级别，最好能达到ref
+
+                possible_keys:显示可能应用在这张表中的索引，一个或多个。查询涉及到的字段上若存在索引，则该索引将被列出，
+                              但不一定被查询实际使用。
+                key:实际使用的索引，如果为null，则没有使用索引；
+                    查询中若使用了覆盖索引，则该索引仅出现在key列表中
+                    覆盖索引：查找的列和创建的索引的键的键名、个数以及顺序一致
+                key_len:
+
+                ref:显示索引的哪一列被使用了，如果可能的话，是一个常数，哪些列或常量被用于查找索引列上的值
+
+           索引的方法和索引的特征 
+           创建索引的方法 
+           创 建索引有多种方法，这些方法包括直接创建索引的方法和间接创建索引的方法。直接创建索引，例如使用CREATE INDEX语句或者使用创建索引向导，间接创建索引，例如在表中定义主键约束或者唯一性键约束时，同时也创建了索引。虽然，这两种方法都可以创建索引，但 是，它们创建索引的具体内容是有区别的。 
+
+           直接创建索引：
+           使用CREATE INDEX语句或者使用创建索引向导来创建索引，这是最基本的索引创建方式，并且这种方法最具有柔性，可以定制创建出符合自己需要的索引。在使用这种方式 创建索引时，可以使用许多选项，例如指定数据页的充满度、进行排序、整理统计信息等，这样可以优化索引。使用这种方法，可以指定索引的类型、唯一性和复合 性，也就是说，既可以创建聚簇索引，也可以创建非聚簇索引，既可以在一个列上创建索引，也可以在两个或者两个以上的列上创建索引。 
+           间接创建索引：
+           通 过定义主键约束或者唯一性键约束，也可以间接创建索引。主键约束是一种保持数据完整性的逻辑，它限制表中的记录有相同的主键记录。在创建主键约束时，系统自动创建了一个唯一性的聚簇索引。虽然，在逻辑上，主键约束是一种重要的结构，但是，在物理结构上，与主键约束相对应的结构是唯一性的聚簇索引。换句话说，在物理实现上，不存在主键约束，而只存在唯一性的聚簇索引。同样，在创建唯一性键约束时，也同时创建了索引，这种索引则是唯一性的非聚簇索引。因此，当使用约束创建索引时，索引的类型和特征基本上都已经确定了，由用户定制的余地比较小。 
+
+           当在表上定义主键或者唯一性键约束时，如果表 中已经有了使用CREATE INDEX语句创建的标准索引时，那么主键约束或者唯一性键约束创建的索引覆盖以前创建的标准索引。也就是说，主键约束或者唯一性键约束创建的索引的优先 级高于使用CREATE INDEX语句创建的索引。 
+
+           索引的特征 
+           索引有两个特征，即唯一性索引和复合索引。 
+           唯一 性索引保证在索引列中的全部数据是唯一的，不会包含冗余数据。如果表中已经有一个主键约束或者唯一性键约束，那么当创建表或者修改表时，SQL Server自动创建一个唯一性索引。然而，如果必须保证唯一性，那么应该创建主键约束或者唯一性键约束，而不是创建一个唯一性索引。当创建唯一性索引 时，应该认真考虑这些规则：当在表中创建主键约束或者唯一性键约束时，SQL Server自动创建一个唯一性索引；如果表中已经包含有数据，那么当创建索引时，SQL Server检查表中已有数据的冗余性；每当使用插入语句插入数据或者使用修改语句修改数据时，SQL Server检查数据的冗余性：如果有冗余值，那么SQL Server取消该语句的执行，并且返回一个错误消息；确保表中的每一行数据都有一个唯一值，这样可以确保每一个实体都可以唯一确认；只能在可以保证实体 完整性的列上创建唯一性索引，例如，不能在人事表中的姓名列上创建唯一性索引，因为人们可以有相同的姓名。 
+
+           复合索引就是一个索引创建 在两个列或者多个列上。在搜索时，当两个或者多个列作为一个关键值时，最好在这些列上创建复合索引。当创建复合索引时，应该考虑这些规则：最多可以把16个列合并成一个单独的复合索引，构成复合索引的列的总长度不能超过900字节，也就是说复合列的长度不能太长；在复合索引中，所 有的列必须来自同一个表中，不能跨表建立复合列；在复合索引中，列的排列顺序是非常重要的，因此要认真排列列的顺序，原则上，应该首先定义最唯一的列，例 如在（COL1，COL2）上的索引与在（COL2，COL1）上的索引是不相同的，因为两个索引的列的顺序不同；为了使查询优化器使用复合索引，查询语 句中的WHERE子句必须参考复合索引中第一个列；当表中有多个关键列时，复合索引是非常有用的；使用复合索引可以提高查询性能，减少在一个表中所创建的 索引数量。
+
+
+           索引的类型 
+           根据索引的顺序与数据表的物理顺序是否相同，可以把索引分成两种类型。一种是数据表的物理顺序与索引顺序相同的聚簇索引，另一种是数据表的物理顺序与索引顺序不相同的非聚簇索引。 
+
+           聚簇索引的体系结构 
+           索 引的结构类似于树状结构，树的顶部称为叶级，树的其它部分称为非叶级，树的根部在非叶级中。同样，在聚簇索引中，聚簇索引的叶级和非叶级构成了一个树状结构，索引的最低级是叶级。在聚簇索引中，表中的数据所在的数据页是叶级，在叶级之上的索引页是非叶级，索引数据所在的索引页是非叶级。在聚簇索引中，数据值的顺序总是按照升序排列。 
+
+           应该在表中经常搜索的列或者按照顺序访问的列上创建聚簇索引。当创建聚簇索引时，应该考虑这些因素：每一个表只能有一个聚簇索引，因为表中数据的物理顺序 只能有一个；表中行的物理顺序和索引中行的物理顺序是相同的，在创建任何非聚簇索引之前创建聚簇索引，这是因为聚簇索引改变了表中行的物理顺序，数据行按 照一定的顺序排列，并且自动维护这个顺序；关键值的唯一性要么使用UNIQUE关键字明确维护，要么由一个内部的唯一标识符明确维护，这些唯一性标识符是 系统自己使用的，用户不能访问；聚簇索引的平均大小大约是数据表的百分之五，但是，实际的聚簇索引的大小常常根据索引列的大小变化而变化；在索引的创建过 程中，SQL Server临时使用当前数据库的磁盘空间，当创建聚簇索引时，需要1.2倍的表空间的大小，因此，一定要保证有足够的空间来创建聚簇索引。 
+
+           当 系统访问表中的数据时，首先确定在相应的列上是否存在有索引和该索引是否对要检索的数据有意义。如果索引存在并且该索引非常有意义，那么系统使用该索引访问表中的记录。系统从索引开始浏览到数据，索引浏览则从树状索引的根部开始。从根部开始，搜索值与每一个关键值相比较，确定搜索值是否大于或者等于关键值。这一步重复进行，直到碰上一个比搜索值大的关键值，或者该搜索值大于或者等于索引页上所有的关键值为止。 
+
+           非聚簇索引的体系结构 
+           非聚簇索引的结构也是树状结构，与聚簇索引的结构非常类似，但是也有明显的不同。 
+           在非聚簇索引中，叶级仅包含关键值，而没有包含数据行。非聚簇索引表示行的逻辑顺序。 非聚簇索引有两种体系结构：一种体系结构是在没有聚簇索引的表上创建非聚簇索引，另一种体系结构是在有聚簇索引的表上创建非聚簇索引。 
+
+           如 果一个数据表中没有聚簇索引，那么这个数据表也称为数据堆。当非聚簇索引在数据堆的顶部创建时，系统使用索引页中的行标识符指向数据页中的记录。行标识符存储了数据所在位置的信息。数据堆是通过使用索引分配图（IAM）页来维护的。IAM页包含了数据堆所在簇的存储信息。在系统表sysindexes中，有一个指针指向了与数据堆相关的第一个IAM页。系统使用IAM页在数据堆中浏览和寻找可以插入新的记录行的空间。这些数据页和在这些数据页中的记录 没有任何的顺序并且也没有链接在一起。在这些数据页之间的唯一的连接是IAM中记录的顺序。当在数据堆上创建了非聚簇索引时，叶级中包含了指向数据页的行 标识符。行标识符指定记录行的逻辑顺序，由文件ID、页号和行ID组成。这些行的标识符维持唯一性。非聚簇索引的叶级页的顺序不同于表中数据的物理顺序。 这些关键值在叶级中以升序维持。 
+
+           当非聚簇索引创建在有聚簇索引的表上的时候，系统使用索引页中的指向聚簇索引的聚簇键。聚簇键存储了数据的位置信息。如果某一个表有聚簇索引，那么非聚簇 索引的叶级包含了映射到聚簇键的聚簇键值，而不是映射到物理的行标识符。当系统访问有非聚簇索引的表中数据时，并且这种非聚簇索引创建在聚簇索引上，那么 它首先从非聚簇索引来找到指向聚簇索引的指针，然后通过使用聚簇索引来找到数据。 
+           当需要以多种方式检索数据时，非聚簇索引是非常有用的。当创建非聚簇索引时，要考虑这些情况：在缺省情况下，所创建的索引是非聚簇索引；在每一个表上面，可以创建不多于249个非聚簇索引，而聚簇索引最多只能有一个。 
+           系统如何访问表中的数据 
+           一 般地，系统访问数据库中的数据，可以使用两种方法：表扫描和索引查找。第一种方法是表扫描，就是指系统将指针放置在该表的表头数据所在的数据页上，然后按照数据页的排列顺序，一页一页地从前向后扫描该表数据所占有的全部数据页，直至扫描完表中的全部记录。在扫描时，如果找到符合查询条件的记录，那么就将这条记录挑选出来。最后，将全部挑选出来符合查询语句条件的记录显示出来。第二种方法是使用索引查找。索引是一种树状结构，其中存储了关键字和指向包含关键字所在记录的数据页的指针。当使用索引查找时，系统沿着索引的树状结构，根据索引中关键字和指针，找到符合查询条件的的记录。最后，将全部查找到的符合查询语句条件的记录显示出来。 
+           在SQL Server中，当访问数据库中的数据时，由SQL Server确定该表中是否有索引存在。如果没有索引，那么SQL Server使用表扫描的方法访问数据库中的数据。查询处理器根据分布的统计信息生成该查询语句的优化执行规划，以提高访问数据的效率为目标，确定是使用 表扫描还是使用索引。 
+           索引的选项 
+           在创建索引时，可以指定一些选项，通过使用这些选项，可以优化索引的性能。这些选项包括FILLFACTOR选项、PAD_INDEX选项和SORTED_DATA_REORG选项。 
+           使 用FILLFACTOR选项，可以优化插入语句和修改语句的性能。当某个索引页变满时，SQL Server必须花费时间分解该页，以便为新的记录行腾出空间。使用FILLFACTOR选项，就是在叶级索引页上分配一定百分比的自由空间，以便减少页 的分解时间。当在有数据的表中创建索引时，可以使用FILLFACTOR选项指定每一个叶级索引节点的填充的百分比。缺省值是0，该数值等价于100。在 创建索引的时候，内部索引节点总是留有了一定的空间，这个空间足够容纳一个或者两个表中的记录。在没有数据的表中，当创建索引的时候，不要使用该选项，因 为这时该选项是没有实际意义的。另外，该选项的数值在创建时指定以后，不能动态地得到维护，因此，只应该在有数据的表中创建索引时才使用。 
+           PAD_INDEX 选项将FILLFACTOR选项的数值同样也用于内部的索引节点，使内部的索引节点的填充度与叶级索引的节点中的填充度相同。如果没有 指定FILLFACTOR选项，那么单独指定PAD_INDEX选项是没有实际意义的，这是因为PAD_INDEX选项的取值是由FILLFACTOR选 项的取值确定的。 
+           当创建聚簇索引时，SORTED_DATA_REORG选项清除排序，因此可以减少建立聚簇索引所需要的时间。当在一个已经 变成碎块的表上创建或者重建聚 簇索引时，使用SORTED_DATA_REORG选项可以压缩数据页。当重新需要在索引上应用填充度时，也使用该选项。当使用SORTED_DATA_REORG选项时，应该考虑这些因素：SQL Server确认每一个关键值是否比前一个关键值高，如果都不高，那么不能创建索引；SQL Server要求1.2倍的表空间来物理地重新组织数据；使用SORTED_DATA_REORG选项，通过清除排序进程而加快索引创建进程；从表中物理 地拷贝数据；当某一个行被删除时，其所占的空间可以重新利用；创建全部非聚簇索引；如果希望把叶级页填充到一定的百分比，可以同时使用 FILLFACTOR选项和SORTED_DATA_REORG选项。 
+           索引的维护 
+           为了维护系统性能，索引在创建之后，由于频繁地对数据进行增加、删除、修改等操作使得索引页发生碎块，因此，必须对索引进行维护。 
+           使 用DBCC SHOWCONTIG语句，可以显示表的数据和索引的碎块信息。当执行DBCC SHOWCONTIG语句时，SQL Server浏览叶级上的整个索引页，来确定表或者指定的索引是否严重碎块。DBCC SHOWCONTIG语句还能确定数据页和索引页是否已经满了。当对表进行大量的修改或者增加大量的数据之后，或者表的查询非常慢时，应该在这些表上执行DBCC SHOWCONTIG语句。当执行DBCC SHOWCONTIG语句时，应该考虑这些因素：当执行DBCC SHOWCONTIG语句时，SQL Server要求指定表的ID号或者索引的ID号，表的ID号或者索引的ID号可以从系统表sysindexes中得到；应该确定多长时间使用一次DBCC SHOWCONTIG语句，这个时间长度要根据表的活动情况来定，每天、每周或者每月都可以。 
+           使用DBCC DBREINDEX语句重建表的一个或者多个索引。当希望重建索引和当表上有主键约束或者唯一性键约束时，执行DBCC DBREINDEX语句。除此之外，执行DBCC DBREINDEX语句还可以重新组织叶级索引页的存储空间、删除碎块和重新计算索引统计。当使用执行DBCC DBREINDEX语句时，应该考虑这些因素：根据指定的填充度，系统重新填充每一个叶级页；使用DBCC DBREINDEX语句重建主键约束或者唯一性键约束的索引；使用SORTED_DATA_REORG选项可以更快地创建聚簇索引，如果没有排列关键值， 那么不能使用DBCC DBREINDEX语句；DBCC DBREINDEX语句不支持系统表。另外，还可以使用数据库维护规划向导自动地进行重建索引的进程。 
+           统计信息是存储在SQL Server中的列数据的样本。这些数据一般地用于索引列，但是还可以为非索引列创建统计。SQL Server维护某一个索引关键值的分布统计信息，并且使用这些统计信息来确定在查询进程中哪一个索引是有用的。查询的优化依赖于这些统计信息的分布准确 度。查询优化器使用这些数据样本来决定是使用表扫描还是使用索引。当表中数据发生变化时，SQL Server周期性地自动修改统计信息。索引统计被自动地修改，索引中的关键值显著变化。统计信息修改的频率由索引中的数据量和数据改变量确定。例如，如 果表中有10000行数据，1000行数据修改了，那么统计信息可能需要修改。然而，如果只有50行记录修改了，那么仍然保持当前的统计信息。除了系统自 动修改之外，用户还可以通过执行UPDATE STATISTICS语句或者sp_updatestats系统存储过程来手工修改统计信息。使用UPDATE STATISTICS语句既可以修改表中的全部索引，也可以修改指定的索引。 
+           使用SHOWPLAN和STATISTICS IO语句可以分析索引和查询性能。使用这些语句可以更好地调整查询和索引。SHOWPLAN语句显示在连接表中使用的查询优化器的每一步以及表明使用哪一 个索引访问数据。使用SHOWPLAN语句可以查看指定查询的查询规划。当使用SHOWPLAN语句时，应该考虑这些因素。SET SHOWPLAN_ALL语句返回的输出结果比SET SHOWPLAN_TEXT语句返回的输出结果详细。然而，应用程序必须能够处理SET SHOWPLAN_ALL语句返回的输出结果。SHOWPLAN语句生成的信息只能针对一个会话。如果重新连接SQL Server，那么必须重新执行SHOWPLAN语句。STATISTICS IO语句表明输入输出的数量，这些输入输出用来返回结果集和显示指定查询的逻辑的和物理的I/O的信息。可以使用这些信息来确定是否应该重写查询语句或者 重新设计索引。使用STATISTICS IO语句可以查看用来处理指定查询的I/O信息。 
+           就象SHOWPLAN语句一样，优化器隐藏也用来 调整查询性能。优化器隐藏可以对查询性能提供较小的改进，并且如果索引策略发生了改变，那么这种优化器隐 藏就毫无用处了。因此，限制使用优化器隐藏，这是因为优化器隐藏更有效率和更有柔性。当使用优化器隐藏时，考虑这些规则：指定索引名称、当index_id为0时为使用表扫描、当index_id为1时为使用聚簇索引；优化器隐藏覆盖查询优化器，如果数据或者环境发生了变化，那么必须修改优 化器隐藏。
+
+
+行锁
+    偏向于innodb引擎，innodb与myisam最大的不同有两点：
+        1、innodb支持事务
+        2、默认的隔离级别(可重复读)采用了行级锁
+
+    索引失效可能导致行锁变表锁，譬如update a set col1 = 90 where col2 = 1;a表里的字段都是varchar类型的，但是如果col2
+    单引号没有加就会导致索引失效进而导致行锁变表锁，此时其他连接就无法进行表的写操作
+
+间隙锁的危害
+    间隙锁：当我们用范围条件而不是相等条件查询数据，并请求共享或排他时，innodb会给符合条件的已有数据记录的索引项加锁；对于键值在
+    条件范围内但并不存在的记录，叫做间隙，innodb会对这个间隙加锁，这种锁机制就是所谓的间隙锁；
+
+    危害：因为query执行过程中通过范围查找的话，他会锁定整个范围内所有的索引键值，即使这个键值并不存在；间隙锁有一个
+    比较致命的弱点，就是当锁定一个范围内的键值之后，即使某些不存在的键值也会被无辜的锁定，而造成在锁定的时候无法插入锁定
+    的键值范围内的任何数据，在某些场景下这可能会对性能造成很大的危害
+
+如何人为的锁定一行
+    begin
+    select * from table where a=8 for update;
+    做我的业务逻辑
+
+    commit;
+
+行锁的总结
+    show status like 'innodb_row_lock%';
+
+mycat
+    数据库中间件；读写分离，数据分片，多数据源整合
+    原理：拦截
+
+
+
+
+
+
+oracle
+
+    多列子查询
+        查询与141号或者174号员工的managerid和departmentid相同的其他员工的employeeid，managerid，departmentid
+
+        select employeeid，managerid，departmentid from employee e1 where
+        (managerid，departmentid) in (select (managerid，departmentid) from employee where employeeid in (141,174))
+        and employeeid not in (141,174);
+
+
+  相关子查询
+    相关子查询按照一行接一行的顺序执行，主查询的每一行都执行一次子查询，例如exists关键字就是相关子查询
+    但是像下面的就不是相关子查询
+        select * from a where a.count > (select count from b where id= 1)
+
+    相关更新
+        update table1 t1
+        set column = (select expression from table2 t2 where t1.column = t2.column)
+
+    相关删除
+        delete from table t1
+        where column operator (select expression t2 from table2 where t1.column = t2.column )
+
+    使用with字句
+        举例：查询公司中工资比abel高的员工的信息
+        with abel_sal as (
+            select salary from employees where last_name = 'abel'
+        )
+
+        select * from employee where salary > (select salary from abel_sal);
+
+        举例：查询公司中各部门的总工资大于公司中各部门的平均总工资的部门信息
+        with dept_costs as (select d.departmentname,sum(e.salary) as dept_total from
+                    employees e,departments d where e.departmentid = d.departmentid
+                    group by d.departmentname
+                ),
+             avg_costs as (select dept_total/count(*) from dept_costs)
+
+             select * from dept_costs where dept_total > (select dept_avg from avg_costs)
+             order by departname;
+
+
+pl/sql
+    语法：
+        declare
+            --声明的变量、类型、游标
+        begin
+            程序的执行部分
+            dbms_output.put_line('hello world');
+        exception
+            针对begin中出现的异常，提供处理的机制
+            when...then...
+            when...then...
+        end
+
+
+    记录类型
+        declare
+            type emp_record is record(
+                v_sal employee.salary&type,
+                v_email employee.email%type,
+                v_hire_date employee.hire_date%type  --v_hire_date和employee的hire_date类型一样
+            );
+            v_emp_record emp_record;
+
+            --也可以如此声明记录类型,v_emp_record里的字段以及类型和employee里的字段类型一样
+            v_emp_record employee%rowtype;
+
+
+        begin
+            select salary,email,hire_date into v_emp_record from employee;
+            dbms_output.put_line(v_emp_record.v_sal,v_emp_record.v_email,v_emp_record.v_hire_date);
+        end;
+
+    流程控制
+        条件判断
+            if...then elsif...then end if;
+            注意：elsif不能写成elseif
+
+            case... when...then...end;
+
+        循环结构
+
+
+    游标的使用
+        类似于java中的iterator
+        在pl/sql程序中，对于处理多行记录的事务经常使用游标来实现
+        显式游标的使用
+            举例：打印出80部门所有员工的工资salary
+            declare
+                v_sal employee.salary%type;
+                --定义游标
+                cursor emp_sal_cursor is select salary from employee where departmentid = 80;
+            begin
+                --打开游标
+                open emp_sal_cursor;
+                --提取游标
+                fetch emp_sal_cursor into v_sal;
+                while emp_sal_cursor*found  loop
+                    dms_output.put_line(v_sal);
+                    fetch emp_sal_cursor into v_sal;
+                end loop;
+
+                --关闭游标
+                close emp_sal_cursor;
+            end
+            当循环使用的是for循环时，就无需open，fetch，以及close游标了
+
+          游标属性的介绍
+            %found  布尔型属性，当最近的一次读记录时成功返回，则值为true
+            %notfound   布尔型属性，与%found相反
+            %isopen 布尔型属性，当游标打开时返回true
+            %rowcount 数字型属性，返回已从游标中读取的记录数
+
+        隐式游标
+            举例
+                begin
+                    update employee
+                    set salary = salary + 10
+                    where employeeid = 1000;
+                    --sql是隐式的游标
+                    if sql%notfound then dbms_output.put_line('查无此人');
+                end；
+
+
+
+
+    异常的处理
+        三种类型的异常错误
+        1、预定义错误
+            declare
+                      v_salary employee.salary%type;
+                    begin
+                        select salary into v_salary where id >1;
+                    exception
+                        when to_many_rows then .....
+                    end
+        2、非预定义错误
+            declare
+              e_delected_exception exception;
+              pragma exception_init(e_delected_exception,-2292);
+
+            begin
+                delete from employee where id = 100;
+            exception
+                when e_delected_exception then .....
+            end
+        3、用户定义的错误
+            declare
+              e_too_high_sal_exception exception;
+              v_sal employee.salary%type;
+            begin
+                select salary into v_sal from employee where id = 100;
+                if v_sal > 10000 then
+                --raise  抛出异常
+                raise e_too_high_sal_exception;
+                end if；
+            exception
+                when e_too_high_sal_exception then .....
+            end
+    会写存储过程以及函数
+        语法架构和mysql的基本一样，就是多了一个exception，然后语法就按照pl/sql的来
+    会写一个触发器
+        create [or replace] trigger name
+        {before | after}
+        {insert | delete | update [of column [,column...]]}
+        on table_name
+        [for each row] --如果没写就是语句级的，所有执行完之后才会触发一次触发器
+        when condition
+        trigger_body;
+
+        使用:new  :old修饰符
+        获取更新之前以及之后的值
+
+
+oracle中start with和connect by的用法理解
+     select … from tablename
+    2 start with 条件1
+    3 connect by 条件2
+    4 where 条件3;
+    例：
+    1 select * from table
+    2 start with org_id = ‘HBHqfWGWPy’
+    3 connect by prior org_id = parent_id;
+         简单说来是将一个树状结构存储在一张表里，比如一个表中存在两个字段:org_id，parent_id，那么通过表示每一条记录的parent是谁，就可以形成一个树状结构，用上述语法的查询可以取得这棵树的所有记录，其中：
+            条件1 是根结点的限定语句，当然可以放宽限定条件，以取得多个根结点，实际就是多棵树。
+            条件2 是连接条件，其中用PRIOR表示上一条记录，比如 CONNECT BY PRIOR org_id = parent_id；就是说上一条记录的org_id 是本条记录的parent_id，即本记录的父亲是上一条记录。
+             条件3 是过滤条件，用于对返回的所有记录进行过滤。
+        简单介绍如下：
+            在扫描树结构表时，需要依此访问树结构的每个节点，一个节点只能访问一次，其访问的步骤如下：
+            第一步：从根节点开始；
+            第二步：访问该节点；
+            第三步：判断该节点有无未被访问的子节点，若有，则转向它最左侧的未被访问的子节，并执行第二步，否则执行第四步；
+            第四步：若该节点为根节点，则访问完毕，否则执行第五步；
+            第五步：返回到该节点的父节点，并执行第三步骤。
+            总之：扫描整个树结构的过程也即是中序遍历树的过程。
+
+     1．树结构的描述
+         树结构的数据存放在表中，数据之间的层次关系即父子关系，通过表中的列与列间的关系来描述，如EMP表中的EMPNO和MGR，EMPNO表示该雇员的编号，MGR表示领导该雇员的人的编号，即子节点的MGR值等于父节点的EMPNO值。在表的每一行中都有一个表示父节点的MGR（除根节点外），通过每个节点的父节点，就可以确定整个树结构。
+         在SELECT命令中使用CONNECT BY 和START WITH 子句可以查询表中的树型结构关系，其命令格式如下：
+    SELECT . . .
+    CONNECT BY {PRIOR 列名1=列名2|列名1=PRIOR 裂名2}
+    [START WITH]；
+         其中：CONNECT BY子句说明每行数据将是按层次顺序检索，并规定将表中的数据连入树型结构的关系中。PRIOR运算符必须放置在连接关系的两列中某一个的前面。对于节点间的父子关系，PRIOR运算符在一侧表示父节点，在另一侧表示子节点，从而确定查找树结构是的顺序是自顶向下还是自底向上。
+         在连接关系中，除了可以使用列名外，还允许使用列表达式。START WITH 子句为可选项，用来标识哪个节点作为查找树型结构的根节点，若该子句被省略，则表示所有满足查询条件的行作为根节点。
+         START WITH：不但可以指定一个根节点，还可以指定多个根节点。
+    2．关于PRIOR
+         运算符PRIOR被放置于等号前后的位置，决定着查询时的检索顺序。
+         PRIOR被置于CONNECT BY子句中等号的前面时，则强制从根节点到叶节点的顺序检索，即由父节点向子节点方向通过树结构，我们称之为自顶向下的方式。如：
+         CONNECT BY PRIOR EMPNO=MGR
+         PIROR运算符被置于CONNECT BY 子句中等号的后面时，则强制从叶节点到根节点的顺序检索，即由子节点向父节点方向通过树结构，我们称之为自底向上的方式。例如：
+         CONNECT BY EMPNO=PRIOR MGR
+         在这种方式中也应指定一个开始的节点。
+    3．定义查找起始节点
+         在自顶向下查询树结构时，不但可以从根节点开始，还可以定义任何节点为起始节点，以此开始向下查找。这样查找的结果就是以该节点为开始的结构树的一枝。
+    4．使用LEVEL
+         在具有树结构的表中，每一行数据都是树结构中的一个节点，由于节点所处的层次位置不同，所以每行记录都可以有一个层号。层号根据节点与根节点的距离确定。不论从哪个节点开始，该起始根节点的层号始终为1，根节点的子节点为2， 依此类推。图1.2就表示了树结构的层次。
+    5．节点和分支的裁剪
+         在对树结构进行查询时，可以去掉表中的某些行，也可以剪掉树中的一个分支，使用WHERE子句来限定树型结构中的单个节点，以去掉树中的单个节点，但它却不影响其后代节点（自顶向下检索时）或前辈节点（自底向顶检索时）。
+    6．排序显示
+         像在其它查询中一样，在树结构查询中也可以使用ORDER BY 子句，改变查询结果的显示顺序，而不必按照遍历树结构的顺序。
+    7. 实例
+         oracle 提供了start with connect by 语法结构可以实现递归查询。

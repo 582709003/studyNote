@@ -1,0 +1,10 @@
+1、哨兵模式：可包含多个哨兵，只能有一个master服务，可以有多个salve服务，master服务对外只提供写服务，salve服务对外只提供读服务，一旦发现mase服务挂掉，随机 抽取从服务担任主服务；缺点：哨兵模式相当于单机并发模式，因为只能有一台master提供写服务（redis并发量一般为每秒10w作用），所以对于大并发量的服务基本不可用；主从切换的时候会发生访问失败的情况，数据会丢失；
+
+
+2、高可用集群模式：redis集群至少需要三个master节点 。
+      安装redis时，需要到redis安装目录下make 编译一下，再到src目录下make install一下，查看一下src目录下是否有命令生成，将需要用到的命令移动mv到自己创建的redis目录下的bin目录下，再将redis.conf复制到redis/etc目录下，将配置文件里的daemonize no 改成daemonize yes，然后启动redis服务的时候就是后台启动模式；
+
+
+
+3、搭建redis集群模式：
+     

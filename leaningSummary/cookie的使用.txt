@@ -1,0 +1,11 @@
+1、正常的cookie只能在一个应用中共享，即一个cookie只能由创建它的应用获得。
+
+1.可在同一应用服务器内共享方法：设置cookie.setPath("/"); 
+本机tomcat/webapp下面有两个应用：webapp_a和webapp_b， 
+1）原来在webapp_a下面设置的cookie，在webapp_b下面获取不到，path默认是产生cookie的应用的路径。
+
+2）若在webapp_a下面设置cookie的时候，增加一条cookie.setPath("/");或者cookie.setPath("/webapp_b/");
+就可以在webapp_b下面获取到cas设置的cookie了。
+
+3）此处的参数，是相对于应用服务器存放应用的文件夹的根目录而言的(比如tomcat下面的webapp)，因此cookie.setPath("/");之后，可以在webapp文件夹下的所有应用共享cookie，而cookie.setPath("/webapp_b/");
+是指cas应用设置的cookie只能在webapp_b应用下的获得，即便是产生这个cookie的webapp_a应用也不可以

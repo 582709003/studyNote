@@ -1,0 +1,40 @@
+//1.创建线程池
+        ExecutorService es = Executors.newFixedThreadPool(2);
+
+        //2.提交任务
+        Future<Integer> future1 = es.submit(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                System.out.println(Thread.currentThread().getName()+"计算开始");
+                int sum = 0;
+                for (int i = 0; i <= 50; i++) {
+                    sum += i;
+                }
+                Thread.sleep(2000);
+                System.out.println("1~50 计算完毕");
+                return sum;
+            }
+        });
+        Future<Integer> future2 = es.submit(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                System.out.println(Thread.currentThread().getName()+"计算开始");
+                int sum = 0;
+                for (int i = 51; i <= 100; i++) {
+                    sum += i;
+                }
+                Thread.sleep(4000);
+                System.out.println("51~100 计算完毕");
+                return sum;
+            }
+        });
+        System.out.println("开始计算-----");
+        System.out.println("future1============" + future1.get());
+        System.out.println("future1结束============");
+        //3.获取结果(get() 方法要等call() 方法执行完毕，才能返回)
+        System.out.println("future2============" + future2.get());
+        System.out.println("future2结束============");
+        //4.关闭线程池
+        es.shutdown();
+
+    }

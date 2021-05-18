@@ -1,0 +1,42 @@
+1、where和if标签
+        查询语句中有多个条件时时,增加判断条件使sql语句变为动态
+        当if标签中的属性test是true时,执行if标签体
+        mybatis会拼接字符串,自动干掉第一个and。
+
+       例：
+<select id="queryUserByNameAndSex" resultType="User" parameterType="User">
+	SELECT * FROM USER
+	<where>
+		<if test="username!=null and username!=''">
+			and username like #{username}
+		</if>
+		<if test="sex!=null and sex!=''">
+			and sex=#{sex}
+		</if>
+	</where>
+</select>
+
+2、foreach标签
+      多个主键查询SQL,将主键存储在List集合中
+      foreach:循环遍历容器
+       collection:遍历的容器(有三个参数,array/list/map,实际上mybatis底层会自动将array和list封装成map,key是参数名)
+      open:拼接字符串的开始部分
+     close:拼接字符串的结束部分
+      separator:字符串之间分隔符
+      item:容器中每一个元素进行迭代时的别名(与标签体的#{}中保持一致)
+	<select id="queryUserByIdList" resultType="user" parameterType="list">
+		select <include refid="commonSql"/> from user where id in
+			<foreach collection="list" open="(" close=")" separator="," item="id">
+				#{id}
+			</foreach>
+		</select>
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1 @@
+1、过滤器主要可以在过滤前对request进行一些操作，而拦截器的preHandle方法主要是进行一些判断来决定请求是否要继续进行下去；postHandle这个方法中你可以对ModelAndView进行操作；

@@ -1,0 +1,5 @@
+1、MethodSecurityInterceptor对方法进行拦截，他的启用是在方法上使用注解例如@PreAuthorize()，一般不建议使用；
+FilterSecurityInterceptor是对http请求进行拦截，默认就是使用这个，拦截规则可以实现具体的accessDecisionManager并且配置到security里面；
+这两个是可以一起使用的；
+
+

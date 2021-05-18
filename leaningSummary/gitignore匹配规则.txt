@@ -1,0 +1,48 @@
+1、当我们更新了gitignore后，当我们想push文件的时候，我们声明的忽略文件还是会出现在push的目录中
+
+原因分析
+
+某些文件已经被纳入版本管理中，就算是在.gitignore中已经声明也不会起作用
+
+解决方案
+
+我们应该先把本地的缓存删除，然后再进行push，操作步骤如下
+
+git rm -r --cached . // 删除本地缓存
+git add . // 添加要提交的文件
+git commit -m 'update .gitignore'
+
+
+匹配规则：
+#以此开头的行为注释行
+.a #过滤所有 .a 结尾的文件
+/a/ #过滤根目录下的 a 文件夹下的所有文件
+/a/do.c #过滤指定文件 /a/do.c
+!lib.a #从过滤的文件中排除 lib.a
+!/a/b #从过滤的文件中排除 根目录下a目录下的b文件
+!.c #从过滤的文件中排除所有.c文件
+/TODO #仅仅过滤项目根目录下的 TODO 文件,不包括subdir/TODO
+build/ #过滤 build/目录下的所有文件
+doc/*.txt #过滤doc下所有txt文件,但不包括子目录下的txt文件,如doc/server/arch.txt
+
+
+2、git  diff此命令比较的是工作目录中当前文件和暂存区域快照之间的差异， 也就是修改之后还没有暂存起来的变化内容。
+
+3、git checkout 将文件还原成上次提交（commit）时的样子（或者刚克隆完的样子，或者刚把它放入工作目录时的样子）
+
+4、git diff ： 对比工作区(本次未 git add)和暂存区(上次git add 之后)
+     git diff --cached: 对比暂存区(本次git add 之后)和版本库(上次git commit 之后)
+     git diff HEAD: 对比工作区(未 git add)和版本库(git commit 之后)
+
+5、本地的是工作区，add之后的是暂存区，commit之后的是版本库，还有远程仓库
+
+
+6、git reset HEAD <file>  取消某个暂存的文件的修改
+
+7、git branch 创建的分支是远程仓库的分支，本地只有一个工作目录
+
+8、git  remote add 主机名 远程仓库地址  这是为远程仓库关联一个主机名字，这个远程仓库地址可能目前还不存在，但是如果存在的话，就可以直接引用这个主机名
+
+9、git checkout 分支名   这条命令做了两件事，一是使 HEAD 指回 master 分支，二是将工作目录恢复成 master 分支所指向的快照内容
+
+10、git reset –hard HEAD^ 或者 git reset –hard HEAD~ 回退到上一个版本(如果想回退到100个版本，使用git reset –hard HEAD~100 )，回退的是commit之后的内容，并且此时工作区，暂存区也一并回退到指定版本

@@ -1,0 +1,927 @@
+redi能干嘛
+    1、内存存储、持久化、内存中是断电即失的，所以说持久化很重要（rdb、aof）
+    2、效率高，可以用于告诉缓存
+    3、发布订阅，简单的消息队列的事情
+    4、地图信息分析
+    5、计时器，计数器（浏览量）
+    。。。。。。
+
+特性
+    开源的，支持多种数据类型，事务控制，持久化，集群。。。。。。
+
+测试性能
+    redis-benchmark 是一个官方自带的压力测试工具
+    测试工具的可选参数如下所示：
+    见手机图库
+        redis-benchmark -h localhost -p 6379 -c 100(连接数) -n 100000(并发的总请求数)
+
+
+基础知识
+    C++写的；一共16个数据库，默认使用的是第0个数据库；使用select 1  切换数据库
+    读取速度100000+，写速度80000+
+    redis是单线程的，基于内存操作的，redis的性能瓶颈是根据机器的内存和网络带宽；既然可以使用单线程来实现，那就使用
+    单线程了；
+
+
+五大基本数据类型
+    RedisKey
+        keys * :查看当前库所有的key
+        ttl key :查看key的剩余过期时间
+        exists key : 判断当前的key是否存在
+        move key ： 移除当前的key
+        expire key 10 : 设置key的过期时间，单位秒
+        type key : TYPE命令可以返回key对应的值的存储类型
+        ping : 如果后面没有参数时返回pong，否则会返回后面带的参数
+
+        Redis keys
+        Redis key值是二进制安全的，这意味着可以用任何二进制序列作为key值，从形如”foo”的简单字符串到一个JPEG文件的内容都可以。
+        空字符串也是有效key值。
+
+        关于key的几条规则：
+        1、太长的键值不是个好主意，例如1024字节的键值就不是个好主意，不仅因为消耗内存，而且在数据中查找这类键值的计算成本很高。
+        2、太短的键值通常也不是好主意，如果你要用”u:1000:pwd”来代替”user:1000:password”，这没有什么问题，但后者更易阅读，
+        并且由此增加的空间消耗相对于key object和value object本身来说很小。当然，没人阻止您一定要用更短的键值节省一丁点儿空间。
+        最好坚持一种模式。例如：”object-type:id:field”就是个不错的注意，像这样”user:1000:password”。
+        我喜欢对多单词的字段名中加上一个点，就像这样：”comment:1234:reply.to”。
+
+    String(字符串)
+        SET key value [EX seconds] [PX milliseconds] [NX|XX]
+        EX seconds ： 将键的过期时间设置为 seconds 秒。
+        PX milliseconds ： 将键的过期时间设置为 milliseconds 毫秒。
+        NX ： 只在键不存在时， 才对键进行设置操作。
+        XX ： 只在键已经存在时， 才对键进行设置操作。
+
+        getSet key value
+            将键 key 的值设为 value ， 并返回键 key 在被设置之前的旧值。
+            当键 key 存在但不是字符串类型时， 命令返回一个错误。
+
+        strLen key
+            返回键 key 储存的字符串值的长度。
+
+        append key value
+            如果键 key 已经存在并且它的值是一个字符串， APPEND 命令将把 value 追加到键 key 现有值的末尾。
+            如果 key 不存在， APPEND 就简单地将键 key 的值设为 value ， 就像执行 SET key value 一样。
+            返回：追加 value 之后， 键 key 的值的长度
+
+        setRange key offset value
+            从偏移量 offset 开始， 用 value 参数覆写(overwrite)键 key 储存的字符串值。
+            不存在的键 key 当作空白字符串处理。
+            setRange 命令会确保字符串足够长以便将 value 设置到指定的偏移量上， 如果键 key 原来储存的字符串长度比偏移量小
+            (比如字符串只有 5 个字符长，但你设置的 offset 是 10 )， 那么原字符和偏移量之间的空白将用零字节(zerobytes, "\x00" )
+            进行填充;
+            setRange 命令会返回被修改之后字符串值的长度
+
+
+        subStr key start end
+            返回键 key 储存的字符串值的指定部分， 字符串的截取范围由 start 和 end 两个偏移量决定
+             (包括 start 和 end 在内);
+             负数偏移量表示从字符串的末尾开始计数， -1 表示最后一个字符， -2 表示倒数第二个字符， 以此类推。
+
+        incr key
+            为键 key 储存的数字值加上一。(Redis 中的数字和浮点数都以字符串的形式保存，所以它们都属于字符串类型)
+            如果键 key 不存在， 那么它的值会先被初始化为 0 ， 然后再执行 INCR 命令。
+            如果键 key 储存的值不能被解释为数字， 那么 INCR 命令将返回一个错误。
+            注意：INCR 命令是一个针对字符串的操作。 因为 Redis 并没有专用的整数类型，
+                所以键 key 储存的值在执行 INCR 命令时会被解释为十进制 64 位有符号整数；
+            INCR是原子操作，就是说即使多个客户端对同一个key发出INCR命令，也决不会导致竞争的情况
+
+        incrby key increment
+            为键 key 储存的数字值加上指定数值 。
+
+        incrByFloat key increment
+            为键 key 储存的值加上浮点数增量 increment 。
+            如果键 key 不存在， 那么 INCRBYFLOAT 会先将键 key 的值设为 0 ， 然后再执行加法操作。
+            如果命令执行成功， 那么键 key 的值会被更新为执行加法计算之后的新值， 并且新值会以字符串的形式返回给调用者。
+            无论是键 key 的值还是增量 increment ， 都可以使用像 2.0e7 、 3e5 、 90e-2 那样的指数符号来表示， 但是
+            执行 INCRBYFLOAT 命令之后的值总是以同样的形式储存， 也即是，
+             它们总是由一个数字， 一个（可选的）小数点和一个任意长度的小数部分组成（比如 3.14 、 69.768 ，诸如此类)，
+             小数部分尾随的 0 会被移除， 如果可能的话， 命令还会将浮点数转换为整数（比如 3.0 会被保存成 3 ）。
+            此外， 无论加法计算所得的浮点数的实际精度有多长， INCRBYFLOAT 命令的计算结果最多只保留小数点的后十七位
+
+
+        decr key
+            为键 key 储存的数字值减去一。
+
+        decrby key decrement
+            将键 key 储存的整数值减去减量 decrement
+
+        mSet key value [key value]
+            同时为多个键设置值。
+            MSET 是一个原子性(atomic)操作， 所有给定键都会在同一时间内被设置，
+                不会出现某些键被设置了但是另一些键没有被设置的情况。
+
+        mSetNx key value [key value …]
+            当且仅当所有给定键都不存在时， 为所有给定键设置值;mSetNx 是一个原子性(atomic)操作;
+
+        mGet key [key …]
+            返回给定的一个或多个字符串键的值。
+            如果给定的字符串键里面， 有某个键不存在， 那么这个键的值将以特殊值 nil 表示
+
+
+    哈希表
+        hSet hash field value
+            将哈希表 hash 中域 field 的值设置为 value 。
+            如果给定的哈希表并不存在， 那么一个新的哈希表将被创建并执行 HSET 操作。
+            如果域 field 已经存在于哈希表中， 那么它的旧值将被新值 value 覆盖。
+
+        hSetNx hash field value
+            当且仅当域 field 尚未存在于哈希表的情况下， 将它的值设置为 value 。
+            如果给定域已经存在于哈希表当中， 那么命令将放弃执行设置操作。
+            如果哈希表 hash 不存在， 那么一个新的哈希表将被创建并执行 HSETNX 命令。
+
+        hExists hash field
+            检查给定域 field 是否存在于哈希表 hash 当中
+
+        hDel key field [field …]
+            删除哈希表 key 中的一个或多个指定域，不存在的域将被忽略。
+
+        hLen key
+            返回哈希表 key 中域的数量
+
+        hStrLen key field
+            返回哈希表 key 中， 与给定域 field 相关联的值的字符串长度（string length）。
+            如果给定的键或者域不存在， 那么命令返回 0 。
+
+        hIncrBy key field increment
+            为哈希表 key 中的域 field 的值加上增量 increment 。
+            增量也可以为负数，相当于对给定域进行减法操作。
+            如果 key 不存在，一个新的哈希表被创建并执行 HINCRBY 命令。
+            如果域 field 不存在，那么在执行命令前，域的值被初始化为 0 。
+            对一个储存字符串值的域 field 执行 HINCRBY 命令将造成一个错误。
+            本操作的值被限制在 64 位(bit)有符号数字表示之内。
+
+        hIncrByFloat key field increment
+            为哈希表 key 中的域 field 加上浮点数增量 increment 。
+            如果哈希表中没有域 field ，那么 HINCRBYFLOAT 会先将域 field 的值设为 0 ，然后再执行加法操作。
+            如果键 key 不存在，那么 HINCRBYFLOAT 会先创建一个哈希表，再创建域 field ，最后再执行加法操作。
+
+        hMset key field value [field value …]
+            同时将多个 field-value (域-值)对设置到哈希表 key 中。
+            此命令会覆盖哈希表中已存在的域。
+            如果 key 不存在，一个空哈希表被创建并执行 HMSET 操作
+
+        hMget key field [field …]
+            返回哈希表 key 中，一个或多个给定域的值。
+            如果给定的域不存在于哈希表，那么返回一个 nil 值。
+            因为不存在的 key 被当作一个空哈希表来处理，所以对一个不存在的 key 进行 HMGET 操作将返回一个只带有 nil 值的表。
+            返回值：
+            一个包含多个给定域的关联值的表，表值的排列顺序和给定域参数的请求顺序一样。
+
+        hKeys key
+            返回哈希表 key 中的所有域
+
+        hVals key
+            返回哈希表 key 中所有域的值
+
+        hGetAll key
+            返回哈希表 key 中，所有的域和值。
+
+    列表(lists)
+        lPush key value [value …]
+            将一个或多个值 value 插入到列表 key 的表头
+            如果有多个 value 值，那么各个 value 值按从左到右的顺序依次插入到表头： 比如说，对空列表 mylist 执行命令 LPUSH mylist a b c ，列表的值将是 c b a ，这等同于原子性地执行 LPUSH mylist a 、 LPUSH mylist b 和 LPUSH mylist c 三个命令。
+            如果 key 不存在，一个空列表会被创建并执行 LPUSH 操作。
+            当 key 存在但不是列表类型时，返回一个错误。
+            返回值：执行 LPUSH 命令后，列表的长度。
+
+        lPushX key value
+            将值 value 插入到列表 key 的表头，当且仅当 key 存在并且是一个列表。
+
+        rPush key value [value …]
+            将一个或多个值 value 插入到列表 key 的表尾(最右边)。
+            如果有多个 value 值，那么各个 value 值按从左到右的顺序依次插入到表尾：比如对一个空列表 mylist 执行 RPUSH mylist a b c ，得出的结果列表为 a b c ，等同于执行命令 RPUSH mylist a 、 RPUSH mylist b 、 RPUSH mylist c 。
+            如果 key 不存在，一个空列表会被创建并执行 RPUSH 操作。
+            当 key 存在但不是列表类型时，返回一个错误。
+
+        rPushX key value
+            将值 value 插入到列表 key 的表尾，当且仅当 key 存在并且是一个列表。
+
+        lPop key
+            移除并返回列表 key 的头元素。
+            返回值
+            列表的头元素。 当 key 不存在时，返回 nil 。
+
+        rPop key
+            移除并返回列表 key 的尾元素。
+            返回值
+            列表的尾元素。 当 key 不存在时，返回 nil 。
+
+        rPopLPush source destination
+            命令 RPOPLPUSH 在一个原子时间内，执行以下两个动作：
+            将列表 source 中的最后一个元素(尾元素)弹出，并返回给客户端。
+            将 source 弹出的元素插入到列表 destination ，作为 destination 列表的的头元素。
+            举个例子，你有两个列表 source 和 destination ， source 列表有元素 a, b, c ， destination 列表
+            有元素 x, y, z ，执行 RPOPLPUSH source destination 之后， source 列表包含元素 a, b ，
+            destination 列表包含元素 c, x, y, z ，并且元素 c 会被返回给客户端。
+            如果 source 不存在，值 nil 被返回，并且不执行其他动作。
+            如果 source 和 destination 相同，则列表中的表尾元素被移动到表头，并返回该元素，可以把这种特殊情况视作列表的旋转(rotation)操作。
+
+        lRem key count value
+            根据参数 count 的值，移除列表中与参数 value 相等的元素。
+            count 的值可以是以下几种：
+            count > 0 : 从表头开始向表尾搜索，移除与 value 相等的元素，数量为 count 。
+            count < 0 : 从表尾开始向表头搜索，移除与 value 相等的元素，数量为 count 的绝对值。
+            count = 0 : 移除表中所有与 value 相等的值。
+
+        lLen key
+            返回列表 key 的长度。
+            如果 key 不存在，则 key 被解释为一个空列表，返回 0 .
+            如果 key 不是列表类型，返回一个错误。
+            返回值
+            列表 key 的长度。
+
+        lIndex key index
+            下标(index)参数 start 和 stop 都以 0 为底，也就是说，以 0 表示列表的第一个元素，
+            以 1 表示列表的第二个元素，以此类推。
+            你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素，以此类推。
+            如果 key 不是列表类型，返回一个错误。
+            返回值
+            列表中下标为 index 的元素。 如果 index 参数的值不在列表的区间范围内(out of range)，返回 nil 。
+
+        lInsert key BEFORE|AFTER pivot value
+            将值 value 插入到列表 key 当中，位于值 pivot 之前或之后。
+            当 pivot 不存在于列表 key 时，不执行任何操作。
+            当 key 不存在时， key 被视为空列表，不执行任何操作。
+            如果 key 不是列表类型，返回一个错误。
+            返回值
+            如果命令执行成功，返回插入操作完成之后，列表的长度。 如果没有找到 pivot ，返回 -1 。 如果 key 不存在或为空列表，返回 0 。
+
+        lSet key index value
+            将列表 key 下标为 index(下表从0开始) 的元素的值设置为 value 。
+            当 index 参数超出范围，或对一个空列表( key 不存在)进行 LSET 时，返回一个错误。
+            关于列表下标的更多信息，请参考 LINDEX key index 命令。
+            返回值
+            操作成功返回 ok ，否则返回错误信息。
+
+        lRange key start stop
+            返回列表 key 中指定区间内的元素，区间以偏移量 start 和 stop 指定，闭区间。
+            下标(index)参数 start 和 stop 都以 0 为底，也就是说，以 0 表示列表的第一个元素，
+            以 1 表示列表的第二个元素，以此类推。
+            你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素，以此类推。
+
+        LTRIM key start stop
+            对一个列表进行修剪(trim)，就是说，让列表只保留指定区间内的元素，不在指定区间之内的元素都将被删除。
+            举个例子，执行命令 LTRIM list 0 2 ，表示只保留列表 list 的前三个元素，其余元素全部删除。
+            下标(index)参数 start 和 stop 都以 0 为底，也就是说，以 0 表示列表的第一个元素，以 1 表示列表的第二个元素，以此类推。
+            你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素，以此类推。
+            当 key 不是列表类型时，返回一个错误。
+            LTRIM 命令通常和 LPUSH key value [value …] 命令或 RPUSH key value [value …] 命令配合使用，举个例子：
+            LPUSH log newest_log
+            LTRIM log 0 99
+            这个例子模拟了一个日志程序，每次将最新日志 newest_log 放到 log 列表中，并且只保留最新的 100 项。
+
+    集合(Sets)
+        Redis Set 是 String 的无序排列,但不能重复，
+
+        sAdd key member [member …]
+            将一个或多个 member 元素加入到集合 key 当中，已经存在于集合的 member 元素将被忽略。
+            假如 key 不存在，则创建一个只包含 member 元素作成员的集合。
+            当 key 不是集合类型时，返回一个错误。
+
+        sIsMember key member
+            判断 member 元素是否集合 key 的成员。
+
+        SPOP key
+            移除并返回集合中的一个随机元素。
+            如果只想获取一个随机元素，但不想该元素从集合中被移除的话，可以使用 sRandMember key [count] 命令。
+            返回值
+            被移除的随机元素。 当 key 不存在或 key 是空集时，返回 nil 。
+
+        sRandMember key [count]
+            如果命令执行时，只提供了 key 参数，那么返回集合中的一个随机元素。
+            如果 count 为正数，且小于集合基数，那么命令返回一个包含 count 个元素的数组，数组中的元素各不相同。
+            如果 count 大于等于集合基数，那么返回整个集合。
+            如果 count 为负数，那么命令返回一个数组，数组中的元素可能会重复出现多次，而数组的长度为 count 的绝对值。
+            该操作和 SPOP key 相似，但 SPOP key 将随机元素从集合中移除并返回，而 SRANDMEMBER 则仅仅返回随机元素，
+            而不对集合进行任何改动。
+
+        SREM key member [member …]
+            移除集合 key 中的一个或多个 member 元素，不存在的 member 元素会被忽略。
+            当 key 不是集合类型，返回一个错误。
+
+        sMove source destination member
+            将 member 元素从 source 集合移动到 destination 集合。
+            SMOVE 是原子性操作。
+            如果 source 集合不存在或不包含指定的 member 元素，则 SMOVE 命令不执行任何操作，仅返回 0 。否则， member 元素从 source 集合中被移除，并添加到 destination 集合中去。
+            当 destination 集合已经包含 member 元素时， SMOVE 命令只是简单地将 source 集合中的 member 元素删除。
+            当 source 或 destination 不是集合类型时，返回一个错误。
+
+        sCard key
+            返回集合 key 的基数(集合中元素的数量)。
+            返回值
+            集合的基数。 当 key 不存在时，返回 0 。
+
+        sMembers key
+            返回集合 key 中的所有成员。
+            不存在的 key 被视为空集合。
+
+        sInter key [key …]
+            返回一个集合的全部成员，该集合是所有给定集合的交集。
+            不存在的 key 被视为空集。
+            当给定集合当中有一个空集时，结果也为空集(根据集合运算定律)。
+
+        sInterStore destination key [key …]
+            这个命令类似于 SINTER key [key …] 命令，但它将结果保存到 destination 集合，而不是简单地返回结果集。
+            如果 destination 集合已经存在，则将其覆盖。
+            destination 可以是 key 本身。
+
+        sUnion key [key …]
+            返回一个集合的全部成员，该集合是所有给定集合的并集(去重后的)。
+            不存在的 key 被视为空集。
+
+        sUnionStore destination key [key …]
+            这个命令类似于 SUNION key [key …] 命令，但它将结果保存到 destination 集合，而不是简单地返回结果集。
+            如果 destination 已经存在，则将其覆盖。
+            destination 可以是 key 本身。
+
+        sDiff key [key …]
+            返回一个集合的全部成员，该集合是所有给定集合之间的差集。
+            不存在的 key 被视为空集
+
+        sDiffStore destination key [key …]
+            这个命令的作用和 SDIFF key [key …] 类似，但它将结果保存到 destination 集合，而不是简单地返回结果集。
+            如果 destination 集合已经存在，则将其覆盖。
+            destination 可以是 key 本身。
+
+    有序集合
+        有序集合是一种数据类型，类似于Set和Hash之间的混合。与集合一样，有序集合由唯一的、不重复的字符串元素组成，
+        因此在某种意义上，有序集合也是一个集合;
+        他在s集合的基础上，增加了一个值score
+
+        zAdd key score member [[score member] [score member] …]
+            将一个或多个 member 元素及其 score 值加入到有序集 key 当中。
+            如果某个 member 已经是有序集的成员，那么更新这个 member 的 score 值，并通过重新插入这个 member 元素，来保证该 member 在正确的位置上。
+            score 值可以是整数值或双精度浮点数。
+            如果 key 不存在，则创建一个空的有序集并执行 ZADD 操作。
+            当 key 存在但不是有序集类型时，返回一个错误。
+
+        zScore key member
+            返回有序集 key 中，成员 member 的 score 值。
+            如果 member 元素不是有序集 key 的成员，或 key 不存在，返回 nil 。
+            返回值
+            member 成员的 score 值，以字符串形式表示
+
+        zIncrBy key increment member
+            为有序集 key 的成员 member 的 score 值加上增量 increment 。
+            可以通过传递一个负数值 increment ，让 score 减去相应的值，比如 ZINCRBY key -5 member ，就是让 member 的 score 值减去 5 。
+            当 key 不存在，或 member 不是 key 的成员时， ZINCRBY key increment member 等同于 ZADD key increment member 。
+            当 key 不是有序集类型时，返回一个错误。
+            score 值可以是整数值或双精度浮点数。
+
+        zCard key
+            返回有序集 key 的基数。
+
+        zCount key min max
+            返回有序集 key 中， score 值在 min 和 max 之间(默认包括 score 值等于 min 或 max )的成员的数量。
+            返回值
+            score 值在 min 和 max 之间的成员的数量。
+
+        zRange key start stop [WITHSCORES]
+            返回有序集 key 中，指定区间内的成员。
+            其中成员的位置按 score 值递增(从小到大)来排序。
+            具有相同 score 值的成员按字典序(lexicographical order )来排列。
+            如果你需要成员按 score 值递减(从大到小)来排列，请使用 ZREVRANGE key start stop [WITHSCORES] 命令。
+            下标参数 start 和 stop 都以 0 为底，也就是说，以 0 表示有序集第一个成员，以 1 表示有序集第二个成员，
+            以此类推。 你也可以使用负数下标，以 -1 表示最后一个成员， -2 表示倒数第二个成员，以此类推。
+
+        zRevRange key start stop [WITHSCORES]
+            返回有序集 key 中，指定区间内的成员。
+            其中成员的位置按 score 值递减(从大到小)来排列。 具有相同 score 值的成员按字典序的逆序
+            (reverse lexicographical order)排列。
+
+        zRangeByScore key min max [WITHSCORES] [LIMIT offset count]
+            返回有序集 key 中，所有 score 值介于 min 和 max 之间(包括等于 min 或 max )的成员。有序集成员按 score
+            值递增(从小到大)次序排列。
+            具有相同 score 值的成员按字典序(lexicographical order)来排列(该属性是有序集提供的，不需要额外的计算)。
+
+        zRevRangeByScore key max min [WITHSCORES] [LIMIT offset count]
+            返回有序集 key 中， score 值介于 max 和 min 之间(默认包括等于 max 或 min )的所有的成员。
+            有序集成员按 score 值递减(从大到小)的次序排列。
+            具有相同 score 值的成员按字典序的逆序(reverse lexicographical order )排列。
+
+        zRank key member
+            返回有序集 key 中成员 member 的排名。其中有序集成员按 score 值递增(从小到大)顺序排列。
+            排名以 0 为底，也就是说， score 值最小的成员排名为 0 。
+            使用 ZREVRANK key member 命令可以获得成员按 score 值递减(从大到小)排列的排名
+
+        zRevRank key member
+            返回有序集 key 中成员 member 的排名。其中有序集成员按 score 值递减(从大到小)排序。
+            排名以 0 为底，也就是说， score 值最大的成员排名为 0 。
+            使用 ZRANK key member 命令可以获得成员按 score 值递增(从小到大)排列的排名。
+
+        zRem key member [member …]
+            移除有序集 key 中的一个或多个成员，不存在的成员将被忽略。
+            当 key 存在但不是有序集类型时，返回一个错误。
+
+        zRemRangeByRank key start stop
+            移除有序集 key 中，指定排名(rank)区间内的所有成员。
+            区间分别以下标参数 start 和 stop 指出，包含 start 和 stop 在内。
+            下标参数 start 和 stop 都以 0 为底，也就是说，以 0 表示有序集第一个成员，以 1 表示有序集第二个成员，以此类推。
+            你也可以使用负数下标，以 -1 表示最后一个成员， -2 表示倒数第二个成员，以此类推。
+
+        zRemRangeByScore key min max
+        移除有序集 key 中，所有 score 值介于 min 和 max 之间(包括等于 min 或 max )的成员。
+
+
+    地理空间(geospatial)
+        这个功能可以推算地理位置的信息，两地之间距离，方圆几里的人
+        geoAdd key longitude latitude member [longitude latitude member ...]
+            将指定的地理空间位置（纬度、经度、名称）添加到指定的key中。这些数据将会存储到sorted set这样的目的是
+            为了方便使用GEORADIUS或者GEORADIUSBYMEMBER命令对数据进行半径查询等操作。
+            该命令以采用标准格式的参数x,y,所以经度必须在纬度之前。这些坐标的限制是可以被编入索引的，
+            区域面积可以很接近极点但是不能索引。具体的限制，由EPSG:900913 / EPSG:3785 / OSGEO:41001 规定如下：
+            有效的经度从-180度到180度。
+            有效的纬度从-85.05112878度到85.05112878度。
+            当坐标位置超出上述指定范围时，该命令将会返回一个错误。
+
+        geoPos key member [member …]
+            从键里面返回所有给定位置元素的位置（经度和纬度）。
+            因为 GEOPOS 命令接受可变数量的位置元素作为输入， 所以即使用户只给定了一个位置元素， 命令也会返回数组回复。
+            返回值
+            GEOPOS 命令返回一个数组， 数组中的每个项都由两个元素组成： 第一个元素为给定位置元素的经度，
+            而第二个元素则为给定位置元素的纬度。 当给定的位置元素不存在时， 对应的数组项为空值。
+
+        geoDist key member1 member2 [unit]
+            返回两个给定位置之间的距离。
+            如果两个位置之间的其中一个不存在， 那么命令返回空值。
+            指定单位的参数 unit 必须是以下单位的其中一个：
+            m 表示单位为米。
+            km 表示单位为千米。
+            mi 表示单位为英里。
+            ft 表示单位为英尺。
+            如果用户没有显式地指定单位参数， 那么 GEODIST 默认使用米作为单位。
+            geoDist 命令在计算距离时会假设地球为完美的球形， 在极限情况下， 这一假设最大会造成 0.5% 的误差。
+            返回值
+            计算出的距离会以双精度浮点数的形式被返回。 如果给定的位置元素不存在， 那么命令返回空值
+
+         geoRadius key longitude latitude radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [ASC|DESC] [COUNT count]
+             以给定的经纬度为中心， 返回键所包含的位置元素当中与中心的距离不超过给定最大距离的所有位置元素。
+             范围可以使用以下其中一个单位：
+             m 表示单位为米。
+             km 表示单位为千米。
+             mi 表示单位为英里。
+             ft 表示单位为英尺。
+             在给定以下可选项时， 命令会返回额外的信息：
+             withDist ： 在返回位置元素的同时， 将位置元素与中心之间的距离也一并返回。
+                         距离的单位和用户给定的范围单位保持一致。
+             withCoord ： 将位置元素的经度和维度也一并返回。
+             withHash： 以 52 位有符号整数的形式， 返回位置元素经过原始 geohash 编码的有序集合分值。
+                        这个选项主要用于底层应用或者调试， 实际中的作用并不大。
+             命令默认返回未排序的位置元素。 通过以下两个参数， 用户可以指定被返回位置元素的排序方式：
+             ASC ： 根据中心的位置， 按照从近到远的方式返回位置元素。
+             DESC ： 根据中心的位置， 按照从远到近的方式返回位置元素。
+             在默认情况下， geoRadius 命令会返回所有匹配的位置元素。 虽然用户可以使用 COUNT <count>
+                    选项去获取前 N 个匹配元素， 但是因为命令在内部可能会需要对所有被匹配的元素进行处理，
+                    所以在对一个非常大的区域进行搜索时， 即使只使用 COUNT 选项去获取少量元素， 命令的执行速度也可能会非常慢。 但是从另一方面来说， 使用 COUNT 选项去减少需要返回的元素数量， 对于减少带宽来说仍然是非常有用的。
+             返回值
+             GEORADIUS 命令返回一个数组， 具体来说：
+             在没有给定任何 WITH 选项的情况下， 命令只会返回一个像 ["New York","Milan","Paris"] 这样的线性（linear）列表。
+             在指定了 WITHCOORD 、 WITHDIST 、 WITHHASH 等选项的情况下， 命令返回一个二层嵌套数组， 内层的每个子数组就表示一个元素。
+             在返回嵌套数组时， 子数组的第一个元素总是位置元素的名字。 至于额外的信息， 则会作为子数组的后续元素， 按照以下顺序被返回：
+             以浮点数格式返回的中心与位置元素之间的距离， 单位与用户指定范围时的单位一致。
+             geohash 整数。
+             由两个元素组成的坐标，分别为经度和纬度。
+             举个例子， GEORADIUS Sicily 15 37 200 km withcoord withdist 这样的命令返回的每个子数组都是类似以下格式的：
+             ["Palermo","190.4424",["13.361389338970184","38.115556395496299"]]
+
+         geoRadiusByMember key member radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [ASC|DESC] [COUNT count]
+             这个命令和 GEORADIUS 命令一样， 都可以找出位于指定范围内的元素， 但是 GEORADIUSBYMEMBER 的中心点是由给定的位置元素决定的，
+             而不是像 GEORADIUS 那样， 使用输入的经度和纬度来决定中心点
+              geoRadiusByMember china:city shanghai 100 km
+
+         geoHash key member [member …]
+            返回一个或多个位置元素的 geohash 表示。
+
+            geo底层的实现原理其实是集合，所以我们使用集合的命令来操作geo，譬如删除。。。。
+
+    HyperLogLog
+        基数统计的算法
+        什么是基数:不重复的元素,可以接受误差
+        场景：
+            网页的浏览量(一个人访问一个网站多次，但还是算作一个人！)
+            传统的计数方式：使用set集合保存用户的id，然后统计元素数量作为判断标准；
+            问题：如果保存大量的用户id就比较占内存！我们的目的是为了计数而不是保存用户id
+
+        所以使用HyperLogLog
+            优点：占用的内存是固定的，如果要存放2^64大的不同元素的基数，只需要占用12kb的内存；
+                如果要从内存角度来比较的话，HyperLogLog就是首选；但是会有%0.81的错误率
+
+        pfAdd key element [element …]
+            将任意数量的元素添加到指定的 HyperLogLog 里面。
+            redis> PFADD  databases  "Redis"  "MongoDB"  "MySQL"
+            (integer) 1
+
+            redis> PFCOUNT  databases
+            (integer) 3
+
+            redis> PFADD  databases  "Redis"    # Redis 已经存在，不必对估计数量进行更新
+            (integer) 0
+
+            redis> PFCOUNT  databases    # 元素估计数量没有变化
+            (integer) 3
+
+            redis> PFADD  databases  "PostgreSQL"    # 添加一个不存在的元素
+            (integer) 1
+
+            redis> PFCOUNT  databases    # 估计数量增一
+            4
+
+        pfCount key [key …]
+            当 PFCOUNT key [key …] 命令作用于单个键时， 返回储存在给定键的 HyperLogLog 的近似基数，
+            如果键不存在， 那么返回 0 。
+            当 PFCOUNT key [key …] 命令作用于多个键时， 返回所有给定 HyperLogLog 的并集的近似基数，
+             这个近似基数是通过将所有给定 HyperLogLog 合并至一个临时 HyperLogLog 来计算得出的。
+
+        pfMerge destkey sourcekey [sourcekey …]
+            将多个 HyperLogLog 合并（merge）为一个 HyperLogLog ， 合并后的 HyperLogLog 的基数接近于所有输入
+            HyperLogLog 的可见集合（observed set）的并集。
+            合并得出的 HyperLogLog 会被储存在 destkey 键里面， 如果该键并不存在， 那么命令在执行之前，
+            会先为该键创建一个空的 HyperLogLog 。
+            返回值
+            字符串回复：返回 OK 。
+
+
+    bitMap(位存储)
+        统计用户信息，活跃，不活跃！  登录的，未登录的！
+        一般只有两种状态的都可以使用bitMaps
+        bitMaps位图，数据结构，都是操作二进制位来进行记录，就只有0和1两个状态
+
+        setBit key offset value
+            对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。
+            位的设置或清除取决于 value 参数，可以是 0 也可以是 1
+            redis> SETBIT bit 10086 1
+            (integer) 0
+
+            redis> GETBIT bit 10086
+            (integer) 1
+
+            redis> GETBIT bit 100   # bit 默认被初始化为 0
+            (integer) 0
+
+        getBit key offset
+            对 key 所储存的字符串值，获取指定偏移量上的位(bit)。
+            当 offset 比字符串值的长度大，或者 key 不存在时，返回 0 。
+
+        bitCount key [start] [end]
+            计算给定字符串中，被设置为 1 的比特位的数量。
+            一般情况下，给定的整个字符串都会被进行计数，通过指定额外的 start 或 end 参数，可以让计数只在特定的位上进行。
+            start 和 end 参数的设置和 GETRANGE key start end 命令类似，都可以使用负数值： 比如 -1 表示最后一个字节， -2 表示倒数第二个字节，以此类推。
+            不存在的 key 被当成是空字符串来处理，因此对一个不存在的 key 进行 BITCOUNT 操作，结果为 0 。
+
+            举个例子，如果今天是网站上线的第 100 天，而用户 peter 在今天阅览过网站，
+            那么执行命令 SETBIT peter 100 1 ；如果明天 peter 也继续阅览网站，那么执行命令 SETBIT peter 101 1 ，以此类推。
+            当要计算 peter 总共以来的上线次数时，就使用 BITCOUNT key [start] [end] 命令：执行 BITCOUNT peter ，
+            得出的结果就是 peter 上线的总天数。
+
+        bitPos key bit [start] [end]
+            返回位图中第一个值为 bit 的二进制位的位置。
+            在默认情况下， 命令将检测整个位图， 但用户也可以通过可选的 start 参数和 end 参数指定要检测的范围。
+            返回值
+            整数回复。
+
+    事务操作
+        redis的命令是原子性的，但是redis的事务是不保证原子性的，他只能保证事务在执行过程中没有满足原子性的时候会被取消事务(使用watch)
+        redis事务的本质：一组命令的集合；一个事务中的所有命令都会被序列化，在事务的执行过程中，会按照顺序执行；
+        redis事务没有隔离级别的概念；
+        redis所有的命令在事务中，并没有直接被执行，只有发起执行命令的时候才会执行！Exec
+        redis事务的三个阶段
+            1、开启事务
+                multi
+            2、命令入队
+                其他命令
+            3、执行事务
+                exec
+
+            放弃事务
+                discard
+
+        假如事务里面有错误
+            1、编译型异常(命令有错)，执行事务时会自动取消事务
+                事务中所有的命令都不会被执行
+
+            2、运行时异常(如果事务队列中存在语法性错误，譬如对一个非数值型字符串做incr k1 操作)
+                那么执行命令的时候，其他命令可以正常执行，错误命令抛出异常
+
+
+        监控(watch)
+           悲观锁：认为什么时候都会出问题，无论做什么都会加锁
+
+           乐观锁：认为什么时候都不会出问题，所以不会上锁！更新数据的时候判断一下，在此期间是否有被修改过数据；
+           获取version
+           更新的时候比较version
+
+           watch key [key …]
+            监视一个(或多个) key ，如果在事务执行之前这个(或这些) key 被其他命令所改动，那么事务将被打断。
+
+            可以使用watch当作redis的乐观锁操作
+            使用watch和事务当作redis的乐观锁
+            实现乐观锁过程
+                0、unwatch       如果事务执行失败，先解锁
+                1、watch key     获取最新的锁，再次监视，select version
+                2、multi         命令入队列
+                3、exec          执行事务时，对比监视的version是否变化，如果没有变化，执行事务，如果变了就执行事务失败
+            注意：如果事务执行失败了，discard key
+
+
+    springboot整合
+        说明：在springboot2.x之后，原来使用的jedis被替换成了lettuce
+        区别
+            jedis：
+                采用的直连，多个线程操作的话是不安全的，如果想要避免不安全，使用jedis pool
+            lettuce：
+                采用netty，实例可以再多个线程中进行共享，不存在线程不安全的情况
+
+
+    redis持久化
+        默认开启rdb持久化，不开启aof
+        面试和工作的时候，持久化都是重点
+        RDB
+            在指定的时间间隔内将内存中的数据集快照写入磁盘，恢复时将快照文件直接读到内存
+            工作原理
+               redis会单独创建一个子进程来进行持久化，会先将数据写入到一个临时文件中，带持久化进程结束，再用这个临时文件
+               替换好上次持久化好的rdb文件；整个过程，主进程不参与任何io操作，这就确保了极高的性能。如果需要大规模的数据
+               恢复，且对于数据恢复的完整性不是很敏感，那rdb方式要比aof更加的高效。rdb的缺点是最后一次持久化的数据可能丢失
+
+               rdb保存的文件是 dump.rdb
+
+               触发rdb持久化机制
+                1、save规则阿玛尼组的情况下
+                2、执行flushall 命令
+                3、退出redis
+
+            如何恢复rdb文件
+                1、只需要将dump.rdb文件放在redis启动目录下就可以，redis启动的时候会自动检查dump.rdb,恢复其中的数据
+
+            优点
+                1、适合大规模的数据恢复
+                2、对数据的完整性要求不高
+
+            缺点
+                1、需要一定的时间间隔进程操作！如果redis意外down机了，最后一次修改的数据就丢失了
+                2、fork进程的时候会占用一些内存空间
+
+        aof(append only file)
+            将我们的所有命令都记录下来，相当于history，恢复的时候将这个文件全部再执行一遍
+            原理
+                以日志的形式记录下每一个写的操作，将redis执行过的所有指令记录下来(读操作不记录)，只许追加文件，
+                不可以改写文件，redis启动之初就会读取这个文件以重新构建数据；
+                aof保存的是appendonly.aof文件
+
+                如果文件被破环，redis启动时会报启动被拒绝
+                我们可以使用redis-check-aof --fix appendonly.aof 来修复aof文件
+            优点
+                1、默认开启的是每秒同步一次，可能会丢失一秒 的数据
+                2、配置中可以修改为每次修改都同步，文件的完整性更好
+            缺点
+                1、aof远远大于rdb，修复的速度会比rdb慢
+                2、aof运行效率也比rdb慢
+
+        持久化小结
+            1、同时开启两种持久化时，服务器会在重启时只会找aof文件，因为aof文件保存的数据比rdb更加完整
+
+    redis发布订阅
+        publish channel message
+            将信息 message 发送到指定的频道 channel 。
+            返回值
+            接收到信息 message 的订阅者数量。
+
+        subscribe channel [channel …]
+            订阅给定的一个或多个频道的信息。
+
+        pSubscribe pattern [pattern …]
+            订阅一个或多个符合给定模式的频道。
+            每个模式以 * 作为匹配符，比如 it* 匹配所有以 it 开头的频道( it.news 、 it.blog 、 it.tweets 等等)，
+            news.* 匹配所有以 news. 开头的频道( news.it 、 news.global.today 等等)，诸如此类。
+
+        unSubscribe [channel [channel …]]
+            指示客户端退订给定的频道。
+
+        pUnSubscribe [pattern [pattern …]]
+            指示客户端退订所有给定模式。
+
+    微信
+        通过subscribe命令订阅某个频道后，redis-server里面维护了一个字典，字典的键就是频道，而字典的值就是一个个链表，
+        链表中保存了所有订阅这个频道的客户端，subscribede命令的关键就是将客户端添加到给定的频道的订阅链表中；
+        在redis中，你可以设定对某一个key值进行消息发布以及消息订阅，当一个key值上进行了消息发布后，所有订阅他的客户端都会收到
+        相应 的信息，这一功能最明显的用法就是用作实时消息系统，比如普通的即时聊天，群聊等功能
+
+
+    主从复制
+        是指将一台redis服务器的数据复制到其他的redis服务器上，前者称为master主节点，后者称为slave从节点；
+        数据的复制是单向的，只能由主节点到从节点，master以写为主，slave以读为主；
+        主从复制，读写分离，是为了减缓服务器的压力，架构中经常使用！
+
+        默认情况下，每台redis服务器都是主节点，且一个主节点可以有多个从节点(或没有从节点)，但一个从节点只能有一个主节点。
+        主从复制的作用包括有
+            1、数据冗余：主从复制实现了数据的热备份，是持久化之外的一种数据冗余方式
+            2、故障恢复：当主节点出现故障时，可以由从节点提供服务，实现快速的故障恢复，实际上是一种服务的冗余
+            3、负载均衡：在主从复制的基础上，配合读写分离，可以有主节点提供写服务，从节点提供读服务，分担服务器负载
+            4、高可用(集群)基石：除了上述的作用之外，主从复制还是哨兵模式和集群能够实施的基础，因此说主从复制是redis高可用的基础
+
+        一般三个服务器，最少一主二从，一般来说单台redis最大使用内存不应该使用超过20G；
+
+        环境配置
+            只配置从库，不配置主库
+            查看当前库的信息：info replication
+            复制3个配置文件，然后修改对应的信息
+                1、端口
+                2、pid名字
+                3、log文件的名字
+                4、dunp.rdb名字
+            修改完后启动3个redis服务器(3个配置文件)，可以通过进程信息查
+
+
+            一主而从
+                默认情况下，每台都是主节点；一般情况下只要配置从机就好了；
+                每台从机认老大就可以了；
+                命令方式配置主从
+                    slaveof ip port;  绑定主节点
+                    真实的主从复制是在配置文件中配置的，这样的话就是永久的，我们这里使用的是命令，暂时的；
+                配置文件方式配置主从
+                    在配置文件中添加replicaof ip port进行绑定主节点
+
+                测试1：
+                    主机断开连接，从机依旧是连接者主机的，但是没有了写操作，这个时候如果主机回来了，从机依旧可以获取到
+                    主机写的信息；
+
+                    如果是使用命令行配置的主从，如果从机重启了，这个时候从机就会变回主机，失去了和前主机的联系；
+                    但是只要将这台机器又绑定了前主机，此台机器就又会变回从机，并且拿到主机上的所有数据；
+                        全量复制：将主机上所有的写命令传给从机，从机完全执行所有命令实现数据全量恢复
+
+                        增量复制：主机执行一次写命令后就会在从机上实现增量复制
+
+    哨兵模式
+        自动选举主节点的模式
+        能够后台监控主机是否故障，如果故障了就根据投票数将从库转换为主库；
+        redis提供了哨兵的命令哨兵是一个独立的进程，其原理是哨兵通过像各个节点发送命令，等待redis服务器的响应，
+        从而监控运行的多个redis实例；
+
+        这里哨兵有两个作用
+            1、通过发送命令，让redis服务器返回监控其运行的状态，包括主、从节点
+            2、当哨兵检测到master down机，会自动将从机切换为主节点，然后通过发布订阅方式通知其他的服务器，修改配置文件
+                让他们切换主机
+
+        然而一个哨兵进程对redis服务器进行监控，可能会出问题，为此，我们可以使用多个哨兵进行监控，各个哨兵之间还会进行监控，
+        这样就形成了多哨兵模式；
+
+        配置过程
+            1、在redis配置文件同级目录下创建sentinel.conf哨兵配置文件
+                在配置文件添加
+                    语法：sentinel monitor 主节点名称 主节点IP 主节点端口 1
+                        数字1 代表主机如果挂了，slave投票看让谁接替成为主机，票数多的，就会成为主机
+                    sentinel monitor myredis masterip masterport 1
+
+            2、启动哨兵
+                redis-sentinel sentinel.conf
+
+
+        如果主机挂了，哨兵会在从节点选一个主节点；如果挂了的主节点又回来了就只能做从机
+
+        优点：
+            1、哨兵集群：基于主从复制模式，所有的主从配置优点全有
+            2、主从可以切换，故障可以转移，可用性会较好
+            3、哨兵模式就是主从配置的升级，手动选择主节点变为自动选择主节点，更加健壮
+
+            缺点：
+                1、redis不好在线扩容
+                2、实现哨兵配置模式比较麻烦
+                全部配置很多，需要看看
+
+
+    redis缓存穿透和雪崩
+        缓存穿透(某个key的缓存没有，数据库也没有)
+            缓存穿透是指缓存和数据库中都没有的数据，而用户不断发起请求，如发起为id为“-1”的数据或id为特别大不存在的数据。
+            这时的用户很可能是攻击者，攻击会导致数据库压力过大。
+
+            解决方案：
+                1、接口层增加校验，如用户鉴权校验，id做基础校验，id<=0的直接拦截；
+                2、从缓存取不到的数据，在数据库中也没有取到，这时也可以将key-value对写为key-null，
+                    缓存有效时间可以设置短点，如30秒（设置太长会导致正常情况也没法使用）。这样可以防止攻击用户反复用同一个id暴力攻击
+                3、采用布隆过滤器
+         缓存击穿(缓存有而在一瞬间key到过期时间，然后去数据库查询)
+            是指一个key非常热点，在不停的抗着大并发，大并发集中对这一个点进行访问，当这个key在失效的瞬间，
+            持续的大并发就穿破缓存，直接请求数据库并回写缓存，会导致数据库瞬间压力过大，就像在一个屏障上凿开一个洞；
+            解决方案
+                1、实时调整key的过期时间
+         缓存雪崩
+            描述：
+               缓存雪崩是指缓存中数据大批量到过期时间，而查询数据量巨大，引起数据库压力过大甚至down机。和缓存击穿不同的是，
+               缓存击穿指并发查同一条数据，缓存雪崩是大量key都过期了，很多数据都查不到从而查数据库。
+              解决方案：
+                1、缓存数据的过期时间设置随机，防止同一时间大量数据过期现象发生。
+                2、如果缓存数据库是分布式部署，将热点数据均匀分布在不同库的缓存数据库中。
+                3、设置热点数据永远不过期。
+
+
+
+
+redisson
+    见图解redis分布式锁演化进程
+    redis的分布式锁要保证加锁以及删除锁的原子性，还有锁的自动续期
+    /**
+     * redis分布式锁实现
+     * @return
+     */
+    public Map<String, List<Catelog2Vo>> getCatalogJsonFromDbWithRedisLock(){
+        // 1.占分布式锁，去redis占坑
+        String uuid = UUID.randomUUID().toString();
+        // 当lock锁不存在的时候加锁，锁的值为UUID值，同时设置过期时间
+        Boolean lock = redisTemplate.opsForValue().setIfAbsent("lock", uuid, 300, TimeUnit.SECONDS);
+        if(lock){
+            System.out.println("获取分布式锁成功");
+            // 2. 加锁成功，执行业务
+            Map<String, List<Catelog2Vo>> dataFromDb;
+            try{
+                dataFromDb = getDataFromDb();
+            }finally {
+                // 3. 通过lua脚本实现比较和删除锁同时执行(比较uuid和lock锁对应的value是否相等，如果相等则删除锁，返回1，否则返回0)
+                String script = "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+                redisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), Arrays.asList("lock"), uuid);
+            }
+            return dataFromDb;
+        }else{
+            try{
+                Thread.sleep(200);
+            }catch (Exception e){
+
+            }
+            System.out.println("获取分布式锁失败。。等待重试");
+            // 自旋
+            return getCatalogJsonFromDbWithRedisLock();
+        }
+    }
+
+ 1、redisson一般锁实现
+    @ResponseBody
+    @GetMapping("/hello")
+    public String hello(){
+        // 1. 获取一把锁，只要锁的名字一样，就是同一把锁
+        RLock lock = redisson.getLock("my-lock");
+        // 2. 加锁. 堵塞式等待，默认加的锁都是30s时间
+        // 锁的自动续期：如果业务时间较长，运行期间会自动给锁续上新的30s，不用担心业务时间长导致锁自动过期被删掉
+        // 加锁的业务只要运行完成，就不会给当前锁续期，即使不手动解锁，锁默认在30s后自动删除
+        lock.lock();
+        // 10s自动解锁，自动解锁时间一定要大于业务执行时间（因为在在业务执行期间，锁过期时间到了之后，不会自动续期）
+        // 1）如果指定了锁的超时时间，就会发送给redis lua执行脚本，进行占锁，默认超时时间就是指定的时间
+        // 2）如果没有指定锁的超时时间，就是用LockWatchdogTimeout(看门狗的默认超时时间：30*1000，即30s）
+        //    只要占锁成功，就会启动一个定时任务（重新给锁设置过期时间，新的过期时间就是看门狗的默认时间），每隔看门狗的默认时间/3（即默认10s），就会自动续期
+        // lock.lock(10, TimeUnit.SECONDS);
+        try{
+            System.out.println("加锁成功，执行业务。。。" + Thread.currentThread().getId());
+            Thread.sleep(30000);
+        }catch (Exception e){
+
+        }finally {
+            // 3. 解锁 即使解锁代码没有运行，默认30s后也会自动释放锁（前提是业务代码执行完毕，否则会自动延时）
+            System.out.println("释放锁。。。" + Thread.currentThread().getId());
+            lock.unlock();
+        }
+        return "hello";
+    }
+
+    2、redisson读写锁实现
+    // 读写锁能够保证一定能读到最新数据。修改期间，写锁是一个排他锁（互斥锁），读锁是一个共享锁
+    // 写锁没释放，读和写都必须等待；读锁没释放，都可以读，写必须等待
+    @GetMapping("/write")
+    @ResponseBody
+    public String writeValue(){
+        RReadWriteLock lock = redisson.getReadWriteLock("rw-lock");
+        String s = "";
+        RLock rLock = lock.writeLock();
+        try{
+            // 改数据加写锁，读数据加读锁
+            rLock.lock();
+            s = UUID.randomUUID().toString();
+            Thread.sleep(30000);
+            redisTemplate.opsForValue().set("writeValue", s);
+        }catch (InterruptedException e){
+            e.printStackTrace();
+        }finally {
+            rLock.unlock();
+        }
+        return s;
+    }
+
+    @GetMapping("/read")
+    @ResponseBody
+    public String readValue(){
+        String s = "";
+        RReadWriteLock lock = redisson.getReadWriteLock("rw-lock");
+        // 加读锁
+        RLock rLock = lock.readLock();
+        rLock.lock();
+        try{
+            s = redisTemplate.opsForValue().get("writeValue");
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            rLock.unlock();
+        }
+        return s;
+    }
+
+
+
+
+
+

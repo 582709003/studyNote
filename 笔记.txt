@@ -1,0 +1,545 @@
+﻿一.连接远程桌面VNC：
+点击应用程序——>互联网——>远程桌面查看器，点击”连接“，
+协议：VNC
+主机地址：192.168.15.9
+
+二.操作系统
+非开源
+DOS：Disk Operating System 磁盘操作系统，特点：字符界面、单任务
+     分类：MS-DOS、PC-DOS（IBM）
+桌面版：95、98、me、2000、xp、vista、win7、win8、win10
+服务器版：NT、2003、2008、2010（安全性、稳定性、性能）
+
+开源
+Unix：IBM-AIX、Oracle-Solaris、HP-UNIX
+Linux：
+   RedHat 红帽公司发行  RHCE
+   SUSE Novel发行
+   CentOS 由社区维护
+   Ubuntu 乌班图
+   Debian
+   Fedora
+   RedFlag 红旗  中科院 
+Mac：基于Unix
+
+Android 基于Linux
+IOS 基于Unix
+
+
+三、终端
+应用程序——附件——终端
+
+终端的提示：
+soft01@Itany-Ubuntu:~$
+soft01表示用户名
+Itany-Ubuntu表示主机名
+~表示当前所在的文件夹为主目录（家目录）
+普通用户的家目录在/home/soft01
+
+pwd:print working directory 显示当前所在的文件夹
+
+$表示普通用户
+#表示管理员root，类似于windows系统中的administrator
+一键root
+
+目录：就是文件夹
+
+D:\workspace\images\image\for.jpg
+在Windows中每个磁盘都代表一个根，如C盘、D盘、E盘，目录之间以反斜杠\隔开
+在Linux中根只有一个，即 / 
+
+反斜杠\   
+正斜杠/
+
+cd：change directory切换目录
+
+ls:list列出当前目录下的所有文件
+
+在Linux中不同的文件类型用不同的颜色表示
+
+根目录/下的文件：
+bin  普通用户可执行的命令
+dev  存储设备文件
+media  存放媒体文件  
+boot   存放系统启动核心文件
+cdrom  挂载光盘
+etc 存放配置文件
+proc 存放系统动态信息
+var 存放经常改变的文件，如临时、邮件
+home 普通用户的家目录
+lib 存放系统的类库文件
+opt 一般会将程序安装到此目录
+root 管理员root的家目录
+lost+found 回收站
+
+
+绝对路径：以根开始的路径  
+	D:\workspace\images\image\for.jpg
+  	/home/soft01
+相对路径：不是以根开始的路径
+	images\image\for.jpg
+	龙蟠中路526号通济产业园4楼
+	soft01
+
+cat cpuinfo  查看CPU信息
+cat /proc/cpuinfo
+cat /proc/meminfo  查看内存信息
+
+单位：
+位bit  b  最小数据单位
+字节byte  1B=8b
+1KB=1024B
+1M=1024KB
+1G=1024M
+1T=1024G
+1P=1024T
+1E=1024P
+
+8G
+
+
+FTP：File Transfer Protocol
+连接FTP服务器
+应用程序——互联网——gftp
+主机：192.168.15.9
+用户名：wbs16061
+密码：abc
+
+
+默认下载的文件保存在家目录中/home/soft01
+
+
+每个用户都有自己的主目录（也称为家目录）
+/home/zhangsan
+/home/tom
+/home/soft01
+/home/soft02
+/root
+
+根目录 / 
+
+命令语法：
+命令名称   选项   参数
+注：选项和参数都可以省略
+
+
+pwd
+cd /home/soft01
+ls -l -h 
+ls -lh
+ls -lh /home/soft01  列出指定目录下的文件
+
+方向键上、下，查找之前执行过的命令
+
+history查看执行过的历史命令，默认只保存1000条
+
+Linux严格区分大小写
+
+切换到家目录:
+cd /home/soft01
+cd ~
+cd
+
+.表示当前目录
+..表示上一级目录
+
+
+windows:ipconfig
+linux:ifconfig   interface config
+
+可以按tab键进行自动补全，可以补全路径，也可以补全命令
+clear或ctrl+l 清屏
+
+在Linux中以.开头的文件都是隐藏文件
+
+在Windows中一般我们根据文件的后缀名来判断文件的类型
+在Linux中不能根据文件的后缀名来判断文件的类型，后缀名和文件类型没有必然联系
+
+
+soft01@Itany-Ubuntu:~$ history
+    1  cmd
+    2  pwd
+    3  cd /
+    4  ls
+    5  cd etc
+    6  ls
+    7  cd /
+    8  cd /proc
+    9  ls
+   10  cat cpu
+   11  cat cpuinfo
+   12  cd /
+   13  cd proc
+   14  ls
+   15  cat cpuinfo
+   16  cd /
+   17  cd /home/soft01
+   18  pwd
+   19  cd /home/soft01
+   20  ls -lh
+   21  -lh /home/soft01
+   22  ls -lh
+   23  history
+   24  cd /bin
+   25  cd ~
+   26  cd
+   27  cd /home
+   28  cd
+   29  cd ..
+   30  cd .
+   31  cd /etc/samba
+   32  cd
+   33  ifconfig
+   34  clear
+   35  history
+   36  cd /
+   37  cat /proc cpuinfo
+   38  cat /proc /cpuinfo
+   39  cat proc /cpuinfo
+   40  cat proc/cpuinfo
+   41  history
+   42  cd
+   43  cd.
+   44  cd..
+   45  cd ..
+   46  cd .
+   47  cd
+   48  cd /
+   49  history
+   50  ifconfig
+   51  cat lost+foubd
+   52  cd .
+   53  cd
+   54  cat lost+found
+   55  cd ..
+   56  ls
+   57  cd lost+found
+   58  cd soft02
+   59  cd soft01
+   60  cd liulei
+   61  cd soft02
+   62  ls
+   63  cd ..
+   64  cd soft02
+   65  cd ..
+   66  cd soft01
+   67  cd /
+   68  cd /home/soft01
+   69  cd
+   70  cd .
+   71  cd ..
+   72  cd
+   73  cat /proc/cpuinfo
+   74  ls
+   75  cd
+   76  cd /
+   77  -l
+   78  ls
+   79  cd /
+   80  pwd
+   81  cd
+   82  pwd
+   83  ls -lh
+   84  cd /
+   85  ls -lh
+   86  cd ls -h
+   87  ls -h
+   88  ls /home/soft01
+   89  ls -lh /home/soft01
+   90  clear
+   91  cd ~
+   92  cd /
+   93  cd ..
+   94  cd ~
+   95  cd ..
+   96  clear
+   97  jiangliubi
+   98  sunjidong
+   99  memory
+  100  cd
+  101  cd /
+  102  cat memory
+  103  help cd
+  104  cd /
+  105  cd
+  106  mkdir it
+  107  touch it
+  108  mkdir it[p]
+  109  mkdir [-p] [~] it
+  110  mkdir [-p] [/~/] it
+  111  mkdir [-p] [/home/soft01] it
+  112  mkdir [-p] /home/soft01 it
+  113  mkdir -p /home/soft01 it
+  114  mkdir -p /home/soft01 it yu
+  115  mkdir -p /home/soft01 it yu rt we
+  116  mkdir -p /home/soft02 it yu rt we
+  117  cd /home/soft02
+  118  mkdir it yu
+  119  ls
+  120  mkdir -p /home/soft02 it yu rt we
+  121  mkdir -p /home/soft02/公共的 it yu rt we
+  122  mkdir -p /home/soft02/ it yu rt we
+  123  cd
+  124  mkdir -p /home/soft02/ it yu rt we
+  125  help cd
+  126  help ls
+  127  ls -help
+  128  ls --help
+  129  ifconfig --help
+  130  pwd --help
+  131  help pwd
+  132  man ls
+  133  info ls
+  134  pwd
+  135  ls
+  136  ls -lh
+  137  ls -a
+  138  ls -A
+  139  ls -lh
+  140  ls -lhR
+  141  cd /etc/
+  142  ls -lh
+  143  cd /etc/firefox
+  144  pwd
+  145  ls
+  146  cd pref
+  147  ls
+  148  cd ..
+  149  pwd
+  150  ls -lh
+  151  ls -lhR
+  152  ls -R
+  153  ls
+  154  cd
+  155  ls
+  156  mkdir itany
+  157  ls
+  158  cd itany
+  159  ls
+  160  mkdir wbs16061
+  161  mkdir wbs 16062
+  162  ls
+  163  mkdir aaa
+  164  mkdir bbb
+  165  ls
+  166  mkdir ccc ddd eee
+  167  ls
+  168  cd
+  169  ls
+  170  mkdir china/jiangsu/nanjing/qinhuai
+  171  mkdir -p china/jiangsu/nanjing/qinhuai
+  172  ls
+  173  cd china
+  174  ls
+  175  cd jiangsu
+  176  ls
+  177  cd nam
+  178  cd nanjing/
+  179  ls
+  180  cd
+  181  du -hs /home/soft01
+  182  du -hs Linux基础.ppt
+  183  ls
+  184  touch wbs16061.txt
+  185  ls
+  186  touch a.txt b.txt c.txt
+  187  ls
+  188  touch apple.mp3
+  189  ls
+  190  touch heihei.jpg
+  191  ls
+  192  file wbs16061.txt
+  193  file 笔记.txt
+  194  file apple.mp3
+  195  file heihei.jpg
+  196  file Linux基础.ppt
+  197  file itany
+  198  history
+
+起别名
+alias 别名=真名
+
+alias myls='ls -lh'
+alias myip=ifconfig
+
+将别名保存在.bashrc文件中，永久存储
+
+unalias 别名
+
+alias mycp='cp -f /home/soft01/笔记.txt  /tmp'
+
+200  touch ggg
+  201  cd /boot
+  202  touch hehe
+  203  cd
+  204  touch hehe
+  205  ls
+  206  touch /tmp/haha.txt
+  207  cd /tmp/
+  208  ls
+  209  cd
+  210  ls
+  211  cp /home/soft01/heihei.jpg /home/soft01/china/jiangsu/nanjing/qinhuai/
+  212  ls /home/soft01/china/jiangsu/nanjing/qinhuai/
+  213  cp heihei.jpg /tmp/
+  214  ls /tmp/
+  215  ls
+  216  ls itany/
+  217  ls /tmp/
+  218  cp itany  /tmp
+  219  ls /tmp
+  220  cp -r itany  /tmp
+  221  ls /tmp
+  222  cd /tmp/itany/
+  223  ls
+  224  cd
+  225  ls
+  226  cp heihei.jpg /tmp
+  227  ls /tmp
+  228  cp heihei.jpg /tmp
+  229  ls /tmp
+  230  ls
+  231  ls -lh
+  232  cd
+  233  ls
+  234  cd it
+  235  cd itany
+  236  cd
+  237  cd itany
+  238  pwd
+  239  ls
+  240  touch 笔记.txt
+  241  ls
+  242  ls -lh
+  243  ls /home/soft01
+  244  pwd
+  245  cp 笔记.txt /tmp
+  246  ls -lh /tmp
+  247  cp /home/soft01/笔记.txt /tmp
+  248  ls -lh /tmp
+  249  cp -i /home/soft01/itany/笔记.txt /tmp
+  250  cd
+  251  ls
+  252  rm hehe
+  253  ls
+  254  rm apple.mp3
+  255  ls
+  256  rm eee
+  257  rm -r eee
+  258  ls
+  259  rm -r itany
+  260  ls
+  261  mv heihei.jpg china
+  262  ls
+  263  cd china/
+  264  ls
+  265  cd
+  266  ls
+  267  mv gg /tmp
+  268  ls
+  269  cd /tmp/
+  270  ls
+  271  cd
+  272  ls
+  273  ls -lh
+  274  ll
+  275  ll
+  276  ls -lha
+  277  ll
+  278  alias --help
+  279  man alias
+  280  info alias
+  281  help alias
+  282  alias myls=ls -lh
+  283  alias myls ls -lh
+  284  alias myls='ls -lh'
+  285  myls
+  286  ifconfig
+  287  ipconfig
+  288  alias ipconfig=ifconfig
+  289  ipcofnig
+  290  ipconfig
+  291  ip
+  292  alias myip=ifconfig
+  293  myip
+  294  alias
+  295  ll
+  296  alias
+  297  alias ll='ls -lha'
+  298  alias
+  299  ll
+  300  unalias myls
+  301  alias
+  302  cp -f /home/soft01/笔记.txt  /tmp
+  303  alias mycp='cp -f /home/soft01/笔记.txt  /tmp'
+  304  mycp
+  305  ll
+  306  ls
+  307  ll
+  308  alias ll='ls -lh'
+  309  ll
+  310  cat 笔记.txt
+  311  cat /etc/passwd
+  312  cat -n /etc/passwd
+  313  cat -n 笔记.txt
+  314  more /etc/passwd
+  315  more 笔记.txt
+  316  less 笔记.txt
+  317  cat /etc/passwd
+  318  head /etc/passwd
+  319  head -3 /etc/passwd
+  320  head -1 /etc/passwd
+  321  tail -5 /etc/passwd
+  322  cat -n /etc/passwd
+  323  wc -l /etc/passwd
+  324  wc -w /etc/passwd
+  325  wc -c /etc/passwd
+  326  history
+
+
+vi编辑器
+有三种模式：命令模式、输入模式、末行模式
+
+命令模式：在命令模式下按a、i、o、A、I、O都可以进入输入模式，区别在于输入点不同
+输入模式：输入数据
+末行模式：wq保存退出　q!不保存退出
+
+切换中文输入法 ctrl+空格
+
+文件/文件夹的权限
+读取Read  	r	4
+写入Write 	w	2
+可执行Execute 	x	1
+
+
+-rw-r--rw- 1 soft01 caiwu 3.4K  6月 14 14:01 note.txt
+
+-      		  -w-      	   r--  	  r--
+文件类型       属主的权限	属组的权限	其他人的权限
+
+
+属主 r
+属组 rw
+其他 rwx
+
+方式一
+chmod u=rw heihei.txt
+chmod u=r,g=rw,o=rwx heihei.txt
+
+方式二
+chmod nnn  文件
+chmod 467 heihei.txt
+
+ping  192.168.15.9 测试网络连通性
+netstat -ntpl  查看网络连接状态
+
+kill 结束进程、杀死进程
+语法：kill -9 进程ID号
+
+
+
+
+
+
+
+

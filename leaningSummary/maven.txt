@@ -1,0 +1,10 @@
+1：mvn 执行某个命令时，前面的命令都会执行一遍
+2：mvn中依赖的有效范围scope
+	test:作用域在src/test/java里，而不是在src/main/java里 （junit）
+	compile:作用域在test以及main下都可以，编译和运行时都生效 
+	provided：编译时生效，运行时或打包时不生效 （servlet）
+	runtime：编译时不生效，运行时或打包时生效（jdbc）
+	system：和provided差不多，不同的是，导入的依赖是来自于本地的文件系统
+3：依赖的optional属性：A项目里有一个依赖，依赖中optional属性值是true，B项目引入A，但是B项目不可以正常引入这个依赖的；除非属性值是false，或者去除，或者在B项目中显式的引入
+
+4：依赖冲突的原因总结一句话就是，依赖的版本和实际使用的版本不一致；项目里有同一个jar包的两种或更多版本。

@@ -1,0 +1,324 @@
+﻿1：实体类上要家ID这个属性，并给它加上@Id的注解
+
+
+2： 常见的MIME类型如下：
+    text/html ： HTML格式
+    text/plain ：纯文本格式      
+    text/xml ：  XML格式
+    image/gif ：gif图片格式    
+    image/jpeg ：jpg图片格式 
+    image/png：png图片格式
+以application开头的媒体格式类型：
+   application/xhtml+xml ：XHTML格式
+   application/xml     ： XML数据格式
+   application/atom+xml  ：Atom XML聚合格式    
+   application/json    ： JSON数据格式
+   application/pdf       ：pdf格式  
+   application/msword  ： Word文档格式
+   application/octet-stream ： 二进制流数据（如常见的文件下载）
+application/msexcel ：excel格式
+   application/x-www-form-urlencoded ： <form encType=””>中默认的encType，form表单数据被编码为key/value格式发送到服务器（表单默认的提交数据的格式）
+   另外一种常见的媒体格式是上传文件之时使用的：
+    multipart/form-data ： 需要在表单中进行文件上传时，就需要使用该格式
+
+
+3：下载文件时的关键代码
+      response.addHeader("Content-Disposition", "attachment;filename=" + new String(filename.getBytes()));
+      response.addHeader("Content-Length", "" + file.length());
+      OutputStream toClient = new BufferedOutputStream(response.getOutputStream());
+      response.setContentType("application/octet-stream");
+
+
+4：ajax代码实例
+	$("#username").blur(function(){
+
+				var usernameVal=$(this).val();
+
+				$.ajax({
+
+					"url":"${pageContext.request.contextPath}/validateUsername",
+
+					"type":"GET",
+
+					"data":{"id":usernameVal},
+
+					"success":function(message){
+
+						$("#validateUsernameMessage").text(message);
+
+					},
+
+					"error":function(){
+
+						$("#validateUsernameMessage").html("<font color='red'>组件错误</font>");
+
+					}
+
+				});
+
+			});
+
+
+5：请求转发：request.getRequestDispatcher("/student_list.jsp").forward(request, response);
+   响应重定向：response.sendRedirect(request.getContextPath() + "/student_list.jsp");  
+
+6：如果服务器启动不了，可能是你的连接数据库的连接信息配置错误，或者可以将项目以及服务器重新编译一下
+
+
+type="submit"
+
+
+7：当删除的表中有字段在其他表中（外键关联），从而导致杀出不掉数据时，得将有外键的表中关联的数据删除掉后才能将主表中的关联数据删除；
+
+8：Linux基本命令：
+new:      Creates a new session.
+open:     Opens a session or the session dialog box.
+edit:     Opens the Session Property dialog box for a session.
+list:     Lists information of all available sessions.
+cd:       Changes the current working directory.
+pwd:      Shows the current working directory.
+set:      Sets options.
+clear:    Clears the screen/address/command history.
+help:     Displays this help. '?' does the same.
+quit:     Quits Local Shell. 'exit' does the same.
+ssh:      Connects to a host using the SSH protocol.
+telnet:   Connects to a host using the TELNET protocol.
+rlogin:   Connects to a host using the RLOGIN protocol.
+sftp:     Connects to a host to transfer files securely.
+ftp:      Connects to a host to transfer files.
+disconnect:    Closes connection of this session.
+reconnect:     Reconnects this session.
+
+
+9：a:导入项目后如果编译报错，Jre，tomcat  JAR包等顺序也可能导致编译始终报错（build  path设置中）
+   b:导入项目后如果报错“the selection is not a valid moudle”时，我们先将项目导入工作空间中，然后将其剪切到外面，然后将eclipse中的项目删除，再自己建立一个
+     web工程，然后将里面的build  WebContent  src文件夹删除，再将之前down下来的项目里的.svn webroot  src文件夹复制到自己建的项目里（工作空间文件夹）就ok了，这也可以解决项目的更新提交的问题。
+   c:svn的版本问题可能导致没有新建的项目会没有更新以及提交等选项的出现。
+   d:项目工程如果在部署到tomcat后启动服务器时报错，启动不了，可以看看部署的的路径有没有配置，配置的方法：右击项目，选择propertites ，	选择deployment assemly ，然后在里面将web的文件夹路径配置一下
+
+
+10.DispatchFansJob.java这个类是定时器，继承了QuartzJobBean并实现其中的方法，这个里面的属性需要自己去实例化。
+
+
+
+11，（删除数据）select * from kfpush u3 where u3.soCustomService in (select u.ROW_ID from (select * from users where DEL_FLAG = '1')u)
+
+
+12.更新表格数据：
+UPDATE store  s, area  a   SET s.county = a.id where s.soId = a.soid
+
+INSERT INTO `njqdfwh`.`fans`
+            SELECT * FROM fans_copy2 c WHERE c.`fsStore` = '110073020'
+
+
+13.服务器重启后出现：{"errcode":41001,"errmsg":"access_token missing hint: [htOwuA0306vr44!]"}问题后，解决方法：是ip未授权
+
+14.浏览器上百度ip可以查出本机的对外ip
+
+14.查询重复数据的数目：SELECT f.fsOpenId,COUNT(*) AS COUNT FROM fans f GROUP BY f.fsOpenId HAVING COUNT>1
+
+15.java导入excel表格时如果出现
+
+16.count(*)与count(1)的区别：当查询的数据中没有null时，这两个之间是没有区别的，但是如果查询到的数据里有null时，counts(1)是不会查到的
+
+17.对于服务器返回的JSON字符串，如果jquery异步请求将type（一般为这个配置属性）设为“json”，或者利用$.getJSON()方法获得服务器返回，那么就不需要eval（）方法了，因为这时候得到的结果已经是json对象了，只需直接调用该对象即可，这里以$.getJSON方法为例说明数据处理方法： 
+$.getJSON("http://www.phpzixue.cn/",{param:"gaoyusi"},function(data){ 
+//此处返回的data已经是json对象 
+//以下其他操作同第一种情况 
+$.each(data.root,function(idx,item){ 
+if(idx==0){ 
+return true;//同countinue，返回false同break 
+} 
+alert("name:"+item.name+",value:"+item.value); 
+}); 
+}); 
+这里特别需要注意的是方式1中的eval()方法是动态执行其中字符串（可能是js脚本）的，这样很容易会造成系统的安全问题。所以可以采用一些规避了eval()的第三方客户端脚本库，比如JSON in JavaScript就提供了一个不超过3k的脚本库。
+
+18.hibernate保存数据时如果保存后不报错并且数据库没值，可能是save方法没加事务
+
+19.当发送http请求时，获得的参数中有乱码时，可能是接口中没有对response进行编码的设置，需要如此做：getResponse().setContentType("text/plain;charset=UTF-8");
+
+
+20：update  fans f set f.bindTime=(select f2.firstBindTime from firstbind f2 where f.fsOpenId=f2.openid ) where f.bindTime is null
+
+
+21：select * from yingyeting y INNER JOIN dav d on d.soname like CONCAT( '%' , y.soname2, '%' );
+
+:22：linux防火墙命令：iptables -I INPUT -p tcp --dport 22 -j DROP;iptables -I INPUT -s 58.213.224.242/32 -p tcp --dport 22 -j ACCEPT;iptables -I INPUT -s 61.160.0.0/16 -p tcp --dport 22 -j ACCEPT;iptables -I INPUT -s 202.111.54.0/24 -p tcp --dport 22 -j ACCEPT
+
+
+:23：su 之后 输入root 密码
+ls -al
+vim config文件
+e 编辑 之后 按 i
+:wq!
+
+
+24:jsp会有缓存问题
+
+
+
+25：Df命令是linux系统以磁盘分区为单位查看文件系统，可以加上参数查看磁盘剩余空间信息，命令格式：
+　　df -hl
+　　显示格式为：
+　　文件系统 容量 已用 可用 已用% 挂载点
+　　Filesystem Size Used Avail Use% Mounted on
+
+
+26：df -h 查看磁盘存储
+    ll 查看文件大小还有权限
+    ll  -h 查看文件大小带单位
+    rm 文件  删除文件（可以使用通配符删除）
+
+    du -h 查看当前文件夹的存储
+    du -sh /* 标准化显示指定文件夹的存储
+
+find / -size +100M -exec ls -lh {} \;查找超过100M的文件
+
+
+如果共享内存不足，可以删除超过100M的文件，并且可以删除apache下的work文件夹下的catlina文件下的Localhost文件夹下的所有缓存文件夹
+
+
+plsql如何安装配置：https://jingyan.baidu.com/article/8275fc8662762b46a03cf604.html
+
+D:\软件下载\PLSQL\plsqldev1100.exe anzhaugn安装包
+
+
+
+
+红包派（这是一个派发各类券的平台）：
+1：红包派里配置的各类券必须经验证码验证后再将此号码绑定南京电信公众号
+
+
+
+
+跨域： HttpServletResponse response = (HttpServletResponse)((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();  
+          response.setHeader("Access-Control-Allow-Origin", "*");  
+          response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");  
+          response.setHeader("Access-Control-Max-Age", "3600");  
+          response.setHeader("Access-Control-Allow-Headers", "x-requested-with"); 
+		return response;
+
+
+27：关闭防火墙
+
+su 之后 输入root 密码  ，service iptables stop
+
+28：
+南电微信：1:ssh 用户名@ip  然后输入密码即可    从某个服务器跳转连接另一个服务器
+          2：ifconfig        查看本服务器ip
+
+28：校正linux时间：（root权限）ntpdate -u ntp.api.bz
+
+29：[root@localhost ~]# cd /usr/local/nginx/
+[root@localhost nginx]# vi conf/nginx.conf
+[root@localhost nginx]# cd sbin/
+[root@localhost sbin]# ./nginx -t
+nginx: the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+nginx: configuration file /usr/local/nginx/conf/nginx.conf test is successful
+[root@localhost sbin]# ./nginx -s reload
+
+
+
+30：不小心commit了一个不应该commit的修改，但是还没有push，想撤销那个commit命令：
+
+a)git log
+
+b)git reset --hard commit_id
+
+
+git pull origin dev  将远程主机origin上的dev分支更新到当前分支上
+
+git merge origin dev  将dev分支merge到当前本地分支
+
+1、找到之前提交的git commit的id 
+git log 
+找到想要撤销的id 
+2、git reset –hard id 
+完成撤销,同时将代码恢复到前一commit_id 对应的版本 
+3、git reset id 
+完成Commit命令的撤销，但是不对代码修改进行撤销，可以直接通过git commit 重新提交对本地代码的修改
+
+
+FastJson API：
+31：json字符串-数组类型到JSONArray的转换
+JSONArray jsonArray = JSONArray.parseArray(JSON_ARRAY_STR);
+
+JSONArray转换成JSON字符串：String jsonString = JSONArray.toJSONString(jsonArray);
+
+JSON类型字符串转换成JSON对象：JSONObject jsonObject = JSONObject.parseObject(JSONstr);
+
+JSON对象转换成JSON类型字符串： String JSONstr = JSONObject.toJSONString(jsonObject);
+
+
+Fastjson API入口类是com.alibaba.fastjson.JSON，常用的序列化操作都可以在JSON类上的静态方法直接完成。
+public static final Object parse(String text); // 把JSON文本parse为JSONObject或者JSONArray 
+public static final JSONObject parseObject(String text)； // 把JSON文本parse成JSONObject    
+public static final <T> T parseObject(String text, Class<T> clazz); // 把JSON文本parse为JavaBean 
+public static final JSONArray parseArray(String text); // 把JSON文本parse成JSONArray 
+public static final <T> List<T> parseArray(String text, Class<T> clazz); //把JSON文本parse成JavaBean集合 
+public static final String toJSONString(Object object); // 将JavaBean序列化为JSON文本 
+public static final String toJSONString(Object object, boolean prettyFormat); // 将JavaBean序列化为带格式的JSON文本 
+public static final Object toJSON(Object javaObject); 将JavaBean转换为JSONObject或者JSONArray。
+
+
+
+
+
+32：react
+ index.jsx-----index.js-----add.js---add.jsx
+
+
+-- this为TongbuElement
+            -- this.state为初始化数据
+            -- TongbuElement.state为thisStore.getTongbuState()
+
+
+33：npm run build时报Failed at the @ build script.错，试试npm install
+
+
+
+
+
+
+
+
+34：<img src  属性可以用相对路径，但是要将此图片放置此项目下  ，如果不在此项目上，那一般就得用绝对路径，  路径不会是本地文件夹上的路径/>
+
+35:jar包要自己上传服务器
+
+
+
+
+36：财务项目前台上传：确保前台文件更新后，先编译然后将编译的文件放到本地webapp/html/aserts文件夹，如果有html文件有改动，不要覆盖本地文件，手动修改g_generalData部分，然后将整个html文件夹压缩。
+    
+    后台上传，确保文件更新后将target下面的class文件夹下的platform文件夹压缩
+
+
+
+
+37：nginx路径：/usr/local/nginx/sbin
+    重新加载命令：./nginx -s reload
+
+
+38、linux文本去全局替换   %s/源字符串/目标字符串/g
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

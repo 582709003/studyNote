@@ -1,0 +1,1139 @@
+springboot引入
+    <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+    </plugin>
+    插件，本地测试时，springboot就会默认将应用打成包含有启动需要的所有jar包以及环境的可执行jar包，
+    然后将可执行jar包部署到springboot自带的内置tomcat
+
+
+<properties>
+        //可以覆盖上面声明的版本号
+        <java.version>1.8</java.version>
+    </properties>
+
+
+所有stater启动器里面都会依赖spring-boot-starter，核心依赖，包括auto-configuration , logging和YAML。
+springboot所有自动配置功能都依赖这个
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-autoconfigure</artifactId>
+这个里面，这个里面有很多自动配置的包，可以打开看看
+
+springboot已经自动配好springmvc
+    1、引入springmvc全套组件
+    2、自动配好springmvc常用组件
+ 自动配好web常见功能，如字符编码问题
+
+每个stater启动器里面都有很多的默认配置，但是只有我们引入了某个启动器之后才会开启这些启动器里面的
+默认配置
+
+
+@Configration
+    1、使用@Bean标注在方法上给容器注册组件，默认也是单例的
+    2、配置类本身也是组件3
+    @Configuration(proxyBeanMethods = true)
+        proxyBeanMethods = true :使用代理bean的方法，当为true时，当调用配置类里面的诸如cat()以及user()生成bean的方法时，
+        首先会去容器里面查找有没有此类型的对象，如果有就使用此对象；
+        相反当为false时，直接调用cat()方法时，其实就是new了一个对象，而不是从容器里拿
+        @Configuration(proxyBeanMethods = true)
+        public class MyConfig {
+            @Bean
+            public User user(){
+               User u = new User();
+               u.setCat(cat());
+                return u;
+            }
+
+            @Bean
+            public Cat cat(){
+                return new Cat();
+            }
+        }
+
+
+  @Import注解须知
+  1、@Import只能用在类上 ，@Import通过快速导入的方式实现把实例加入spring的IOC容器中
+  2、加入IOC容器的方式有很多种，@Import注解就相对很牛皮了，@Import注解可以用于导入第三方包 ，当然@Bean注解也可以，但是@Import注解快速导入的方式更加便捷
+  3、@Import注解有三种用法
+  @Import的三种用法主要包括：
+  1、直接填class数组方式
+  2、ImportSelector方式【重点】
+  3、ImportBeanDefinitionRegistrar方式
+
+  2.1、第一种用法：直接填class数组
+  直接填对应的class数组，class数组可以有0到多个。
+  语法如下：
+  @Import({ 类名.class , 类名.class... })
+  public class TestDemo {
+
+  }
+  对应的import的bean都将加入到spring容器中，这些在容器中bean名称是该类的全类名 ，比如com.yc.类名
+
+  2.2、第二种用法：ImportSelector方式【重点】
+  这种方式的前提就是一个类要实现ImportSelector接口，假如我要用这种方法，目标对象是Myclass这个类，分析具体如下：
+  创建Myclass类并实现ImportSelector接口
+  public class Myclass implements ImportSelector {
+  //既然是接口肯定要实现这个接口的方法
+      @Override
+      public String[] selectImports(AnnotationMetadata annotationMetadata) {
+          return new String[]{"com.example2021.springboot.domin.Cat"};
+      }
+  }
+  @Configuration(proxyBeanMethods = true)
+  @Import(Myclass.class)
+  public class MyConfig {
+  }
+
+
+  分析实现接口的selectImports方法中的：
+  1、返回值： 就是我们实际上要导入到容器中的组件全类名【重点 】
+  2、参数： AnnotationMetadata表示当前被@Import注解给标注的所有注解信息【不是重点】
+
+2.3、第三种用法：ImportBeanDefinitionRegistrar方式
+同样是一个接口，类似于第二种ImportSelector用法，相似度80%，只不过这种用法比较自定义化注册，具体如下：
+第一步：创建Myclass2类并实现ImportBeanDefinitionRegistrar接口
+public class Myclass2 implements ImportBeanDefinitionRegistrar {
+    @Override
+    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+        RootBeanDefinition rbd = new RootBeanDefinition(User.class);
+        registry.registerBeanDefinition("user",rbd);
+    }
+}
+
+ @Configuration(proxyBeanMethods = true)
+  @Import(Myclass2.class)
+  public class MyConfig {
+  }
+参数分析：
+第一个参数：annotationMetadata 和之前的ImportSelector参数一样都是表示当前被@Import注解给标注的所有注解信息
+第二个参数表示用于注册定义一个bean
+
+  3、@Import注解的三种使用方式总结
+  第一种用法：@Import（{ 要导入的容器中的组件 } ）：容器会自动注册这个组件，id默认是全类名
+  第二种用法：ImportSelector：返回需要导入的组件的全类名数组，springboot底层用的特别多【重点 】,id默认是全类名
+  第三种用法：ImportBeanDefinitionRegistrar：手动注册bean到容器,id是自定义的
+  以上三种用法方式皆可混合在一个@Import中使用，特别注意第一种和第二种都是以全类名的方式注册，而第三中可自定义方式。
+  @Import注解本身在springboot中用的很多，特别是其中的第二种用法ImportSelector方式在springboot中使用的特别多，尤其要掌握
+
+
+
+@Conditional
+    条件装配：满足Conditional指定的条件，则进行组件注入,又很多派生注解
+
+@ImportResource
+    原生配置文件导入；当有一个原生的spring.xml,文件里有很多bean的定义，但是这个文件即使写好之后放在类路径里，他也不会
+    将配置文件申明的bean注入到容器；我们也可以不用去添加注解，而是直接在配置类上使用这个
+    注解引入原生的配置文件也是可以的；
+
+@propertySource:加载指定路径的配置文件
+
+
+属性配置绑定javaBean
+    如何使用Java读取到的properties文件中的内容，并且把它封装到javaBean中
+
+    1、@ConfigurationProperties，默认从全局配置文件中获取值，并在类上添加此注解并且添加@Component，只有在容器内的组件才能被springboot提供强大的功能
+
+    2、@EnableConfigurationProperties(Cat.class)，并且在Cat.class上添加@ConfigurationProperties注解，
+        但是不用添加@Component
+      //1、开启cat的属性配置功能
+      //2、将cat这个组件注入容器内
+
+
+自动配置原理
+    先从@SpringBootApplication这个注解看起
+    此注解由
+        @SpringBootConfiguration
+        @EnableAutoConfiguration
+        @ComponentScan  组成，其中@EnableAutoConfiguration重要
+
+    @EnableAutoConfiguration
+        由@AutoConfigurationPackage
+         @Import({AutoConfigurationImportSelector.class}) 组成
+         先看@AutoConfigurationPackage注解
+
+    @AutoConfigurationPackage
+        由@Import({Registrar.class})组成
+        这个是将自定义的组件注入容器内
+        进入Registrar.class，由一个方法registerBeanDefinitions
+        此方法是将某一个包下(主程序所在包)的所有组件批量注入到容器,
+
+    @Import({AutoConfigurationImportSelector.class})
+    这个是将启动器stater导入容器
+        selectImports方法中获取所有要导入的组件，是通过getAutoConfigurationEntry方法获取的，然后封装成string数组返回，
+        利用getAutoConfigurationEntry方法给容器中批量导入组件
+        上面这个方法又通过getCandidateConfigurations这个方法获取到所有需要导入到容器的组件
+      利用工厂加载器
+          private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
+            获取到所有组件
+
+       从META-INF/spring.factories这个地方加载组件，默认扫描我们当前系统里面所有META-INF/spring.factories位置的文件
+        spring-boot-autoconfigure-2.3.4.RELEASE.jar这个包也有这个文件
+        这个文件里面由127个自动配置的配置类，虽然有这么多配置默认全部加载，但最终会按照条件装配规则配置；
+        例如
+        @ConditionalOnBean({JobLauncher.class})   //JobLauncher.class 这个类都没有导入，所以这个配置类不会加载
+        @EnableConfigurationProperties({BatchProperties.class})
+        @Import({BatchConfigurerConfiguration.class})
+        public class BatchAutoConfiguration {}
+
+
+        springboot默认会在底层配置好所有的组件，但是如果用户自己配置了就以用户的优先，因为用户配置的组件会优先加载到容器里，
+        所以当springboot自带的bean上添加了诸如@ConditionalOnMissingBean(xxx.class)时，此时xxx.class就已经优先加载，所以
+        springboot自带的配置就不会再加载到容器
+            @Bean
+            @ConditionalOnMissingBean({ExitCodeGenerator.class})
+            public JobExecutionExitCodeGenerator jobExecutionExitCodeGenerator() {
+                return new JobExecutionExitCodeGenerator();
+            }
+
+
+        总结：
+            1、springboot会优先加载所有的自动配置类
+            2、每个自动配置类按照条件进行生效
+            3、生效的配置类就会给容器注入很多组件
+            4、只要容器中有这些组件，那么就相当于有这些功能了
+            5、只要由用户自己配置的，就以用户配置的优先
+
+
+       开发工具
+        lombok：是为类在编译期添加get、set等方法
+                    也可以在类上添加@Slf4j,然后直接使用log.info("");  log.error(""); 等等
+
+
+        dev_tools
+           项目里导入jar包
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-devtools</artifactId>
+                <version>2.4.3</version>
+            </dependency>
+            修改java文件，jsp文件，以及属性文件等之后重新编译一下就会重新启动tomcat
+
+
+ springboot核心功能
+    1、yaml文件基本语法
+        key: value  kv之间有空格
+        大小写敏感
+        使用缩进表示层级关系
+        缩进不允许使用tab，只允许空格
+        缩进的空格数不重要，只要相同层级的元素左对齐即可
+        # 表示注释
+        字符串无需加引号，如果要加，''和""表示字符串内容会被转义/不转义
+
+      数据类型如何书写
+        对象：键值对的集合。map、hash、set、obeject
+            行内写法
+                k: {k1:v1,k2:v2,k3:v3} 不需要空格
+            或者
+            k:
+              k1: v1  需要空格
+              k2: v2
+
+        数组
+            行内写法  k: [v1,v2,v3]
+            或者
+            k:
+              - v1 需要空格
+              - v2
+              - v3
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <optional>true</optional>
+            </dependency>
+           这个jar包可以使我们在配置文件中配置 属性类（@ConfigurationProperties注解的类）里面的属性时有提示
+
+
+ web开发
+    1、静态资源规则与定制化
+        默认静态资源目录
+            类路径下 /static(/public or /resources or /META-INF/resources)
+            访问项目名/静态资源路径即可
+
+            原理：静态映射/**
+            因为动态资源也是映射的所有请求，所以请求进来，先去controller，如果找不到，再去找静态资源
+
+        静态资源访问前缀
+            #修改静态资源访问的前缀，/res 其实就相当与classpath，不需要新建res文件夹
+            spring.mvc.static-path-pattern=/res/**
+
+        改变默认的静态资源目录
+        spring.resources.static-locations=["/haha"]
+
+    2、欢迎页支持
+
+        静态资源路径下 index.html，访问根路径可以自动跳转到这个index.html,静态资源路径不能修改，修改的话就不能默认转到index.html
+            可以配置静态资源路径，但是不可以配置静态资源访问前缀,
+        controller能处理/index
+
+     favicon功能  网站小图标
+        图标名称一定要是favicon.ico ,然后放在静态资源下,静态资源路径不能修改，修改的话就不能找到图标
+
+   3、静态资源配置管理
+        springmvc启动默认加载xxxAutoConfiguration类(自动配置类)
+        springmvc功能的自动配置类集中在这个WebMvcAutoConfiguration里面
+
+        @Configuration(
+            proxyBeanMethods = false
+        )
+        @ConditionalOnWebApplication(
+            type = Type.SERVLET
+        )
+        @ConditionalOnClass({Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class})
+        @ConditionalOnMissingBean({WebMvcConfigurationSupport.class})
+        @AutoConfigureOrder(-2147483638)
+        @AutoConfigureAfter({DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class, ValidationAutoConfiguration.class})
+        public class WebMvcAutoConfiguration {
+        }
+
+
+
+        @Configuration(
+                proxyBeanMethods = false
+            )
+            @Import({WebMvcAutoConfiguration.EnableWebMvcConfiguration.class})
+            @EnableConfigurationProperties({WebMvcProperties.class, ResourceProperties.class})
+            @Order(0)
+            public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {
+            }
+
+       WebMvcProperties.class  ==spring.mvc
+       ResourceProperties.class==spring.resources
+
+       配置类中只有一个有参构造器且没有无参构造器的情况下，有参构造器的所有参数的值都会从容器中获取
+
+       资源处理的默认规则就在这个方法里
+       public void addResourceHandlers(ResourceHandlerRegistry registry) {
+                   if (!this.resourceProperties.isAddMappings()) {
+                       logger.debug("Default resource handling disabled");
+                   } else {
+                       Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+                       CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+                       if (!registry.hasMappingForPattern("/webjars/**")) {//访问这个路径的默认访问到了classpath:/META-INF/resources/webjars/路径下的资源
+                           this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{"/webjars/**"}).addResourceLocations(new String[]{"classpath:/META-INF/resources/webjars/"}).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+                       }
+
+                       String staticPathPattern = this.mvcProperties.getStaticPathPattern();//访问/**这个路径默认访问到了"classpath:/META-INF/resources/", "classpath:/resources/", "classpath:/static/", "classpath:/public/"
+                       if (!registry.hasMappingForPattern(staticPathPattern)) {
+                           this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{staticPathPattern}).addResourceLocations(WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations())).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+                       }
+
+                   }
+               }
+
+
+         handlerMapping 处理器映射  保存了每一个handler能处理哪些请求
+
+
+    4、rest映射以及源码分析
+        步骤，首先在表单里提交时要提交一个<input type="hidden" name="_method" value="PUT">
+        ajax请求时data : {_method : "DELETE", empId : empId}，
+        然后在属性文件中配置spring.mvc.hiddenmethod.filter.enabled=true,就是开启restful分格请求；这样就会在容器中注入一个HiddenHttpMethodFilter对象
+        就可以对这个进行拦截并做处理了；
+        这个过滤器支持put、delete、patch请求
+
+
+
+    5、请求映射原理
+        每个请求进来最终都会调用dispatchservlet.class里面的doDispatch方法，
+        mappedHandler = this.getHandler(processedRequest);//找到处理当前请求的handler
+        handlerMappings里面保存了所有的请求和处理器的映射，应用启动时，springmvc扫描所有controller后将请求和handler
+        对应之后保存到了这个handlermapping；
+
+        所有的额映射请求都在handlerMapping中
+        1、springboot自动配置欢迎页 WelcomePageHandlerMapping.访问/就能访问到index.html页面
+        2、springboot自动配置了默认的RequestMappingHandlerMapping
+        3、请求进来，挨个尝试所有的handlermapping看是否有匹配的请求信息
+            如果有，就在这个handlermapping里面找个这个handler
+            如果没有就去下一个handlermapping重复上面的步骤
+        4、如果我们需要自定义handlermapping也可以自定义
+
+    6、springboot对请求参数的处理原理
+        1、handlerMapping中找到能处理请求的handler(Controler.method)
+        2、为当前handler找一个适配器,handlerAdapter
+                1、handlerAdapter spring提供的几种类型
+                       0、支持方法上标注的@RequestMapping RequestMappingHandlerAdapter
+                       1、HandlerFunctionAdapter
+                       2、HttpRequestHandlerAdapter
+                       3、SimpleControllerHandlerAdapter
+        3、执行目标方法
+            mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+            //执行目标方法
+            mav = this.invokeHandlerMethod(request, response, handlerMethod);
+
+            invocableMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
+            //this.argumentResolvers ,HandlerMethodArgumentResolver接口 参数解析器(来确定将要执行的目标方法的每一个参数的值是什么)
+                大概有二十几种，处理标注请求参数的注解，譬如@PathVariable、@RequestParam等等
+
+            HandlerMethodArgumentResolver有两个抽象方法
+
+            //支持就调用这个方法
+             boolean supportsParameter(MethodParameter var1);
+
+             //当前解析器是否支持解析这种参数
+            @Nullable
+            Object resolveArgument(MethodParameter var1, @Nullable ModelAndViewContainer var2, NativeWebRequest var3, @Nullable WebDataBinderFactory var4) throws Exception;
+
+            //invokeHandlerMethod这个方法里还有一个returnValueHandlers 返回值处理器
+            就是说能处理多少种类型的返回值由返回值处理器决定，默认有15种处理器
+            if (this.returnValueHandlers != null) {
+                invocableMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
+            }
+
+            //ServletInvocableHandlerMethod类里真正处理目标的方法
+            Object returnValue = this.invokeForRequest(webRequest, mavContainer, providedArgs);
+
+            //InvocableHandlerMethod 类里获取方法参数值
+                getMethodArgumentValues
+
+
+                挨个判断所有参数解析器哪个支持解析这个参数
+            @Nullable
+                private HandlerMethodArgumentResolver getArgumentResolver(MethodParameter parameter) {
+                    HandlerMethodArgumentResolver result = (HandlerMethodArgumentResolver)this.argumentResolverCache.get(parameter);
+                    if (result == null) {
+                        Iterator var3 = this.argumentResolvers.iterator();
+
+                        while(var3.hasNext()) {
+                            HandlerMethodArgumentResolver resolver = (HandlerMethodArgumentResolver)var3.next();
+                            if (resolver.supportsParameter(parameter)) {
+                                result = resolver;
+                                this.argumentResolverCache.put(parameter, resolver);
+                                break;
+                            }
+                        }
+                    }
+
+1
+2
+
+
+
+                    return result;
+                }
+
+         HandlerMethodArgumentResolver  参数解析器
+
+
+servlet API参数解析原理
+    在所有参数解析器中查找解析器，找到一个servletRequestMethodArgumentResolver
+
+
+
+model、map参数原理
+    map,model里面的数据会被放在request请求域里
+
+自定义参数绑定原理
+    是由ServletModelAttributeMethodProcessor这个参数解析器进行处理的，譬如自定义的User对象
+    这个解析器会为自定义的参数创建一个空对象(new 一个对象并赋值给这个方法参数)，然后通过
+    webDataBinder这个数据绑定器将request里的参数和这个空对象的属性及进行绑定
+
+    关键代码
+    ModelAttributeMethodProcessor类里的resolveArgument方法
+    //获取参数绑定器,此时的参数绑定器里面已经initBinder了，而initializer正是ConfigurableWebBindingInitializer
+    WebDataBinder binder = binderFactory.createBinder(webRequest, attribute, name);
+
+public final WebDataBinder createBinder(NativeWebRequest webRequest, @Nullable Object target, String objectName) throws Exception {
+            WebDataBinder dataBinder = this.createBinderInstance(target, objectName, webRequest);
+            //此初始化器是ConfigurableWebBindingInitializer类型，在spring启动时会自动配置到
+            if (this.initializer != null) {
+                this.initializer.initBinder(dataBinder, webRequest);
+            }
+
+            this.initBinder(dataBinder, webRequest);
+            return dataBinder;
+        }
+
+        //而ConfigurableWebBindingInitializer初始化器放到RequestMappingHandlerAdapter
+     @Bean
+        public RequestMappingHandlerAdapter requestMappingHandlerAdapter(@Qualifier("mvcContentNegotiationManager") ContentNegotiationManager contentNegotiationManager, @Qualifier("mvcConversionService") FormattingConversionService conversionService, @Qualifier("mvcValidator") Validator validator) {
+            RequestMappingHandlerAdapter adapter = this.createRequestMappingHandlerAdapter();
+            adapter.setContentNegotiationManager(contentNegotiationManager);
+            adapter.setMessageConverters(this.getMessageConverters());
+            adapter.setWebBindingInitializer(this.getConfigurableWebBindingInitializer(conversionService, validator));
+            adapter.setCustomArgumentResolvers(this.getArgumentResolvers());
+            adapter.setCustomReturnValueHandlers(this.getReturnValueHandlers());
+            if (jackson2Present) {
+                adapter.setRequestBodyAdvice(Collections.singletonList(new JsonViewRequestBodyAdvice()));
+                adapter.setResponseBodyAdvice(Collections.singletonList(new JsonViewResponseBodyAdvice()));
+            }
+
+    这样dataBinder里面就有了类型转换器等东西;
+    如果要自定义数据绑定初始化器WebBindingInitializer，可以如下做
+    1、自定义CustomDateWebBindingInitializer
+public class CustomDateWebBindingInitializer implements WebBindingInitializer {
+    @Override
+    public void initBinder(WebDataBinder binder) {
+        binder.registerCustomEditor(Date.class, new MyCustomDateEditor());
+    }
+}
+
+    2、注册WebBindingInitializer
+    @Configuration
+    public class CustomDateEditorConfiguration {
+
+        @Autowired
+        public void setWebBindingInitializer(RequestMappingHandlerAdapter requestMappingHandlerAdapter) {
+            //将自定义的CustomDateWebBindingInitializer属性编辑器绑定到RequestMappingHandlerAdapter里面.
+            requestMappingHandlerAdapter.setWebBindingInitializer(new CustomDateWebBindingInitializer());
+        }
+
+    }
+
+
+
+    BeanUtils判断是否为简单类型
+        public static boolean isSimpleValueType(Class<?> type) {
+            return Void.class != type && Void.TYPE != type &&
+            (ClassUtils.isPrimitiveOrWrapper(type)
+            || Enum.class.isAssignableFrom(type)
+            || CharSequence.class.isAssignableFrom(type)
+             || Number.class.isAssignableFrom(type)
+             || Date.class.isAssignableFrom(type) ||
+              Temporal.class.isAssignableFrom(type)
+               || URI.class == type || URL.class == type
+               || Locale.class == type || Class.class == type);
+        }
+
+        通过这个方法发现不是简单类型，就用了这个解析器
+
+
+        @Nullable
+            public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+                Assert.state(mavContainer != null, "ModelAttributeMethodProcessor requires ModelAndViewContainer");
+                Assert.state(binderFactory != null, "ModelAttributeMethodProcessor requires WebDataBinderFactory");
+                String name = ModelFactory.getNameForParameter(parameter);
+                ModelAttribute ann = (ModelAttribute)parameter.getParameterAnnotation(ModelAttribute.class);
+                if (ann != null) {
+                    mavContainer.setBinding(name, ann.binding());
+                }
+
+                Object attribute = null;
+                BindingResult bindingResult = null;
+                if (mavContainer.containsAttribute(name)) {
+                    attribute = mavContainer.getModel().get(name);
+                } else {
+                    try {
+                        attribute = this.createAttribute(name, parameter, binderFactory, webRequest);
+                    } catch (BindException var10) {
+                        if (this.isBindExceptionRequired(parameter)) {
+                            throw var10;
+                        }
+
+                        if (parameter.getParameterType() == Optional.class) {
+                            attribute = Optional.empty();
+                        }
+
+                        bindingResult = var10.getBindingResult();
+                    }
+                }
+
+                if (bindingResult == null) {
+                    //创建一个webDataBinder数据绑定器
+                    WebDataBinder binder = binderFactory.createBinder(webRequest, attribute, name);
+                    if (binder.getTarget() != null) {
+                        if (!mavContainer.isBindingDisabled(name)) {
+                            this.bindRequestParameters(binder, webRequest);
+                        }
+
+                        this.validateIfApplicable(binder, parameter);
+                        if (binder.getBindingResult().hasErrors() && this.isBindExceptionRequired(binder, parameter)) {
+                            throw new BindException(binder.getBindingResult());
+                        }
+                    }
+
+                    if (!parameter.getParameterType().isInstance(attribute)) {
+                        attribute = binder.convertIfNecessary(binder.getTarget(), parameter.getParameterType(), parameter);
+                    }
+
+                    bindingResult = binder.getBindingResult();
+                }
+
+                Map<String, Object> bindingResultModel = bindingResult.getModel();
+                mavContainer.removeAttributes(bindingResultModel);
+                mavContainer.addAllAttributes(bindingResultModel);
+                return attribute;
+            }
+
+            webDataBinder数据绑定器：将请求参数的值绑定到指定的javaBean里面
+            这个绑定器里封装了一个conversionService,这个是用来处理类型转换的
+
+
+
+
+            WebMvcConfigurationSupport这个配置类里初始化了转换器，且可以自定义类型转换器
+            @Bean
+                public FormattingConversionService mvcConversionService() {
+                    FormattingConversionService conversionService = new DefaultFormattingConversionService();
+                    this.addFormatters(conversionService);
+                    return conversionService;
+                }
+
+                //可以自定义类型转换器
+                protected void addFormatters(FormatterRegistry registry) {
+
+                }
+
+
+
+
+返回值处理器原理
+    响应分两种
+        1、响应到页面，前后端一体
+        2、响应数据，前后端一体
+        响应数据需要在处理器上添加@ResponseBody
+
+        如何获取返回值处理器呢？
+    1、返回值处理器判断是否支持这种类型返回值supportReturnType
+    2、返回值处理器调用handleReturnValue进行处理
+        返回值处理器有很多种类型
+    3、假如处理器方法上有@ResponseBody注解后，根据返回值以及返回类型找到返回值处理器RequestResponseBodyMethodProcessor
+        1、利用messageConverters进行处理返回值，调用了writeWithMessageConverters方法，将数据写为json
+            1、内容协商(浏览器发送请求时默认会以请求头的方式告诉服务器他能接收什么样的内容类型)
+            2、服务器最终根据返回值的类型以及目标类型等，决定服务器能产生什么样的内容类型的数据
+            根据浏览器能够接收的类型以及服务器能产生什么样的类型选出大家都可以接收的类型；
+            3、springmvc会遍历容器底层的消息转换器messageConverters，看谁能处理这个返回值(就是将这个返回值类型转换成大家都能够接受的内容类型)
+                messageConverters作用：看是否支持将此class类型的对象转换为MediaType类型的数据
+                例子：是否支持将person对象转化为json；或者是否支持将json转换为person对象；
+                消息转换器可以双向转换
+            4、默认的消息转换器共有十个左右
+                有只支持返回值类型是byte类型的，还有返回值为String类型的，resources类型的；
+
+                MappingJackson2HttpMessageConverter支持将除byte，string等类型外的所有类型的返回值转换成json
+                (利用jackson底层的objectMapper进行转换)
+
+
+            内容协商原理
+                1、判断当前响应头张是否已经确定媒体类型，mediaType(有可能是在拦截器里确定了响应的媒体类型)
+                2、获取客户端支持接收的媒体类型(获取客户端Accept请求头字段)，【application/xml等】
+                3、服务器遍历循环当前系统所有的消息转换器，看谁支持操作这个对象
+                4、找到支持操作这个对象的消息转换器，把这个转换器里面的媒体类型统计出来
+                5、客户端需要【application/xml】，服务端有可能支持好几种
+                6、进行内容协商选出最佳媒体类型
+                7、用支持 将对象转换为最佳匹配媒体类型的消息转换器，调用它进行转化
+
+            浏览器请求时是没法自定义接收的媒体类型的，如何设置
+                1、开启浏览器请求参数方式的内容协商功能
+                    spring.mvc.contentnegotiation.favor-parameter=true
+                    然后在url的请求参数上添加format参数  xxxx?format=xml   或者  xxxx?format=json
+
+
+            自定义消息转换器
+                1、自定义消息转换器MyMessageConverter
+                public class MyMessageConverter implements HttpMessageConverter<User> {
+
+                    @Override
+                    public boolean canRead(Class<?> aClass, MediaType mediaType) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean canWrite(Class<?> aClass, MediaType mediaType) {
+                        return aClass.isAssignableFrom(User.class);
+                    }
+
+                    @Override
+                    public List<MediaType> getSupportedMediaTypes() {
+                        return MediaType.parseMediaTypes("application/x-sjd");
+                    }
+
+                    @Override
+                    public User read(Class<? extends User> aClass, HttpInputMessage httpInputMessage) throws IOException, HttpMessageNotReadableException {
+                        return null;
+                    }
+
+                    @Override
+                    public void write(User user, MediaType mediaType, HttpOutputMessage httpOutputMessage) throws IOException, HttpMessageNotWritableException {
+                        String info = user.getAge() + "----------" + user.getName();
+                        httpOutputMessage.getBody().write(info.getBytes());
+
+                    }
+                }
+
+
+                //webmvcConfiguree 定制化springmvc的功能
+                    @Bean
+                public WebMvcConfigurer webMvcConfigurer(){
+                        return new WebMvcConfigurer() {
+                            @Override
+                            public void addFormatters(FormatterRegistry registry) {
+
+                            }
+
+                            @Override
+                            public void addInterceptors(InterceptorRegistry registry) {
+
+                            }
+
+                            //添加自定义消息转换器
+                            @Override
+                            public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+                                converters.add(new MyMessageConverter());
+                            }
+                            //如果想要在浏览器使用自定义的媒体类型请求，那么配置这个
+                            //自定义内容协商策略
+                            @Override
+                            public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+                                Map<String, MediaType> map = new HashMap();
+                                map.put("json",MediaType.APPLICATION_JSON);
+                                map.put("xml",MediaType.APPLICATION_XML);
+                                map.put("sjd",MediaType.parseMediaType("application/x-sjd"));
+                                ParameterContentNegotiationStrategy parameterContentNegotiationStrategy = new ParameterContentNegotiationStrategy(map);
+                                configurer.strategies(Arrays.asList(parameterContentNegotiationStrategy));
+                            }
+                        };
+                }
+
+
+                到此就可以使用自定义的媒体类型得到想要的响应数据格式；
+
+注解@Order或者接口Ordered的作用是定义Spring IOC容器中Bean的执行顺序的优先级，而不是定义Bean的加载顺序，
+Bean的加载顺序不受@Order或Ordered接口的影响,只是执行顺序受此影响；譬如实现CommandLineRunner接口的类会在Spring IOC容
+器加载完毕后执行，适合预加载类及其它资源；容器启动时，会查找到所有CommandLineRunner的实现类然后执行他们，但是执行顺序是什么呢，
+这时候就会根据@order的值来排序并执行；
+一般来说，对于容器内普通的Bean我们只需要关注依赖关系即可，而并不需要关心其绝对的顺序，而依赖关系的管理Spring的是做得很好的；
+但是@Configuration配置类它也是一个Bean，但对于配置类来说，某些场景下的执行顺序是必须的，譬如Spring Boot下配置类的执行顺序
+
+
+
+springboot的自定义配置类(扫描到的包路径下的配置类)的加载顺序是根据扫描到包 的顺序来加载的
+,但是如果是通过@Import(MyConfig2.class)导入的配置类会在最后加载,如果多个的话@Import(MyConfig2.class)导入的配置类,
+那么就和导入的主配置类的顺序一样
+如果通过@Import(MyConfig2.class)导入的配置类上还标有注解@Configuration，那就忽略@import的作用，和正常扫包顺序一样
+
+如果一个配置类里面有一个静态内部配置类，那么静态内部配置类会先执行，如果外部类的@Configuration没有生效，不影响内部静态配置类
+的生效
+
+三大注解AutoConfigureBefore、After、Order主要是改变springboot自带的配置类的加载顺序的，但也可以是用来改变自定义的配置类的加载顺序；
+使用的正确姿势要想达到预期效果，正确姿势只需要下面两步：
+1、把A_SonConfig和B_ParentConfig挪动到Application扫描不到的包内，切记：一定且必须是扫描不到的包内
+2、当前工程里增加配置META-INF/spring.factories，内容为(配置里Son和Parent前后顺序对结果无影响)：
+
+
+拦截器
+    /**：拦截所有请求，包括静态资源   (注意：/*  这是servlet的用法；/**这是spring的用法)
+   拦截器原理
+    1、根据当前请求，找到handlerExecutionChian【可以处理请求的所有handler以及handler所有的拦截器】
+    2、先来顺序执行所有所有拦截器的prehandle方法
+        1、如果当前拦截器的prehandle返回为true，则执行下一个拦截器
+        2、如果当前拦截器返回为false，则直接倒叙执行已经执行了的拦截器的afterCompletion方法
+        //目标方法执行之前先执行这个拦截器链的prehandle方法
+        if (!mappedHandler.applyPreHandle(processedRequest, response)) {
+          return;
+       }
+        mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+    3、如果任何一个拦截器返回false，直接跳出，不执行目标方法
+    4、所有拦截器都返回true，执行目标方法
+    5、目标方法执行后，，倒叙执行所有拦截器的postHandle方法
+    6、前面的所有步骤有任何异常的话，都会触发拦截器的afterCompletion方法，倒叙执行
+    7、页面成功渲染完成后也会倒叙触发拦截器的afterCompletion方法
+
+通过MultipartFile文件上传原理
+    自动配置原理
+    文件上传自动配置类：MultipartAutoConfiguration--MultipartProperties
+    自动配置好了StandardServletMultipartResolver  【文件上传解析器】
+    1、请求进来使用文件上传解析器判断并封装文件上传请求，返回StandardMultipartHttpServletRequest对象，如何判断是否是文件上传
+        public boolean isMultipart(HttpServletRequest request) {
+            return StringUtils.startsWithIgnoreCase(request.getContentType(), "multipart/");
+        }
+
+    2、参数解析器(RequestPartMethodArgumentResolver这个是文件上传的参数解析器)来解析请求中的文件内容封装成multipartFile
+    3、  请求进来时会将request中的文件信息封装成一个map<String,MultiPartFile>,根据表单中上传文件的name属性获取multipartFile
+        这样就可以操作上传的文件了
+
+springboot默认错误处理机制
+    1、默认情况下，springboot提供/error 处理所有错误的映射
+    2、对于手机客户端来说，他将生成json响应，其中包含错误，http状态等；对于浏览器，会响应一个"whitelable"白页，以html格式呈现
+        现相同的数据
+    3、自定义错误页面：在静态文件夹下新建一个error文件夹，在此文件夹下定义404.html以及5xx.html,这样404错误就会自动跳转到这个404页面；
+        所有5xx的错误都会跳转到5xx的页面
+
+ 异常默认处理的原理
+    1、ErrorMvcAutoConfiguration这个配置类自动配置了异常处理规则
+        容器中会放入这个组件：DefaultErrorAttributes->id:errorAttributes
+        public class DefaultErrorAttributes implements ErrorAttributes, HandlerExceptionResolver, Ordered {}
+
+        BasicErrorController -> id:basicErrorController
+           处理默认/error路径的请求
+
+        容器中还会放一个组件view->id是error；(响应默认错误页)
+        容器中放组件 beannameViewResolver (视图解析器) 按照返回的视图名作为组件的id去容器中找view对象
+
+        @RequestMapping//返回一个json数据
+        	public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {}
+
+ 定制几种异常处理的方式
+    1、自定义错误页：在静态资源路径下新建error文件夹，并在里面创建4xx.html或者5xx.html，这样当发生相关状态码的错误时会自动
+    匹配相关页面，首先会根据状态码精确查找，如果没有就查找4xx或者5xx，如果还没有，就跳白页或者json
+        使用DefaultHandlerExceptionResolver处理器处理
+    2、@ControllerAdvice+@ExceptionHandler处理全局异常 使用ExceptionHandlerExceptionResolver处理器处理
+
+    3、@ResponseStatus(value = HttpStatus.FORBIDDEN,reason = "人数太多") 使用 ResponseStatusExceptionResolver 处理器
+      public class MyException extends RuntimeException{
+
+          public MyException() {
+          }
+
+          public MyException(String message) {
+              super(message);
+          }
+      }
+
+      最终还是调用方式一，状态码就是@ResponseStatus(value = HttpStatus.FORBIDDEN)
+
+    这几个异常处理的方式都实现了HandlerExceptionResolver这个接口，所以如果你对这几个处理器不满意，你也可以自己自定义一个，然后在类上
+    添加@order注解，尽量让你的这个处理器排在前面使用，否则可能轮不到自定义处理器，前面的异常处理器就已经使用了
+
+web原生组件注入(servlet、filter、listener)
+    1、使用servlet API
+        主配置类上添加@ServletComponentScan("com.example2021.springboot")，扫描到的路径上如果有原生servlet组件
+        原生servlet组件
+        @WebServlet(urlPatterns = "/my")
+        public class MyServlet extends HttpServlet {}
+        那么就会注入到servlet容器中
+        效果：直接响应，没有经过spring的拦截器
+     同理监听器以及过滤器
+     @WebListener
+     public class MyListener implements ServletContextListener {}
+
+     @WebFilter(urlPatterns = "/error/*")
+     public class MyFilter implements Filter {}
+
+     推荐使用这种方式
+
+    2、使用RegistrationBean
+        ServletRegistrationBean、FilterRegistrationBean、ServletListenerRegistrationBean
+
+        @Configuration
+        public class MyRegistConfig {
+
+            @Bean
+            public ServletRegistrationBean myServlet(){
+                MyServlet2 myServlet2 = new MyServlet2();
+                return new ServletRegistrationBean(myServlet2,"","");
+            }
+
+            @Bean
+            public FilterRegistrationBean myFilter(){
+                MyFilter2 myFilter2 = new MyFilter2();
+                FilterRegistrationBean f = new FilterRegistrationBean(myFilter2)
+                f.setUrlPatterns(Arrays.asList("/error/*"));
+                return f;
+            }
+
+            @Bean
+            public ServletListenerRegistrationBean myListener(){
+                MyListener2 myListener2 = new MyListener2();
+                return new ServletListenerRegistrationBean(myListener2);
+            }
+        }
+
+            dispatchServlet是通过第二种方式注入到servlet容器里来的
+
+嵌入式servlet容器
+
+
+    切换服务器
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>org.springframework.boot</artifactId>
+                    <groupId>spring-boot-starter-tomcat</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jetty</artifactId>
+        </dependency>
+
+
+
+springboot定制化组件的几种方式
+    1、
+    @EnableWebMvc配合@configration注解(这个注解的类要实现webmvcconfigure接口):添加这个注解后，我们全面接管配置  springboot的自动配置诸如静态资源、视图解析器、欢迎页等全部失效
+
+
+
+springboot数据源的操作步骤
+    1、导入<dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-jdbc</artifactId>
+      </dependency>
+
+      这个里面导入了
+      //自动配置的包
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter</artifactId>
+        <version>2.3.4.RELEASE</version>
+        <scope>compile</scope>
+      </dependency>
+
+      //数据源
+      <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+        <version>3.4.5</version>
+        <scope>compile</scope>
+      </dependency>
+
+      //jdbc操作
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-jdbc</artifactId>
+        <version>5.2.9.RELEASE</version>
+        <scope>compile</scope>
+      </dependency>
+
+        为什么这个stater没有导入数据库驱动？因为springboot也不知道你使用的是mysql还是oracle等数据库驱动
+
+   2、自动配置类
+        DataSourceAutoConfiguration  数据源的自动配置
+        DataSourceTransactionManagerAutoConfiguration 事务管理器配置
+
+
+ druid数据源整合
+    1、stater整合方式
+    <dependency>
+                  <groupId>com.alibaba</groupId>
+                  <artifactId>druid-spring-boot-starter</artifactId>
+                  <version>1.1.17</version>
+              </dependency>
+
+
+
+    2、自定义整合方式
+        <!-- 引入第三方数据源 -->
+                <dependency>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>druid</artifactId>
+                    <version>1.1.17</version>-->
+                </dependency>
+
+            注入容器
+            @Configuration
+            public class MyDuridConfig {
+                @Bean
+                public DataSource dataSource() throws SQLException {
+                    DruidDataSource druidDataSource = new DruidDataSource();
+                    druidDataSource.setUrl("");
+                    druidDataSource.setUsername("");
+                    //加入监控功能
+                    druidDataSource.setFilters("stat");
+                    return druidDataSource;
+                }
+
+                @Bean
+                public ServletRegistrationBean<StatViewServlet> servletRegist(){
+                    StatViewServlet statViewServlet = new StatViewServlet();
+                    ServletRegistrationBean<StatViewServlet> statViewServletServletRegistrationBean = new ServletRegistrationBean<>(statViewServlet,"/druid/*");
+                    return statViewServletServletRegistrationBean;
+                }
+
+            }
+
+
+
+整合mybatis
+    1、使用mabatis时，可以使用映射文件，也可以在mapper中的方法上使用注解，混合使用；诸如@Select("select * from city where id = #{id}")
+
+
+profile功能
+    为了方便多环境适配，springboot简化了profile功能
+
+    @Profile("prod")
+    @Data
+    @Component
+    @ConfigurationProperties("animal")
+    @ToString
+    public class User implements Animal{
+        private String name;
+        private  int age;
+
+    }
+
+@Profile("test")
+@Data
+@Component
+@ConfigurationProperties("animal")
+@ToString
+public class Person implements Animal{
+
+    private String name;
+    private  int age;
+
+}
+当获取Animal的类型时，会根据当前是使用什么环境，然后将@Profile("test")所标注的对应的类型注入容器；可以使用在类上，也可以使用在bean上；
+
+也可以使用profiles组
+    spring.profiles.active=mytest
+
+    spring.profiles.group.mytest[0]=test
+    spring.profiles.group.mytest[1]=test2
+
+外部化配置
+    1、外部配置源
+        常用：java属性文件、yaml文件、环境变量、命令行参数
+
+        这些配置源如果有同名的话，会出现覆盖，具体优先级查询springboot官方文档
+
+    2、application\yaml配置文件
+        配置文件的查找位置(后面的会覆盖前面的)
+        1、classpath根路径
+        2、classpath根路径下的config目录
+        3、jar包所在当前目录
+        4、jar包所在当前目录下的config目录
+        5、/config目录下的直接子目录
+
+        配置文件优先级规则
+            指定了环境的优先，外部的配置文件优先，譬如命令行是外部的，比项目里面的application文件优先级还高
+
+
+
+
+ApplicationListener和springApplicationRunlistener
+    springApplicationRunlistener接口中的方法会在容器处于特定时刻调用，调用的方法里面真正处理的是ApplicationListener监听器
+
+
+
+springboot整合redis
+    1、RedisAutoConfiguration自动配置类，RedisProperties 属性类
+    2、连接工厂是准备好的，LettuceConnectionConfiguration(默认使用) 、JedisConnectionConfiguration
+        支持两种连接工厂；
+
+    3、自动注入了RedisTemplate 支持key和value的类型都是object类型的，StringRedisTemplate，支持key和value都是string类型的
+    我们只要使用这两个就可以了
+
+
+    redis环境搭建
+    1、阿里云的redis，购买redis服务，付费，按量付费很便宜 经典网络
+    2、申请redis的公网链接地址
+
+
+
+单元测试
+    1、//添加了这个注解就会在spring容器中进行测试
+      @SpringBootTest
+
+    2、断言失败的话，后面的代码不会执行
+
+    3、前置条件
+
+
+
+springboot与日志框架
+    由于市面上有很多框架，更换日志框架还得修改日志的API，所以就有人统一了日志的接口(日志的抽象层)，然后很多框架就都是实现了这个接口，然后
+    在项目里就只需要修改框架而不用修改代码
+
+    市面上常用的日志抽象层：jcl、slf4j等
+    常用日志框架实现：log4j、log4j2、logback、jul
+
+    spring框架默认使用jcl
+    springboot默认使用slf4j和logback
+
+
+    slf4j的使用
+        1、如何在系统中使用slf4j
+            以后再开发的时候，日志记录方法的调用，不应该来直接调用日志的实现类，而是调用日志的抽象层里面的方法；
+            给系统里导入slf4j的jar和logback的实现jar
+
+            import org.slf4j.Logger;
+             2: import org.slf4j.LoggerFactory;
+             3:
+             4: public class Wombat {
+             6:   final Logger logger = LoggerFactory.getLogger(Wombat.class);
+            10:   public void setTemperature(Integer temperature) {
+            15:     logger.debug("Temperature set to {}. Old temperature was {}.", t, oldT);
+            16:     logger.info("Temperature has risen above 50 degrees.");
+            20:   }
+            21: }
+
+        每一个日志框架都有自己的配置文件，使用slf4j后，配置文件还是做成日志实现框架的配置文件
+
+        2、遗留问题
+            如果你的项目已经是一个日志框架杂糅的项目，但是你想要统一换成slf4j框架的api，你可以这样转换
+            1、先将系统中其他日志框架排除出去
+            2、用中间包来替换原有的日志框架
+            3、引入slf4j的jar包
+
+
+        3、springboot日志关系
+            springboot使用它来做日志功能
+            <dependency>
+                  <groupId>org.springframework.boot</groupId>
+                  <artifactId>spring-boot-starter-logging</artifactId>
+                </dependency>
+
+            1、springboot底层使用slf4j和logback的方式进行日志记录
+            2、springboot
+                引用的             <dependency>
+                                     <groupId>org.springframework.boot</groupId>
+                                     <artifactId>spring-boot-starter-logging</artifactId>
+                                   </dependency>
+
+                里面已经把其他的日志实现框架都替换成了slf4j的适配版本
+
+            3、中间替换包
+                springboot能自动适配所有的日志,只要将引入的框架里自带的日志框架的依赖给排除掉，就会自动适配到slf4j
+
+
+        当需要配置日志信息时，可以在application.properties、application.yaml中进行简单的配置，比如日志级别。
+        SpringBoot默认为我们输出的日志级别为info、warn、error，如果还使用其他级别的日志，可以在配置中进行配置 。
+        支持的日志级别有： ERROR, WARN, INFO, DEBUG , TRACE (Logback中没有FATAL级别，等同于ERROR）。
+        日志级别 trace < debug < info < warn < error < fatal，高级别的日志会输出低级别的日志信息，反之不行，
+        不区分大小写。
+        在application.properties中配置：
+        #配置根logger的输出级别，也可以直接使用大写的 LEVEL=WARN指定
+        logging.level.root=WARN
+        #指定logger的name属性为org.springframework.web，即该包下的日志级别为DEBUG
+        logging.level.org.springframework.web=DEBUG
+        logging.level.org.hibernate=ERROR
+        #指定日志输出的文件路径，/在windows下是直接定位到当前工作文件磁盘下的
+        logging.path=/logs
+        #指定日志文件的名称
+        logging.file=logs.log
+
+springBoot Actuator与endpoint
+    应用引入 <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-actuator</artifactId>
+                </dependency>
+
+    即可使用
+    访问/actuator/端点名即可查看相应的指标
+
+    management:
+        endpoints:
+            #        默认是所有端点都是开启的，true，但是web方式开启的只有health和info，但是可以手动开启
+            enabled-by-default: false
+            #        以web方式开启端点
+            web:
+                exposure:
+                    include: ['health','info','beans','metrics']
+        endpoint:
+            health:
+                show-details: always
+                #            当关闭所有端点后，单个开启某个端点
+                enabled: true
+
+    info:
+        name: sjd
+        #从pom文件获取数据
+        project: @project.groupId@
+
+
+
+
+
+
+
+
+
+
+
+
+

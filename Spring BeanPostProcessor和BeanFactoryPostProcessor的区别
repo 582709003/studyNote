@@ -1,0 +1,236 @@
+BeanPostProcessor接口：后置bean处理器，允许自定义修改新的bean实例，应用程序上下文可以在其bean定义中自动检测BeanPostProcessor类型的bean，并将它们应用于随后创建的任何bean。（例如：配置文件中注册了一个自定义BeanPostProcessor类型的bean，一个User类型的bean，应用程序上下文会在创建User实例之后对User应用BeanPostProcessor）。
+BeanFactoryPostProcessor接口：后置工厂处理器，允许自定义修改应用程序上下文的bean定义，调整bean属性值。应用程序上下文可以在其bean定义中自动检测BeanFactoryPostProcessor，并在创建任何非BeanFactoryPostProcessor类型bean之前应用它们（例如：配置文件中注册了一个自定义BeanFactoryPostProcessor类型的bean，一个User类型的bean，应用程序上下文会在创建User实例之前对User应用BeanFactoryPostProcessor）。
+对比	BeanFactoryPostProcessor	BeanPostProcessor
+回调时间	Bean实例化完成之前	Bean实例化完成之后
+是否可修改bean定义信息	是	否
+是否可修改bean实例信息	否	是
+是否支持排序接口	是	是
+方法级别	ApplicationContext级别	ApplicationContext级别
+实现方式	注册自定义BeanPostProcessor	注册自定义BeanFactoryPostProcessor，实现BeanFactoryAware接口
+1. BeanPostProcessor
+bean
+package com.lyc.cn.v2.day02.processor.bean;
+
+import com.lyc.cn.v2.day01.Dog;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.Ordered;
+
+/**
+ * 继承BeanPostProcessor接口并重写其方法
+ * @author: LiYanChao
+ * @create: 2018-09-06 14:56
+ */
+public class MyBeanPostProcessorOne implements BeanPostProcessor, Ordered {
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        System.out.println("BeanPostProcessor第" + getOrder() + "次被调动\n");
+        if (bean instanceof Dog) {
+            ((Dog) bean).setName("强强");
+        }
+        return bean;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        if (bean instanceof Dog) {
+            ((Dog) bean).setAge(5);
+        }
+        return bean;
+    }
+
+    @Override
+    public int getOrder() {
+        return 1;
+    }
+}
+
+package com.lyc.cn.v2.day02.processor.bean;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.Ordered;
+
+/**
+ * 继承BeanPostProcessor接口并重写其方法
+ * @author: LiYanChao
+ * @create: 2018-09-06 14:56
+ */
+public class MyBeanPostProcessorTwo implements BeanPostProcessor, Ordered {
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        System.out.println("BeanPostProcessor第" + getOrder() + "次被调动");
+        return bean;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        return bean;
+    }
+
+    @Override
+    public int getOrder() {
+        return 2;
+    }
+}
+
+2. BeanFactoryPostProcessor
+package com.lyc.cn.v2.day02.processor.factory;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.core.Ordered;
+
+public class MyBeanFactoryPostProcessorOne implements BeanFactoryPostProcessor, Ordered {
+
+    /**
+     * 修改dog的name属性值
+     * 修改dog的作用域
+     */
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        System.out.println("BeanFactoryPostProcessor第" + getOrder() + "次被调动");
+        BeanDefinition bd = beanFactory.getBeanDefinition("dog");
+        if (null != bd) {
+            System.out.println("dog属性值:" + bd.getPropertyValues().toString());
+            MutablePropertyValues pv = bd.getPropertyValues();
+            if (pv.contains("name")) {
+                System.out.println("修改dog的name属性值为强强");
+                pv.addPropertyValue("name", "强强");
+            }
+            System.out.println("修改dog的作用域为prototype\n");
+            bd.setScope(BeanDefinition.SCOPE_PROTOTYPE);
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+}
+
+package com.lyc.cn.v2.day02.processor.factory;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.core.Ordered;
+
+public class MyBeanFactoryPostProcessorTwo implements BeanFactoryPostProcessor, Ordered {
+
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        System.out.println("BeanFactoryPostProcessor第" + getOrder() + "次被调动");
+    }
+
+    @Override
+    public int getOrder() {
+        return 1;
+    }
+}
+
+xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd" profile="dev">
+
+    <bean id="dog" class="com.lyc.cn.v2.day01.Dog">
+        <!-- 指定构造器参数 index对应构造器中参数的位置 -->
+        <!-- 也可以通过指定参数类型，指定参数名称来注入属性-->
+        <constructor-arg index="0" value="小明"/>
+        <constructor-arg index="1" value="3"/>
+    </bean>
+
+    <!-- =====beanPostProcessor配置begin =====-->
+    <bean id="myBeanPostProcessorOne" class="com.lyc.cn.v2.day02.processor.bean.MyBeanPostProcessorOne"/>
+    <bean id="myBeanPostProcessorTwo" class="com.lyc.cn.v2.day02.processor.bean.MyBeanPostProcessorTwo"/>
+    <!-- =====beanPostProcessor配置end =====-->
+
+    <!-- =====beanFactoryPostProcessor配置begin =====-->
+    <!--注册第一个后置工厂处理器-->
+    <bean id="myBeanFactoryPostProcessorOne" class="com.lyc.cn.v2.day02.processor.factory.MyBeanFactoryPostProcessorOne"/>
+    <!--注册第二个后置工厂处理器-->
+    <bean id="myBeanFactoryPostProcessorTwo" class="com.lyc.cn.v2.day02.processor.factory.MyBeanFactoryPostProcessorTwo"/>
+    <!-- =====beanFactoryPostProcessor配置end =====-->
+
+</beans>
+测试
+package com.lyc.cn.v2.day02;
+
+import com.lyc.cn.v2.day01.Dog;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.xml.XmlBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.core.io.ClassPathResource;
+
+/**
+ * @author: LiYanChao
+ * @create: 2018-09-07 23:40
+ */
+public class MyTest {
+    private XmlBeanFactory xmlBeanFactory;
+
+    @Before
+    public void initXmlBeanFactory() {
+        System.setProperty("spring.profiles.active", "dev");
+        System.out.println("\n========测试方法开始=======\n");
+        xmlBeanFactory = new XmlBeanFactory(new ClassPathResource("v2/day01.xml"));
+    }
+
+    @After
+    public void after() {
+        System.out.println("\n========测试方法结束=======\n");
+    }
+
+    @Test
+    public void test1() {
+        // 测试BeanPostProcessor
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("v2/day02.xml");
+        Dog dog = applicationContext.getBean("dog", Dog.class);
+        dog.sayHello();
+    }
+
+
+    @Test
+    public void test2() {
+        // 测试BeanFactoryPostProcessor
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("v2/day02.xml");
+        Dog dog = applicationContext.getBean("dog", Dog.class);
+        dog.sayHello();
+    }
+
+}
+
+结果
+为了不影响测试结果，需要将BeanPostProcessor和BeanFactoryPostProcessor分开测试，测试test1时将test2的xml配置注释掉，反之亦然。
+test1-->
+
+========测试方法开始=======
+
+BeanPostProcessor第1次被调动
+
+BeanPostProcessor第2次被调动
+大家好, 我叫强强, 我今年5岁了
+
+========测试方法结束=======
+test2-->
+
+
+========测试方法开始=======
+
+BeanFactoryPostProcessor第0次被调动
+dog属性值:PropertyValues: length=0
+修改dog的作用域为prototype
+
+BeanFactoryPostProcessor第1次被调动
+大家好, 我叫小明, 我今年3岁了
+
+========测试方法结束=======

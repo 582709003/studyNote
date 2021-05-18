@@ -1,0 +1,572 @@
+1. 乐观锁 VS 悲观锁
+乐观锁与悲观锁是一种广义上的概念，体现了看待线程同步的不同角度。在Java和数据库中都有此概念对应的实际应用。
+
+先说概念。对于同一个数据的并发操作，悲观锁认为自己在使用数据的时候一定有别的线程来修改数据，因此在获取数据的时候会先加锁，确保数据不会被别的线程修改。Java中，synchronized关键字和Lock的实现类都是悲观锁。
+
+而乐观锁认为自己在使用数据时不会有别的线程修改数据，所以不会添加锁，只是在更新数据的时候去判断之前有没有别的线程更新了这个数据。如果这个数据没有被更新，当前线程将自己修改的数据成功写入。如果数据已经被其他线程更新，则根据不同的实现方式执行不同的操作（例如报错或者自动重试）。
+
+乐观锁在Java中是通过使用无锁编程来实现，最常采用的是CAS算法，Java原子类中的递增操作就通过CAS自旋实现的。
+
+根据从上面的概念描述我们可以发现：
+
+悲观锁适合写操作多的场景，先加锁可以保证写操作时数据正确。
+
+乐观锁适合读操作多的场景，不加锁的特点能够使其读操作的性能大幅提升。
+
+光说概念有些抽象，我们来看下乐观锁和悲观锁的调用方式示例：
+通过调用方式示例，我们可以发现悲观锁基本都是在显式的锁定之后再操作同步资源，而乐观锁则直接去操作同步资源。那么，为何乐观锁能够做到不锁定同步资源也可以正确的实现线程同步呢？我们通过介绍乐观锁的主要实现方式 “CAS” 的技术原理来为大家解惑。
+
+CAS全称 Compare And Swap（比较与交换），是一种无锁算法。在不使用锁（没有线程被阻塞）的情况下实现多线程之间的变量同步。java.util.concurrent包中的原子类就是通过CAS来实现了乐观锁。
+
+CAS算法涉及到三个操作数：
+
+需要读写的内存值 V。
+
+进行比较的值 A。
+
+要写入的新值 B。
+
+当且仅当 V 的值等于 A 时，CAS通过原子方式用新值B来更新V的值（“比较+更新”整体是一个原子操作），否则不会执行任何操作。一般情况下，“更新”是一个不断重试的操作。
+
+之前提到java.util.concurrent包中的原子类，就是通过CAS来实现了乐观锁，那么我们进入原子类AtomicInteger的源码，看一下AtomicInteger的定义：
+
+根据定义我们可以看出各属性的作用：
+
+unsafe： 获取并操作内存的数据。
+
+valueOffset： 存储value在AtomicInteger中的偏移量。
+
+value： 存储AtomicInteger的int值，该属性需要借助volatile关键字保证其在线程间是可见的。
+
+接下来，我们查看AtomicInteger的自增函数incrementAndGet()的源码时，发现自增函数底层调用的是unsafe.getAndAddInt()。但是由于JDK本身只有Unsafe.class，只通过class文件中的参数名，并不能很好的了解方法的作用，所以我们通过OpenJDK 8 来查看Unsafe的源码：
+
+根据OpenJDK 8的源码我们可以看出，getAndAddInt()循环获取给定对象o中的偏移量处的值v，然后判断内存值是否等于v。如果相等则将内存值设置为 v + delta，否则返回false，继续循环进行重试，直到设置成功才能退出循环，并且将旧值返回。整个“比较+更新”操作封装在compareAndSwapInt()中，在JNI里是借助于一个CPU指令完成的，属于原子操作，可以保证多个线程都能够看到同一个变量的修改值。
+
+后续JDK通过CPU的cmpxchg指令，去比较寄存器中的 A 和 内存中的值 V。如果相等，就把要写入的新值 B 存入内存中。如果不相等，就将内存值 V 赋值给寄存器中的值 A。然后通过Java代码中的while循环再次调用cmpxchg指令进行重试，直到设置成功为止。
+
+CAS虽然很高效，但是它也存在三大问题，这里也简单说一下：
+
+1. ABA问题。CAS需要在操作值的时候检查内存值是否发生变化，没有发生变化才会更新内存值。但是如果内存值原来是A，后来变成了B，然后又变成了A，那么CAS进行检查时会发现值没有发生变化，但是实际上是有变化的。ABA问题的解决思路就是在变量前面添加版本号，每次变量更新的时候都把版本号加一，这样变化过程就从“A－B－A”变成了“1A－2B－3A”。
+
+JDK从1.5开始提供了AtomicStampedReference类来解决ABA问题，具体操作封装在compareAndSet()中。compareAndSet()首先检查当前引用和当前标志与预期引用和预期标志是否相等，如果都相等，则以原子方式将引用值和标志的值设置为给定的更新值。
+
+2. 循环时间长开销大。CAS操作如果长时间不成功，会导致其一直自旋，给CPU带来非常大的开销。
+
+3. 只能保证一个共享变量的原子操作。对一个共享变量执行操作时，CAS能够保证原子操作，但是对多个共享变量操作时，CAS是无法保证操作的原子性的。
+
+Java从1.5开始JDK提供了AtomicReference类来保证引用对象之间的原子性，可以把多个变量放在一个对象里来进行CAS操作
+
+2. 自旋锁 VS 适应性自旋锁
+在介绍自旋锁前，我们需要介绍一些前提知识来帮助大家明白自旋锁的概念。
+
+阻塞或唤醒一个Java线程需要操作系统切换CPU状态来完成，这种状态转换需要耗费处理器时间。如果同步代码块中的内容过于简单，状态转换消耗的时间有可能比用户代码执行的时间还要长。
+
+在许多场景中，同步资源的锁定时间很短，为了这一小段时间去切换线程，线程挂起和恢复现场的花费可能会让系统得不偿失。如果物理机器有多个处理器，能够让两个或以上的线程同时并行执行，我们就可以让后面那个请求锁的线程不放弃CPU的执行时间，看看持有锁的线程是否很快就会释放锁。
+
+而为了让当前线程“稍等一下”，我们需让当前线程进行自旋，如果在自旋完成后前面锁定同步资源的线程已经释放了锁，那么当前线程就可以不必阻塞而是直接获取同步资源，从而避免切换线程的开销。这就是自旋锁。
+
+
+
+
+
+
+
+自旋锁本身是有缺点的，它不能代替阻塞。自旋等待虽然避免了线程切换的开销，但它要占用处理器时间。如果锁被占用的时间很短，自旋等待的效果就会非常好。反之，如果锁被占用的时间很长，那么自旋的线程只会白浪费处理器资源。所以，自旋等待的时间必须要有一定的限度，如果自旋超过了限定次数（默认是10次，可以使用-XX:PreBlockSpin来更改）没有成功获得锁，就应当挂起线程。
+
+自旋锁的实现原理同样也是CAS，AtomicInteger中调用unsafe进行自增操作的源码中的do-while循环就是一个自旋操作，如果修改数值失败则通过循环来执行自旋，直至修改成功。
+
+
+
+自旋锁在JDK1.4.2中引入，使用-XX:+UseSpinning来开启。JDK 6中变为默认开启，并且引入了自适应的自旋锁（适应性自旋锁）。
+
+自适应意味着自旋的时间（次数）不再固定，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。如果在同一个锁对象上，自旋等待刚刚成功获得过锁，并且持有锁的线程正在运行中，那么虚拟机就会认为这次自旋也是很有可能再次成功，进而它将允许自旋等待持续相对更长的时间。如果对于某个锁，自旋很少成功获得过，那在以后尝试获取这个锁时将可能省略掉自旋过程，直接阻塞线程，避免浪费处理器资源。
+
+在自旋锁中 另有三种常见的锁形式:TicketLock、CLHlock和MCSlock，本文中仅做名词介绍，不做深入讲解，感兴趣的同学可以自行查阅相关资料。
+
+4. 公平锁 VS 非公平锁
+    公平锁是指多个线程按照申请锁的顺序来获取锁，线程直接进入队列中排队，队列中的第一个线程才能获得锁。公平锁的优点是等待锁的线程不会饿死。缺点是整体吞吐效率相对非公平锁要低，等待队列中除第一个线程以外的所有线程都会阻塞，CPU唤醒阻塞线程的开销比非公平锁大。
+    非公平锁是多个线程加锁时直接尝试获取锁，获取不到才会到等待队列的队尾等待。但如果此时锁刚好可用，那么这个线程可以无需阻塞直接获取到锁，所以非公平锁有可能出现后申请锁的线程先获取锁的场景。非公平锁的优点是可以减少唤起线程的开销，整体的吞吐效率高，因为线程有几率不阻塞直接获得锁，CPU不必唤醒所有线程。缺点是处于等待队列中的线程可能会饿死，或者等很久才会获得锁。
+    直接用语言描述可能有点抽象，这里作者用从别处看到的一个例子来讲述一下公平锁和非公平锁。
+    如上图所示，假设有一口水井，有管理员看守，管理员有一把锁，只有拿到锁的人才能够打水，打完水要把锁还给管理员。每个过来打水的人都要管理员的允许并拿到锁之后才能去打水，如果前面有人正在打水，那么这个想要打水的人就必须排队。管理员会查看下一个要去打水的人是不是队伍里排最前面的人，如果是的话，才会给你锁让你去打水；如果你不是排第一的人，就必须去队尾排队，这就是公平锁。
+    但是对于非公平锁，管理员对打水的人没有要求。即使等待队伍里有排队等待的人，但如果在上一个人刚打完水把锁还给管理员而且管理员还没有允许等待队伍里下一个人去打水时，刚好来了一个插队的人，这个插队的人是可以直接从管理员那里拿到锁去打水，不需要排队，原本排队等待的人只能继续等待。如下图所示：
+    接下来我们通过ReentrantLock的源码来讲解公平锁和非公平锁。
+    根据代码可知，ReentrantLock里面有一个内部类Sync，Sync继承AQS（AbstractQueuedSynchronizer），添加锁和释放锁的大部分操作实际上都是在Sync中实现的。它有公平锁FairSync和非公平锁NonfairSync两个子类。ReentrantLock默认使用非公平锁，也可以通过构造器来显示的指定使用公平锁。
+    下面我们来看一下公平锁与非公平锁的加锁方法的源码:
+    通过上图中的源代码对比，我们可以明显的看出公平锁与非公平锁的lock()方法唯一的区别就在于公平锁在获取同步状态时多了一个限制条件：hasQueuedPredecessors()。
+    再进入hasQueuedPredecessors()，可以看到该方法主要做一件事情：主要是判断当前线程是否位于同步队列中的第一个。如果是则返回true，否则返回false。
+    综上，公平锁就是通过同步队列来实现多个线程按照申请锁的顺序来获取锁，从而实现公平的特性。非公平锁加锁时不考虑排队等待问题，直接尝试获取锁，所以存在后申请却先获得锁的情况
+
+5. 可重入锁 VS 非可重入锁
+可重入锁又名递归锁，是指在同一个线程在外层方法获取锁的时候，再进入该线程的内层方法会自动获取锁（前提锁对象得是同一个对象或者class），不会因为之前已经获取过还没释放而阻塞。Java中ReentrantLock和synchronized都是可重入锁，可重入锁的一个优点是可一定程度避免死锁。下面用示例代码来进行分析：
+
+
+
+在上面的代码中，类中的两个方法都是被内置锁synchronized修饰的，doSomething()方法中调用doOthers()方法。因为内置锁是可重入的，
+所以同一个线程在调用doOthers()时可以直接获得当前对象的锁，进入doOthers()进行操作。
+
+如果是一个不可重入锁，那么当前线程在调用doOthers()之前需要将执行doSomething()时获取当前对象的锁释放掉，实际上该对象锁已被当
+前线程所持有，且无法释放。所以此时会出现死锁。
+
+而为什么可重入锁就可以在嵌套调用时可以自动获得锁呢？我们通过图示和源码来分别解析一下。
+
+还是打水的例子，有多个人在排队打水，此时管理员允许锁和同一个人的多个水桶绑定。这个人用多个水桶打水时，第一个水桶和锁绑定并打完
+水之后，第二个水桶也可以直接和锁绑定并开始打水，所有的水桶都打完水之后打水人才会将锁还给管理员。这个人的所有打水流程都能够成功
+执行，后续等待的人也能够打到水。这就是可重入锁。
+
+
+
+但如果是非可重入锁的话，此时管理员只允许锁和同一个人的一个水桶绑定。第一个水桶和锁绑定打完水之后并不会释放锁，导致第二个水桶不
+能和锁绑定也无法打水。当前线程出现死锁，整个等待队列中的所有线程都无法被唤醒。
+
+
+
+
+
+之前我们说过ReentrantLock和synchronized都是重入锁，那么我们通过重入锁ReentrantLock以及非可重入锁NonReentrantLock的源码
+来对比分析一下为什么非可重入锁在重复调用同步资源时会出现死锁。
+
+首先ReentrantLock和NonReentrantLock都继承父类AQS，其父类AQS中维护了一个同步状态status来计数重入次数，status初始值为0。
+
+当线程尝试获取锁时，可重入锁先尝试获取并更新status值，如果status == 0表示没有其他线程在执行同步代码，则把status置为1，当前
+线程开始执行。如果status != 0，则判断当前线程是否是获取到这个锁的线程，如果是的话执行status+1，且当前线程可以再次获取锁。而
+非可重入锁是直接去获取并尝试更新当前status的值，如果status != 0的话会导致其获取锁失败，当前线程阻塞。
+
+释放锁时，可重入锁同样先获取当前status的值，在当前线程是持有锁的线程的前提下。如果status-1 == 0，则表示当前线程所有重复获取
+锁的操作都已经执行完毕，然后该线程才会真正释放锁。而非可重入锁则是在确定当前线程是持有锁的线程之后，直接将status置为0，将锁释
+放。
+
+
+6. 独享锁 VS 共享锁
+独享锁和共享锁同样是一种概念。我们先介绍一下具体的概念，然后通过ReentrantLock和ReentrantReadWriteLock的源码来介绍独享锁和
+共享锁。
+
+独享锁也叫排他锁，是指该锁一次只能被一个线程所持有。如果线程T对数据A加上排它锁后，则其他线程不能再对A加任何类型的锁。获得排它
+锁的线程即能读数据又能修改数据。JDK中的synchronized和JUC中Lock的实现类就是互斥锁。
+
+共享锁是指该锁可被多个线程所持有。如果线程T对数据A加上共享锁后，则其他线程只能对A再加共享锁，不能加排它锁。获得共享锁的线程只
+能读数据，不能修改数据。
+
+独享锁与共享锁也是通过AQS来实现的，通过实现不同的方法，来实现独享或者共享。
+
+
+ReentrantReadWriteLock有如下特性：
+
+获取顺序
+    非公平模式（默认）
+        当以非公平初始化时，读锁和写锁的获取的顺序是不确定的。非公平锁主张竞争获取，可能会延缓一个或多个读或写线程，
+        但是会比公平锁有更高的吞吐量。
+    公平模式
+        当以公平模式初始化时，线程将会以队列的顺序获取锁。当当前线程释放锁后，等待时间最长的写锁线程就会被分配写锁；
+        或者有一组读线程组等待时间比写线程长，那么这组读线程组将会被分配读锁。
+        当有写线程持有写锁或者有等待的写线程时，一个尝试获取公平的读锁（非重入）的线程就会阻塞。这个线程直到等待时间最长的
+        写锁获得锁后并释放掉锁后才能获取到读锁。
+    可重入
+        允许读锁可写锁可重入。写锁可以获得读锁，读锁不能获得写锁。
+    锁降级
+        允许写锁降低为读锁
+    中断锁的获取
+        在读锁和写锁的获取过程中支持中断
+    支持Condition
+        写锁提供Condition实现
+    监控
+        提供确定锁是否被持有等辅助方法
+继承AQS的类都需要使用state变量代表某种资源，ReentrantReadWriteLock中的state代表了读锁的数量和写锁的持有与否,
+state的高16位代表读锁的个数；低16位代表写锁的状态
+读锁的获取
+    如果当前有写线程并且本线程不是写线程，那么失败，返回-1
+    否则，说明当前没有写线程或者本线程就是写线程（可重入）,接下来判断是否应该读线程阻塞并且读锁的个数是否小于最大值，
+    并且CAS成功使读锁+1，成功，返回1。其余的操作主要是用于计数的
+    如果2中失败了，失败的原因有三，第一是应该读线程应该阻塞；第二是因为读锁达到了上线；第三是因为CAS失败，有其他线程在并
+    发更新state，那么会调动fullTryAcquireShared方法。
+    从上面可以看到fullTryAcquireShared与tryAcquireShared有很多类似的地方。
+    在上面可以看到多次调用了readerShouldBlock方法，对于公平锁，只要队列中有线程在等待，那么将会返回true，也就意味着读线程
+    需要阻塞；对于非公平锁，如果当前有线程获取了写锁，则返回true。一旦不阻塞，那么读线程将会有机会获得读锁。
+
+写锁的获取
+    从代码和注释可以看到，获取写锁时有三步：
+
+    如果当前有写锁或者读锁。如果只有读锁，返回false，因为这时如果可以写，那么读线程得到的数据就有可能错误；如果有写锁，但是线
+    程不同，即不符合写锁重入规则，返回false
+    如果写锁的数量将会超过最大值65535，抛出异常；否则，写锁重入
+    如果没有读锁或写锁的话，如果需要阻塞或者CAS失败，返回false；否则将当前线程置为获得写锁的线程
+    从上面可以看到调用了writerShouldBlock方法，FairSync的实现是如果等待队列中有等待线程，则返回false，说明公平模式下，只
+    要队列中有线程在等待，那么后来的这个线程也是需要记入队列等待的；NonfairSync中的直接返回的直接是false，说明不需要阻塞。
+    从上面的代码可以得出，当没有锁时，如果使用的非公平模式下的写锁的话，那么返回false，直接通过CAS就可以获得写锁。
+
+总结
+    从上面分析可以得出结论：
+    如果当前没有写锁或读锁时，第一个获取锁的线程都会成功，无论该锁是写锁还是读锁。
+    如果当前已经有了读锁，那么这时获取写锁将失败，获取读锁有可能成功也有可能失败
+    如果当前已经有了写锁，那么这时获取读锁或写锁，如果线程相同（可重入），那么成功；否则失败
+
+
+    将所有数据的读操作放到读锁里面，将所有的数据写操作放到写锁里；这样当一个线程获取到读锁时，当前线程以及其他线程无法获得
+    写锁；其他线程以及当前线程可以获取到读锁；当一个线程已经获取到写锁时，那当前线程可以获取到读锁，并且可以获取写锁(可重入锁)
+    但是其他线程无法获取到任何锁
+
+
+ CountDownLatch
+    底层借助了AQS
+    CountDownLatch可以使一个获多个线程等待其他线程各自执行完毕后再执行。
+    CountDownLatch 定义了一个计数器，和一个阻塞队列， 当计数器的值递减为0之前，阻塞队列里面的线程处于挂起状态，当计数器递
+    减到0时会唤醒阻塞队列所有线程，这里的计数器是一个标志，可以表示一个任务一个线程，
+    也可以表示一个倒计时器，CountDownLatch可以解决那些一个或者多个线程在执行之前必须依赖于某些必要的前提业务先执行的场景。
+
+
+    1.源码
+    public CountDownLatch(int count) {
+        if (count < 0) throw new IllegalArgumentException("count < 0");
+
+        this.sync = new Sync(count);
+
+    }
+
+       2.Sync对象
+    private static final class Sync extends AbstractQueuedSynchronizer {
+      private static final long serialVersionUID = 4982264981922014374L;
+
+
+
+      Sync(int count) {
+        setState(count);
+
+      }
+
+
+
+      int getCount() {
+        return getState();
+
+      }
+
+
+
+      protected int tryAcquireShared(int acquires) {
+        return (getState() == 0) ? 1 : -1;
+
+      }
+
+
+
+      protected boolean tryReleaseShared(int releases) {
+        for (;;) {
+          int c = getState();   // 获取当前state属性的值
+
+          if (c == 0)   // 如果state为0，则说明当前计数器已经计数完成，直接返回
+
+            return false;
+
+          int nextc = c-1;
+
+          if (compareAndSetState(c, nextc)) // 使用CAS算法对state进行设置
+
+            return nextc == 0;  // 设置成功后返回当前是否为最后一个设置state的线程
+
+        }
+
+      }
+
+    }
+
+
+
+    假设我们是这样创建的：new CountDownLatch(5)。其实也就相当于new Sync(5)，相当于setState(5)。setState我们可以暂时理解为设置一个计数器，当前计数器初始值为5。
+    tryAcquireShared方法其实就是判断一下当前计数器的值，是否为0了，如果为0的话返回1（返回1的时候，就表明当前线程可以继续往下走了，不再停留在调用countDownLatch.await(）这个方法的地方）。
+    这里tryReleaseShared(int)方法即对state属性进行减一操作的代码。可以看到，CAS也即compare and set的缩写，jvm会保证该方法的原子性，其会比较state是否为c，如果是则将其设置为nextc（自减1），如果state不为c，则说明有另外的线程在getState()方法和compareAndSetState()方法调用之间对state进行了设置，当前线程也就没有成功设置state属性的值，其会进入下一次循环中，如此往复，直至其成功设置state属性的值，即countDown()方法调用成功。
+    我们看到,CountDownLatch重写的方法 tryAcquireShared 实现如下:
+
+    protected int tryAcquireShared(int acquires) {
+                return (getState() == 0) ? 1 : -1;
+
+            }
+
+    判断 state 值是否为0，为0 返回1，否则返回 -1。state 值是 AbstractQueuedSynchronizer 类中的一个 volatile 变量。
+
+    private volatile int state;
+
+    在 CountDownLatch 中这个 state 值就是计数器，在调用 await 方法的时候，将值赋给 state 。
+
+
+
+    3.await()
+    await()会调用CountDownLatch 会调用内部类Sync 的 acquireSharedInterruptibly() 方法
+
+    acquireSharedInterruptibly(int arg)
+
+    public final void acquireSharedInterruptibly(int arg)
+
+                throws InterruptedException {
+
+            if (Thread.interrupted())
+
+                throw new InterruptedException();
+
+            if (tryAcquireShared(arg) < 0)
+
+                doAcquireSharedInterruptibly(arg);
+
+        }
+
+    (1) 判断当前线程是否中断
+
+    (2) 没中断, 调用tryAcquireShared来判断是不是需要继续阻塞
+
+    (3) 当tryAcquireShared返回-1, 证明需要继续阻塞, 进入下面的阻塞过程
+
+    doAcquireSharedInterruptibly(int arg)
+
+    private void doAcquireSharedInterruptibly(int arg) throws InterruptedException {
+      final Node node = addWaiter(Node.SHARED); // 使用当前线程创建一个共享模式的节点
+
+      boolean failed = true;
+
+      try {
+        for (;;) {
+          final Node p = node.predecessor();    // 获取当前节点的前一个节点
+
+          if (p == head) {  // 判断前一个节点是否为头结点
+
+            int r = tryAcquireShared(arg);  // 查看当前线程是否获取到了执行权限
+
+            if (r >= 0) {   // 大于0表示获取了执行权限
+
+              setHeadAndPropagate(node, r); // 将当前节点设置为头结点，并且唤醒后面处于等待状态的节点
+
+              p.next = null; // help GC
+
+              failed = false;
+
+              return;
+
+            }
+
+          }
+
+
+
+          // 走到这一步说明没有获取到执行权限，就使当前线程进入“搁置”状态
+
+          if (shouldParkAfterFailedAcquire(p, node) &&
+
+              parkAndCheckInterrupt())
+
+            throw new InterruptedException();
+
+        }
+
+      } finally {
+        if (failed)
+
+          cancelAcquire(node);
+
+      }
+
+    }
+
+    在doAcquireSharedInterruptibly(int)方法中，首先使用当前线程创建一个共享模式的节点。然后在一个for循环中判断当前线程是否获取到执行权限，如果有（r >= 0判断）则将当前节点设置为头节点，并且唤醒后续处于共享模式的节点；如果没有，则对调用shouldParkAfterFailedAcquire(Node, Node)和parkAndCheckInterrupt()方法使当前线程处于“搁置”状态，该“搁置”状态是由操作系统进行的，这样可以避免该线程无限循环而获取不到执行权限，造成资源浪费，这里也就是线程处于等待状态的位置，也就是说当线程被阻塞的时候就是阻塞在这个位置。当有多个线程调用await()方法而进入等待状态时，这几个线程都将等待在此处。这里回过头来看前面将的countDown()方法，其会唤醒处于等待队列中离头节点最近的一个处于等待状态的线程，也就是说该线程被唤醒之后会继续从这个位置开始往下执行，此时执行到tryAcquireShared(int)方法时，发现r大于0（因为state已经被置为0了），该线程就会调用setHeadAndPropagate(Node, int)方法，并且退出当前循环，也就开始执行wait()方法之后的代码。这里我们看看setHeadAndPropagate(Node, int)方法的具体实现：
+
+    setHeadAndPropagate
+
+    private void setHeadAndPropagate(Node node, int propagate) {
+      Node h = head;
+
+      setHead(node);    // 将当前节点设置为头节点
+
+      // 检查唤醒过程是否需要往下传递，并且检查头结点的等待状态
+
+      if (propagate > 0 || h == null || h.waitStatus < 0 ||
+
+          (h = head) == null || h.waitStatus < 0) {
+        Node s = node.next;
+
+        if (s == null || s.isShared())  // 如果下一个节点是尝试以共享状态获取获取执行权限的节点，则将其唤醒
+
+          doReleaseShared();
+
+      }
+
+    }
+
+    setHeadAndPropagate(Node, int)方法主要作用是设置当前节点为头结点，并且将唤醒工作往下传递，在传递的过程中，其会判断被传递的节点是否是以共享模式尝试获取执行权限的，如果不是，则传递到该节点处为止（一般情况下，等待队列中都只会都是处于共享模式或者处于独占模式的节点）。也就是说，头结点会依次唤醒后续处于共享状态的节点，这也就是共享锁与独占锁的实现方式。这里doReleaseShared()方法也就是我们前面讲到的会将离头结点最近的一个处于等待状态的节点唤醒的方法。
+
+
+    也就是说这里干了两件事, 首先是把自己的node设置为头节点. 然后把唤醒工作往下传递. 当干完这些事之后. 当前线程就可以执行当初countdownlatch.await()后面自己的逻辑代码了, 所谓的阻塞, 就是shouldParkAfterFailedAcquire(Node, Node)和parkAndCheckInterrupt()引起的当前线程的临时搁置.
+
+
+    4.countDown
+    public void countDown() {
+        sync.releaseShared(1);
+
+    }
+
+       在countDown()方法中调用的sync.releaseShared(1)调用时实际还是调用的tryReleaseShared(int)方法，如下是releaseShared(int)方法的实现：
+
+    public final boolean releaseShared(int arg) {
+        if (tryReleaseShared(arg)) {
+            doReleaseShared();
+
+            return true;
+
+        }
+
+        return false;
+
+    }
+
+
+
+    protected boolean tryReleaseShared(int releases) {
+
+        // Decrement count; signal when transition to zero
+
+        for (;;) {
+            int c = getState();
+
+            if (c == 0)
+
+                return false;
+
+            int nextc = c-1;
+
+            if (compareAndSetState(c, nextc))
+
+                return nextc == 0;
+
+        }
+
+    }
+
+    可以看到，在执行sync.releaseShared(1)方法时，其在调用tryReleaseShared(int)方法时会在无限for循环中设置state属性的值，设置成功之后其会根据设置的返回值（此时state已经自减了一），即当前线程是否为将state属性设置为0的线程，来判断是否执行if块中的代码。doReleaseShared()方法主要作用是唤醒调用了await()方法的线程。需要注意的是，如果有多个线程调用了await()方法，这些线程都是以共享的方式等待在await()方法处的，试想，如果以独占的方式等待，那么当计数器减少至零时，就只有一个线程会被唤醒执行await()之后的代码，这显然不符合逻辑。如下是doReleaseShared()方法的实现代码：
+
+
+
+    private void doReleaseShared() {
+      for (;;) {
+        Node h = head;  // 记录等待队列中的头结点的线程
+
+        if (h != null && h != tail) {   // 头结点不为空，且头结点不等于尾节点
+
+          int ws = h.waitStatus;
+
+          if (ws == Node.SIGNAL) {  // SIGNAL状态表示我这个线程对应的节点正在等待被唤醒
+
+            if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))    // 清除当前节点的等待状态
+
+              continue;
+
+            unparkSuccessor(h); // 唤醒头节点的下一个节点,头结点是空的,里面没有线程,头结点的下一个才是有线程信息的节点
+
+          } else if (ws == 0 && !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+
+            continue;
+
+        }
+
+        if (h == head)  // 如果h还是指向头结点，说明前面这段代码执行过程中没有其他线程对头结点进行过处理
+
+          break;
+
+      }
+
+    }
+
+    在doReleaseShared()方法中（始终注意当前方法是最后一个执行countDown()方法的线程执行的），首先判断头结点不为空，且不为尾节点，说明等待队列中有等待唤醒的线程，这里需要说明的是，在等待队列中，头节点中并没有保存正在等待的线程，其只是一个空的Node对象，真正等待的线程是从头节点的下一个节点开始存放的，因而会有对头结点是否等于尾节点的判断。在判断等待队列中有正在等待的线程之后，其会清除头结点的状态信息，并且调用unparkSuccessor(Node)方法唤醒头结点的下一个节点，使其继续往下执行。如下是unparkSuccessor(Node)方法的具体实现：
+
+
+
+    private void unparkSuccessor(Node node) {
+        int ws = node.waitStatus;
+
+        if (ws < 0)
+
+            compareAndSetWaitStatus(node, ws, 0);
+
+
+
+        Node s = node.next;
+
+        if (s == null || s.waitStatus > 0) {
+            s = null;
+
+            for (Node t = tail; t != null && t != node; t = t.prev)
+
+                if (t.waitStatus <= 0)
+
+                    s = t;
+
+        }
+
+        if (s != null)
+
+            LockSupport.unpark(s.thread);
+
+    }
+
+    可以看到，unparkSuccessor(Node)方法的作用是唤醒离传入节点最近的一个处于等待状态的线程，使其继续往下执行。前面我们讲到过，等待队列中的线程可能有多个，而调用countDown()方法的线程只唤醒了一个处于等待状态的线程，这里剩下的等待线程是如何被唤醒的呢？其实这些线程是被当前唤醒的线程唤醒的。
+
+
+
+    具体的我们可以看看await()方法的具体执行过程。离head节点最近的线程阻塞以后, 被unparkSuccessor唤醒. 满足了计数为0, 前置节点为head的条件. 得以继续往下执行-->setHeadAndPropagate
+
+
+
+    private void setHeadAndPropagate(Node node, int propagate) {
+        Node h = head;
+
+        setHead(node);// 我把自己的节点设置为head
+
+
+
+    //然后检查唤醒过程是不是要往下传递
+
+        if (propagate > 0 || h == null || h.waitStatus < 0 ||
+
+            (h = head) == null || h.waitStatus < 0) {
+            Node s = node.next;
+
+            if (s == null || s.isShared())
+
+                doReleaseShared();
+
+        }
+
+    }
+
+    因为我被唤醒了, 我执行完setHeadAndPropagate之后, 就可以跳出await, 进行下面自己的逻辑了. 所以我这个节点也就用没用了, 我把自己的节点设置为head. 然后检查唤醒过程是不是要往下传递. 然后进行唤醒操作. 唤醒下一个线程. 下一个线程被唤醒后, 又可以执行
+
+    因为我被唤醒了, 我执行完setHeadAndPropagate之后, 就可以跳出await, 进行下面自己的逻辑了. 所以我这个节点也就用没用了, 我把自己的节点设置为head. 然后检查唤醒过程是不是要往下传递. 然后进行唤醒操作
+
+    .....重复下去就完成了所有线程await的等待激活.
+
+
+
+    5.总过程:
+    await内部实现流程:
+
+    (1)判断state计数是否为0，是0,那么可以执行执行await后面的逻辑
+
+    (2)state大于0，则表示需要阻塞等待计数为0
+
+    (3)当前线程封装Node对象，进入阻塞队列
+
+    (4)不满足激活条件(前置节点是head, 计数为0), 会被操作系统给挂起, 等待激活
+
+    (5)被唤醒后, 执行后面的继续唤醒操作,重置头节点状态, 检查唤醒传递等待
+
+    (6)跳出await的循环, 开始自己的业务逻辑
+
+    countDown内部实现流程:
+
+    (1)尝试释放锁tryReleaseShared，实现计数-1
+
+    若计数已经小于0，则直接返回false
+
+    否则执行计数(AQS的state)减一
+
+    (2)若减完之后，state==0，然后就需要唤醒被阻塞的线程了doReleaseShared
+
+    如果队列为空，即表示没有线程被阻塞（也就是说没有线程调用了 CountDownLatch#wait()方法），直接退出
+
+    (3)头结点如果为SIGNAL, 则依次唤醒头结点下个节点上关联的线程，并出队
+
+    (4)唤醒的线程会从await的第5步后开始执行

@@ -1,0 +1,28 @@
+1、spring cloud
+2、卡夫卡
+3、MQ队列
+4、RESTFUL API\RPC 服务调用方式
+5、高并发
+6、多线程/线程池的作用
+7、docker
+8、zokepper
+9、dubbo
+10、线程锁\事务  
+11，spring boot    1
+12、redis
+13、git\svn
+14、mysql\oracle    3
+15、maven         2
+16、nginx
+17、linux
+18、webservice
+19、资源服务器\文件传输 ftp协议\http请求
+20、spring security授权认证
+21、对象，json互相转换
+22、pl/sql
+23、websocket
+24、activity工作流
+25、jemeter压测工具学习
+26、sql调优
+26、加解密
+

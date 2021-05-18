@@ -1,0 +1,15 @@
+springcloud版本关系
+    springcloud的版本采用了英国伦敦地铁站的名称来命名，并由地铁站名称字母A-Z依次类推的形式来发布迭代版本
+    springclod是一个由许多子项目组成的综合项目各子项目有不同的发布节奏。为了管理springcloud和各子项目版本号混淆，springcloud
+    版本采用了名称而非版本号的命名，这些版本的名字采用了伦敦地铁站的名字，根据字母表的顺序来对应版本时间顺序。例如Angel是第一个
+    版本，BrixTon是第二个版本。当springcloud的发布内容积累到临界点或者一个重大bug被解决后，就会发布一个“service releases”版本，
+    简称SRX版本，比如Greenwich.SR2就是springcloud发布的Greenwich版本的第二个SR版本
+
+    具体springboot和springcloud之间版本选型对应关系见如下网址
+    ***https://start.spring.io/actuator/info
+
+    具体选型可以看springcloud版本里面的reference介绍
+
+springcloud中文文档
+    ***https://www.bookstack.cn/read/spring-cloud-docs/docs-index.md
+

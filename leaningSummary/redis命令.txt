@@ -1,0 +1,17 @@
+1：MSET key value [key value …]
+     同时为多个键设置值。
+     如果某个给定键已经存在， 那么 MSET 将使用新值去覆盖旧值， 如果这不是你所希望的效果， 请考虑使用 MSETNX 命令， 这个命令只会在所有给定键都不存在的情况下进行设置。
+    MSET 是一个原子性(atomic)操作， 所有给定键都会在同一时间内被设置， 不会出现某些键被设置了但是另一些键没有被设置的情况。
+
+2：MSETNX key value [key value …]
+     当且仅当所有给定键都不存在时， 为所有给定键设置值。
+     即使只有一个给定键已经存在， MSETNX 命令也会拒绝执行对所有键的设置操作。
+     MSETNX 是一个原子性(atomic)操作， 所有给定键要么就全部都被设置， 要么就全部都不设置， 不可能出现第三种状态。
+
+3： WATCH命令（监视任意数量的key ，提一下，在事务中执行这个命令会报错：ERR WATCH inside MULTI is not allowed）；被监视的key 可以被获取值，但是如果增删改操作的话就会取消watch命令；在redis事务中，如果某条命令执行失败了，其余的命令依然会被继续执行；在redis事务中，在exec命令执行前，不会执行任何其他命令。
+
+4：启动redis服务：使用redis-server redis.windows-service.conf启动 redis-server是启动命令，后面那个是指定的配置文件，如果不指定，默认是 redis.windows-service.conf，linux版本的redis启动可以将配置文件里的daemonize no 改成daemonize yes，然后启动redis服务的时候就是后台启动模式，配置文件里面开头不能有空格，否则配置文件不起效果，服务也启动不了；默认情况下，持久化是rdb，有两种方式，主动和被动，主动的话讲配置文件里的save设置为“”，其他注释掉，默认是被动；想改为aof的话就将save设置为“”，配置文件修改一下，以后重启redis服务器的话，就自动恢复数据。
+
+5、linux版本redis：查看是都有redis服务或者查看端口
+      ps -ef|grep redis         netstat -tunpl|grep 6379
+      退出redis服务：pkill redis-server          kill    进程号        /usr/local/redis/bin/redis-cli shutdown
