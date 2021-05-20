@@ -1,25 +1,84 @@
-hashMap的并发问题
-    当两个线程使用同一个hashmap对象，并发的去put值，key不同的情况下，获得的hashcode肯定不同，
-    但是最后放入到表中的索引的计算方法(tab.length - 1) & hash 有可能得到相同的索引，这样就会发生
-    不同的key在并发情况下都放到同一个索引里，也就是可能发生覆盖情况。
+Hash是一种校验方法，其中应用最广为人知的就是 HashMap。当然Hash算法并不完美，有可能两个不同的原始值在经过哈希运算后得到同样
+的结果，这样就是哈希碰撞。哈希碰撞其中一种解决办法就是链地址法，原理是在HashMap中同样哈希值的位置以一串链表存储起来数据，把
+多个原始值不同而哈希结果相同的数据以链表存储起来。
 
-hashTable为了解决这个问题就给整个数组加了把锁，这样的话同样的索引就会生成链表,但是影响性能；
+注意：比较两个对象是否相等，一般是先进行hash比较，如果相同，再比较equals是否相等，都相等就认为是同一个对象
+
+hashMap的并发问题
+    当两个线程使用同一个hashmap对象，并发的去put值，key不同的情况下，获得的hashcode可能相同
+    最后放入到表中的索引的计算方法(tab.length - 1) & hash 会得到相同的索引，
+     if ((p = tab[i = (n - 1) & hash]) == null)
+         tab[i] = newNode(hash, key, value, null);
+    这样就会发生不同的key在并发情况下都放到同一个索引里，也就是可能发生覆盖情况。hashTable为了解决这个问题就给整个数组加了把
+    锁，这样的话同样的索引就会生成链表,但是影响性能；
+
+    final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+                       boolean evict) {
+            Node<K,V>[] tab; Node<K,V> p; int n, i;
+            if ((tab = table) == null || (n = tab.length) == 0)
+                //如果node节点数组为null，就初始化数组并给一个初始容量
+                n = (tab = resize()).length;
+            if ((p = tab[i = (n - 1) & hash]) == null)
+                //如果当前数组下标上没有值，那就直接设置为这个put的值
+                tab[i] = newNode(hash, key, value, null);
+            else {
+                //如果发生hash冲突的情况
+                Node<K,V> e; K k;
+                if (p.hash == hash &&
+                    ((k = p.key) == key || (key != null && key.equals(k))))
+                    //是同一个对像并且equals方法也相等，那就认定是同一个值，进行覆盖操作
+                    e = p;
+                else if (p instanceof TreeNode)
+                    //链表变成了二叉树，往二叉树里面设置值
+                    e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+                else {
+                    //发生hash冲突并且equals方法补等，那就产生链表，往下面添加数据
+                    for (int binCount = 0; ; ++binCount) {
+                        if ((e = p.next) == null) {
+                            p.next = newNode(hash, key, value, null);
+                            if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                                treeifyBin(tab, hash);
+                            break;
+                        }
+                        if (e.hash == hash &&
+                            ((k = e.key) == key || (key != null && key.equals(k))))
+                            break;
+                        p = e;
+                    }
+                }
+                if (e != null) { // existing mapping for key
+                    V oldValue = e.value;
+                    if (!onlyIfAbsent || oldValue == null)
+                        e.value = value;
+                    afterNodeAccess(e);
+                    //返回之前的那个值
+                    return oldValue;
+                }
+            }
+            ++modCount;
+            //如果超过容量阈值，就扩增数组容量
+            if (++size > threshold)
+                resize();
+            afterNodeInsertion(evict);
+            return null;
+        }
+
+
 
 concurrentHashMap
-
     final V putVal(K key, V value, boolean onlyIfAbsent) {
             if (key == null || value == null) throw new NullPointerException();
             //找到key的hash值
             int hash = spread(key.hashCode());
-            //记录表格中某一个索引的地方链表的中元素个数
+            //记录数组中某一个索引的地方链表的中元素个数
             int binCount = 0;
             //死循环
             for (Node<K,V>[] tab = table;;) {
                 Node<K,V> f; int n, i, fh;
                 if (tab == null || (n = tab.length) == 0)
-                    //表为空时，初始化表，然后出循环再进
+                    //表为空时，初始化数组，然后出循环再进
                     tab = initTable();
-                    //tabAt(tab, i = (n - 1) & hash) 根据hash值以及表的长度找到这个表某个索引上有没有链表节点
+                    //tabAt(tab, i = (n - 1) & hash) 根据hash值以及数组的长度找到这个数组某个索引上有没有链表节点
                 else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
                     //如果这个索引上没有节点，使用CAS判断这个节点上是不是null，如果是null再像这个索引上添加节点，
                     //这是原子操作
@@ -33,6 +92,7 @@ concurrentHashMap
                 else {
                 //这里是在某个数组索引上有了节点，此时通过锁同步往链表添加数据；判断是往链表里添加节点数据还是往红黑树里添加数据
                     V oldVal = null;
+                    //这里使用了同步锁，因为走到这里基本很少，所以不会很影响性能的，自我理解
                     synchronized (f) {
                         if (tabAt(tab, i) == f) {
                         //如果是链表，哈希值肯定大于0

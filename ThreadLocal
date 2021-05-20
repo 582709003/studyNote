@@ -1,6 +1,6 @@
 作用：
     提供线程内部的局部变量，这种变量在多线程环境下访问(通过get,set方法访问)时能保证各个线程的变量相对独立与其他线程内的变量，
-    ThreadLocal实例通常来说都是private static类型的，用于联线程和线程上下文关。
+    ThreadLocal实例通常来说都是private static类型的，用于关联线程和线程上下文。
 
     提供线程内的局部变量，不同线程之间不会相互干扰，这种变量在线程的生命周期内起作用，减少同一个线程内多个函数或组件之间一些
     公共变量传递的复杂度。
@@ -14,7 +14,6 @@
     ThreadLocal()     创建ThreadLocal()对象
     public void set(T value)  设置当前线程绑定的局部变量
         public void set(T value) {
-
             Thread t = Thread.currentThread();
             ThreadLocalMap map = getMap(t);
             if (map != null)
@@ -23,24 +22,33 @@
                 createMap(t, value);
         }
 
-         //1、设置值的时候，会为当前的线程设置一个ThreadLocalMap，初始容量为16，把当前threadlocal对象和设置的值带进去
+         //1、第一次设置值的时候，会为当前的线程设置一个ThreadLocalMap，初始容量为16，把当前ThreadLocal对象和要绑定的值带进去
          void createMap(Thread t, T firstValue) {
             t.threadLocals = new ThreadLocalMap(this, firstValue);
         }
 
-        //2、首先每个线程都会维护一个ThreadLocalMap，每个ThreadLocalMap里面维护着一个Entry类型的数组，初始值为16；
-            当往ThreadLocal里面设置值时，就会为当前的线程创建一个ThreadLocalMap，然后把ThreadLocal这个对象以及要绑定的值当作参数往
-            createMap(ThreadLocal t,T value)传；相当于每个线程里面都维护着一个独立的ThreadLocalMap
-            设置值的时候，会根据int i = key.threadLocalHashCode & (len-1)计算出这个值将放入数组中的哪个索引里面
-        private void set(ThreadLocal<?> key, Object value) {
+        //2、new ThreadLocalMap(this, firstValue)解析
+            ThreadLocalMap(ThreadLocal<?> firstKey, Object firstValue) {
+                //创建一个容量为16的Entry数组
+                table = new Entry[INITIAL_CAPACITY];
+                //计算数组下标，准备存入值
+                int i = firstKey.threadLocalHashCode & (INITIAL_CAPACITY - 1);
+                //将当前ThreadLocal对象以及需要绑定的值放入数组
+                table[i] = new Entry(firstKey, firstValue);
+                size = 1;
+                //设置数组扩容的阈值
+                setThreshold(INITIAL_CAPACITY);
+            }
 
+        //3、当往ThreadLocal里面第二次设置值时，调用当前线程里面的ThreadLocalMap对象的set(ThreadLocal<?> key, Object value)方法；
+            private void set(ThreadLocal<?> key, Object value) {
                     Entry[] tab = table;
                     int len = tab.length;
                     int i = key.threadLocalHashCode & (len-1);
-
                     for (Entry e = tab[i];
                          e != null;
                          e = tab[i = nextIndex(i, len)]) {
+                         //找到之前存放的数组里面存放的threadLocal对象，其实是同一个
                         ThreadLocal<?> k = e.get();
                         //3.0判断在这个索引里面的entry里的key也就是threadlocal对象是不是同一个，同一个的话就覆盖值
                         if (k == key) {

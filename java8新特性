@@ -261,9 +261,11 @@ Optional类
 
 
 新时间日期API
-    使用localDate、localTime、localDateTime
+    认读的日期api
+    使用localDate 表示日期、localTime 表示时间、localDateTime 表示日期加时间
     这些类的实例是不可变对象(final修饰的类，属性也是final修饰的)，分别表示使用ISO-8601日历系统的日期、时间、日期和时间。
 
+    计算机读的api
     Instant:时间戳（以UNIX元年：1970年1月1日00:00:00到某个时刻之间的毫秒值）
 
     Duration：计算两个时间之间的间隔
@@ -297,3 +299,4 @@ Optional类
         Europe/Monaco  等等有很多
     LocalDateTime now = LocalDateTime.now(ZoneId.of("America/Cuiaba"));
     System.out.println(now);
+
