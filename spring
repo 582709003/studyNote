@@ -1,4 +1,11 @@
 IOC
+    作用
+        1、容器创建完成的时候，容器里的对象也创建好了
+        2、默认创建的对象是单例的
+        3、ioc创建对象的时候会利用对象的setter方法为javaBean设置属性值
+   总结
+        1、当容器里同一个类型的对象有多个，我们此时如果按照类型从容器里获取这个类型的对象的话，会报错
+
     底层原理
         xml的解析
         工厂模式
@@ -28,6 +35,7 @@ IOC
                 FactoryBeanRegistrySupport-->添加工厂方式创建类FactoryBean的支持
 
         2、ApplicationContext
+            代表ioc容器
             BeanFactory接口的子接口，提供更多强大的功能，一般开发人员使用；
             加载配置文件的时候创建对象
 
@@ -48,7 +56,9 @@ IOC
                     </property>
                 </bean>
 
-             bean可以理解为对象
+            bean可以理解为对象
+
+        4、设置属性的引用值
 
         4、IOC操作Bean管理(FactoryBean)
             1、Spring中有两种bean，一种普通的bean，一种是工厂bean(FactoryBean)，这是sping内置的bean
@@ -180,6 +190,8 @@ IOC
 
                 当我们使用spring5.x版本时，要求junit的版本必须是4.1.2及以上
 
+DI:依赖注入
+    容器能知道哪个组件(类)运行的时候，需要另外一个组件(类)；容器通过反射的形式，将容器中准备好的对象注入到类的属性中；
 
     AOP
         底层原理

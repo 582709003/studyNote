@@ -1,5 +1,5 @@
-ReentrantLock 是悲观锁，公平锁或非公平锁，可重入锁、排他锁，自旋锁
-ReentrantReadWriteLock 是悲观锁，公平锁或非公平锁，可重入锁、 读锁是共享锁，写锁是排他锁 他们都是自旋锁
+ReentrantLock 是悲观锁，公平锁或非公平锁，可重入锁、排他锁，比较特殊的自旋锁
+ReentrantReadWriteLock 是悲观锁，公平锁或非公平锁，可重入锁、 读锁是共享锁，写锁是排他锁 他们都是比较特殊的自旋锁
 CountDownLatch 悲观锁，排他锁
 synchronized 是悲观锁，排他锁,可重入锁
 

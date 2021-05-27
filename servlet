@@ -44,9 +44,27 @@
     2、servlet接口由http服务器厂商负责提供
 
 三、servlet对象生命周期
+    servlet对象的创建
+        执行无参构造器，只会执行一次，单例多线程的
+    servlet对象的初始化
+        执行init方法，只会执行一次
+    servlet对象的服务
+        执行service方法
+    servlet对象的销毁
+        执行destroy方法,服务器停掉的时候调用此方法
+    以上生命周期种在servlet接口里已经有了下面的三个
+    总结：
+        1、servlet是单例多线程的
+        2、一个servlet实例只会执行一次无参构造器和init方法，并且是在第一次访问时执行
+        3、用户每提交一次对当前servlet的请求时，就会执行一次service方法
+        4、一个servlet只会执行一次destroy方法，在应用停止时
+        5、由于servlet时单例多线程的，为了保证 其线程的安全性，一般情况下是不会为serlet类定义可修改的成员变量的，因为每个线程
+           都可以修改这个成员变量，会出现线程安全问题
+        6、默认情况下，servlet在web容器启动时是不会被实例化的
+
     1、网站中所有的servlet接口实现类的实例对象，只能由http服务器负责创建，开发人员不能手动创建
     2、在默认情况下，当HTTP服务器接收到对于当前servlet接口实现类第一次请求时自动创建这个servlet实现类的实例对象
-        在手动配置情况下，要求HTTP服务器在启动时自动创建某个servlet接口实现类的实例对象
+        在手动配置情况下，要求HTTP服务器在启动时自动创建某个servlet接口实现类的实例对象，可以针对此servlet做以下配置
         <servlet>
             <servlet-name>mm
                 mm
@@ -59,6 +77,96 @@
 
     3、在HTTP服务器运行期间，一个servlet接口实现类只能被创建出一个实例对象
     4、在HTTP服务器关闭的时候，自动将网站中所有的servlet实现类对象进行销毁
+
+获取servletConfig对象
+    一个servletConfig对应一个servlet
+    在web.xml配置文件中的直接体现就是<servlet>
+                                    <servlet-name>mmmm</servlet-name>
+                                    <servlet-calss>
+                                        com.xx.xx.classs
+                                    </servlet-calss>
+                                    <init-param>
+                                        <param-name>namespace</param-name>
+                                        <param-value>sd</param-value>
+                                    </init-param>
+                                    <init-param>
+                                        <param-name>namespace2</param-name>
+                                        <param-value>sdfw</param-value>
+                                    </init-param>
+                                    <load-on-startup></load-on-startup>  填写大于0的整数就会在服务器启动时自动创建servlet实现类对象
+                                </servlet>
+    由于servletConfig中可以获取到servlet的初始化参数，获取到servletContext对象，而这些参数和对象在进行业务逻辑处理时，
+    即执行service方法时需要经常使用，很重要，所以servletConfig对象也就显得很重要了。
+    由于servletConfig对象是web容器通过init方法传递给当前servlet类的，而init方法只会在servlet对象初始化时调用一次。所以，
+    需要在init方法中将servletConfig对象传递给servlet类中的servletConfig的成员变量，这样service方法就可以使用servletConfig
+    对象了，也就是说，我们需要在servlet中声明一个servletConfig成员变量；
+    若servlet中声明一个servletConfig成员变量是否会存在线程安全问题？因为servlet是单例多线程的。只要在servlet中没有为servletConfig
+    提供对外开放的其他修改方法，其值只会在servlet初始化时赋值一次，所以不存在线程安全问题
+
+    servletConfig里的方法
+        String getServletName()：获取<servlet-name>mmmm</servlet-name>
+
+        ServletContext getServletContext()：获取ServletContext对象
+
+        String getInitParameter(String var1)：
+                <init-param>
+                   <param-name>namespace2</param-name>
+                   <param-value>sdfw</param-value>
+                </init-param>
+                根据<param-name>来获取值
+
+        Enumeration<String> getInitParameterNames();
+                <init-param>
+                    <param-name>namespace</param-name>
+                    <param-value>sd</param-value>
+                </init-param>
+                <init-param>
+                    <param-name>namespace2</param-name>
+                    <param-value>sdfw</param-value>
+                </init-param>
+                遍历查找所有的<param-name>
+
+servletContext
+    介绍
+        servlet上下文也就是servlet环境，所有servlete共享一个环境，一个应用对应一个servletContext;
+    servletContext常用方法
+        String getInitParameter(String var1)：
+            servlet都可以共享的初始化参数
+            <context-param>
+                <param-name></param-name>
+                <param-value></param-value>
+            </context-param>
+            获取 <param-name>对应的值
+
+        Enumeration<String> getInitParameterNames();
+            <context-param>
+                <param-name></param-name>
+                <param-value></param-value>
+            </context-param>
+            获取所有的<param-name>
+
+servlet_urlPattern设置模式
+    1、精确路径模式
+        请求路径必须与<url-pattern>的值 完全相同才可被当前servlet处理
+    2、通配符路径模式
+        该模式中的路径由两部分组成：精确路径部分和通配符部分；请求路径中只有携带了<url-pattern>值中指定的精确路径部分才可被
+        当前servlet处理
+    注意：/* 表示当前servlet可以匹配所有请求，可以拦截所有请求，无论动态资源还是静态资源;
+         /  会拦截静态资源请求以及会匹配到/springmvc这样的路径型url，不会匹配到模式为*.jsp这样的后缀型url，
+            不会拦截动态资源请求，即不会拦截对于jsp的请求
+           1、精确匹配：/pic/a.jsp  直接拦截指定的请求
+           2、路径匹配：/pic/*      拦截pic下的所有请求
+           3、*.jsp:拦截所有以jsp结尾的请求
+           /pic/*.jsp  这样是不可以的，不符合以上三种匹配模式
+servlet_urlpattern匹配原则
+    1、路径优先于后缀匹配原则
+        如果一个请求的路径/xxx/a.do，匹配成功了多个servlet_urlpattern，但是其中一个是*.do,另一个是/xxx/*,此时应该优先匹配/xxx/*
+    2、精确路径优先匹配原则
+        如果一个请求的路径/xxx/a，匹配成功了多个servlet_urlpattern，但是其中一个是/*,另一个是/xxx,此时应该优先匹配/xxx
+    3、最长路径优先匹配原则
+         如果一个请求的路径/oa/some/other，匹配成功了多个servlet_urlpattern，但是其中一个是/some/*,另一个是/some/other/*,此时应该优先匹配/some/other/*
+
+
 
 四、HttpservletResponse接口
        1、介绍
@@ -95,7 +203,9 @@
         2、作用
               1)可以读取http请求协议中请求行信息
                   URI：资源文件精准定位地址；在请求行中并没有URI信息，实际上是从URL中截取的一个字符串
-                     这个字符串格式是 “/网站名/资源文件名”；URI用于让http服务器对被访问的资源文件进行定位
+                     这个字符串格式是 “/网站名/资源文件名”；例如http://localhost:8080/httpservlet/some中URI
+                     的部分就是/httpservlet/some
+                     URI用于让http服务器对被访问的资源文件进行定位
                2)可以读取保存在http请求协议包中请求头/请求体中的请求参数信息
                 问题：以get方式返送中文参数内容，服务端获取的是正常的内容，但是以post方式发送中文参数内容后台出现乱码
                  原因：浏览器以get方式发送请求，请求参数保存在请求头中的，当http请求协议包到达http服务器之后，
@@ -107,6 +217,14 @@
                  解决方案：在post请求方式下，在读取请求体内的内容之前，应该通知请求对象使用utf-8对请求体中的内容编码，而不是iso8859-1
 
                3)可以代替浏览器向http服务器申请资源文件的调用
+               4)HttpServletRequest中的getServletPath()以及getPathInfo()方法
+                    获取请求路径中与web.xml中注册servlet时的<url-pattern/>相匹配的路径信息，其中servletpath指的是
+                    <url-pattern/>精确匹配的路径，而pathinfo则是与非精确部分相匹配的路径。例如，<url-pattern/>的值为
+                    /xxx/ooo/*,用户提交的请求为http://localhost:8080/httpservlet/xxx/ooo/abc/def,则getServletPath()
+                    取到的值为/xxx/ooo,而getPathInfo()则为/abc/def；不过若客户提交的是后缀型的请求，
+                    例如http://localhost:8080/httpservlet/xxx/ooo/ccc.do,则getServletPath()的值为/xxx/ooo/ccc.do，
+                    而getPathInfo()则为null
+                    URI = servletContext + servletPath + servletInfo
 六、请求对象和响应对象的生命周期
     1、http服务器接收到浏览器发送的http请求协议包之后，自动为当前的http请求协议包生成一个请求对象和响应对象
     2、在HTTP服务器准备推送http响应协议包之前，负责将本次请求关联的请求对象和响应对象销毁
@@ -159,7 +277,6 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
             500:通知浏览器，在服务端已经定位到被访问的资源文件(能够出现500状态码，那么被访问的文件必须是个servlet)，
             这个servlet可以接收浏览器的请求方式，但是这个servlet在处理这个请求期间java异常导致处理失败
 
-
 九、多个servlet之间调用规则
     1)重定向解决方案
         response.sendRedirect   请求方式肯定是get方式
@@ -179,9 +296,9 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
                 里写的数据是不会写入到浏览器的；
         include:此时已经打开了输出流，但是它也将转发后的servlet里的响应数据也写到了转发前的servlet里的响应流里
 
-    3)优点：servlet之间的调用都是发生在服务端的计算机上，节省服务端与浏览器之间的往返次数
-      请求地址：只能向tomcat服务器申请调用当前网站下的资源文件地址
-      请求方式：与浏览器发送的请求方式一致
+        3)优点：servlet之间的调用都是发生在服务端的计算机上，节省服务端与浏览器之间的往返次数
+          请求地址：只能向tomcat服务器申请调用当前网站下的资源文件地址
+          请求方式：与浏览器发送的请求方式一致
 
 十、多个servlet之间数据共享实现方案
     1、数据共享：oneservlet工作完毕后，将产生的数据交给twoservlet来使用
@@ -196,7 +313,6 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
 
 十一、servletContext接口
     1、介绍
-
         1)来自servlet规范中的一个接口，在tomcat中存在servlet-api.jar
             在tomcat中负责提供这个接口的实现类
             一个应用程序只有一个servletContext
@@ -249,14 +365,14 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
 - 监听器用于监控 ‘作用域对象生命周期变化时’ 以及  ‘作用域对象共享数据变化时’
 - 2，作用域对象
 - 在servlet 规范下，认为在服务端内存中可以在某些条件下为两个servlet之间提供数据共享得对象，被称为作用域对象
-- servlet规范夏作用域对象
--   Servlet Context  全局作用域对象
-- HttpSession   会话作用域对象
-- HttpServletRequest  请求作用域对象
+- servlet规范下作用域对象
+    - Servlet Context  全局作用域对象
+    - HttpSession   会话作用域对象
+    - HttpServletRequest  请求作用域对象
     3、监听器接口实现类开发规范
           1、根据监听的实际情况，选择对应的监听器接口进行实现
           2、重写监听器接口声明（监听事件处理方法）
-          3、在web. xml文件种将监听器注册到http服务器tomcat
+          3、在web.xml文件种将监听器注册到http服务器tomcat
     4、ServletContextListener接口
      1）作用
             通过这个接口合法的检测全局作用域对象被销毁时刻以及被初始化时刻
@@ -271,14 +387,20 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
 
         void attributeReplaced(ServletContextAttributeEvent var1);在全局作用于对象添加更新数据
 
-        HttpSessionBindingListener接口是不要注册的,由类实现它
-        HttpSessionActivationListener接口是不要注册的,由类实现它；(服务器停掉时将session中的对象序列化到硬盘前会触发钝化事件，
-                                                               服务器启动时将对象反序列化到session中会触发活化事件)
+    6、httpsessionListener监听器接口
+    7、httpsessionAttributeListener接口
+    8、ServletRequestListener监听器接口
+    9、ServletRequestAttributeListener监听器接口
+
+    HttpSessionBindingListener接口是不要注册的,由类实现它：对象放入session域或者从session域里删除时会触发它
+    HttpSessionActivationListener接口是不要注册的,由类实现它；(服务器停掉时将session中的对象序列化到硬盘前会触发钝化事件，
+                                                           服务器启动时将对象反序列化到session中会触发活化事件)
+                                                          钝化是指及那个内存中的数据写入到硬盘中，而活化则相反；
 
 十五、servlet规范扩展----------过滤器接口
     1、介绍
         1)一个来自servlet规范下的接口，在tomcat 的servlet-api. jar
-        2)Filter接口实现类有开发人员负责提供，HTTP服务器不负责提供
+        2)Filter接口实现类由开发人员负责提供，HTTP服务器不负责提供
         3)Filter接口在HTTP服务器调用资源文件(动态资源文件以及静态资源文件)之前，对HTTP服务器进行拦截
     2、具体作用
         1)拦截HTTP服务器，帮助HTTP服务器检测当前请求的合法性
@@ -288,7 +410,7 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
         2)重写Filter中的doFilter方法，在到达servlet或静态资源之前可能由很多过滤器，那么就要把所有doFilter方法走完才能
         到达servlet的doget
         dopost方法或静态资源
-        3)在web.xml文件中将接口实现类注册到HTTP服务器
+        3)在web.xml文件中将过滤器的接口实现类注册到HTTP服务器
     4、生命周期
         实例化---初始化---diFilter---销毁，生命周期过程中，均由web服务器负责管理
         Filter是在应用启动时被创建和初始化的，Filter是单例多线程的，服务器停止的时候就会被销毁
@@ -309,13 +431,11 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
 
              <filter-mapping>
                  <filter-name>sjd</filter-name>
-                 <url-pattern>/*</url-pattern>  注意：/* 表示当前servlet可以匹配所有请求，可以拦截所有请求
-                                                     请求，无论动态资源还是静态资源;
-                                                     /  不会拦截动态资源请求，即不会拦截对于jsp的请求；但会拦截静态资源请求以及路径型请求
-                                                1、精确匹配：/pic/a.jsp  直接拦截指定的请求
-                                                2、路径匹配：/pic/*      拦截pic下的所有请求
-                                                3、*.jsp:拦截所有以jsp结尾的请求
-                                                /pic/*.jsp  这样是不可以的，不符合以上三种匹配模式
+                 <url-pattern>/*</url-pattern>
+
+                    注意：这里和servlet不同
+                            /* 表示可以匹配所有请求，可以拦截所有请求，无论动态资源还是静态资源;
+                            /  不拦截请求，没有效果
 
                  //可以不指定url-pattern，但需要指定<servlet-name>，即当前拦截器只拦截对指定的servlet的请求
                  <servlet-name>oneservlet</servlet-name>
@@ -331,25 +451,8 @@ tomcat服务器的首页里面点击Manager App进入能看见所有的应用，
 
         过滤器对编码的校正只对get请求方式有效
 
-装饰者设计模式
-    能够在不修改目标类也不继承的情况下，动态扩展一个类的功能，他是通过扩展一个包装对象，也就是装饰者来达到增强目标类的目的；
-
-    装饰者设计模式的实现有两个要求
-    1、装饰者类与目标类要实现相同的接口或继承自相同的抽象类
-    2、装饰者中要有目标类的引用作为成员变量，而具体的赋值一般通过带参构造器完成
-        这两个要求的目的是，在装饰者类中的方法可以调用目标类中的方法，以增强这个方法，而增强这个方法是通过重
-        写的方式进行增强，所以要求实现相同的接口或继承相同的抽象类
-
-        装饰者父类
-            要求1：要有无参构造器
-            要求2：不对目标方法进行任何增强
-        具体装饰者
-            继承自装饰者父类；要由带参构造器，参数是接口；具体装饰者只对装饰者父类业务方法进行某一种增强
-
-
-
         请求和响应都会经过过滤器
-一般情况下，一次请求只会经过过滤器来回一次，但是由于不同的容器版本等原因，其实不一定时只经过一次，所以为了解决这个问题，
+一般情况下，一次请求只会经过过滤器来回一次，但是由于不同的容器版本等原因，其实不一定是只经过一次，所以为了解决这个问题，
 spring为我们封装了一个类OncePerRequestFilter，这个类帮我们解决了这个问题，我们只需要实现了里面的doFilterInternal方法即可；
 一般情况下我们自定义的过滤器最好继承这个类以实现一次请求只会经过过滤器来回一次的目的；
             SomeServiceWapper装饰者父类
@@ -359,89 +462,6 @@ spring为我们封装了一个类OncePerRequestFilter，这个类帮我们解决
         String s = iSomeService2.doSome();
         System.out.println(s);
 
-
-tomcat 的真正启动是在 catalina.bat 设置并启动的。startup.bat 只是找到catalina.bat 然后执行catalina.bat 来启动tomat的，
-现在安装tomcat的时候不需要配置catalina-home，因为在catalina. bat命令行里已经配置了相关参数
-
-打印war包后直接放到tomcat下并启动后会自动解压
-
-DNS：域名解析服务，就是将域名和ip进行映射的服务，而提供这种服务的服务器称为DNS服务器
-
-域名代表的是一个服务器的虚拟主机
-域名解析服务是一级一级找的 先从自己的电脑上的host文件找域名映射，找不到然后道当前运营商的域名解析服务找映射，
-直至全球域名服务映射；域名解析先将你的域名解析成IP从而找到服务器，然后再通过域名找到这个服务器上符合这个域名的虚拟主机；
-虚拟主机在我看来具体表现为存放应用的目录，就像webapps，当然你得要改名字，不然不同的虚拟主机就会去用一个webapps访问资源文件
-
-浏览器在请求服务器时如果请求地址中没有写端口号，浏览器默认访问80端口号，所以可以将服务器中的connector中的端口号改为80来适应
-浏览器的要求，这样可以实现只输入域名不用写端口号就可以访问应用
-
-server.xml解析
-<?xml version="1.0" encoding="UTF-8"?>
-
- <!--只有一个server -->
-<Server port="8005" shutdown="SHUTDOWN">
-  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
-  <!-- Security listener. Documentation at /docs/config/listeners.html
-  <Listener className="org.apache.catalina.security.SecurityListener" />
-  -->
-  <!--APR library loader. Documentation at /docs/apr.html -->
-  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
-  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
-  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
-  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
-  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
-
-  <GlobalNamingResources>
-    <Resource name="UserDatabase" auth="Container"
-              type="org.apache.catalina.UserDatabase"
-              description="User database that can be updated and saved"
-              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
-              pathname="conf/tomcat-users.xml" />
-  </GlobalNamingResources>
-
-   <!--像这样的service可以有多个，如果浏览器想使用这个服务，那么就要使用连接器Connector，所以浏览器输入这个端口号 -->
-  <Service name="Catalina">
-	<!--连接器，协议是http协议 -->
-    <Connector port="8080" protocol="HTTP/1.1"
-               connectionTimeout="20000"
-               redirectPort="8443" />
-
-    <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
-
-	<!--连上服务之后，如何提供服务呢，那么就通过服务引擎，通过服务引擎提供服务，这个引擎在文件夹上的体现就是
-	apache-tomcat-8.5.24\conf\Catalina这个文件夹，删掉会自动创建，这个文件夹下面辉仔顶创建主机以及虚拟主机的文件夹;
-	 defaultHost="localhost" 如果有主机和多个虚拟主机，那么这是会默认访问localhost这个主机-->
-    <Engine name="Catalina" defaultHost="localhost">
-		   <!--用来安全管理的-->
-      <Realm className="org.apache.catalina.realm.LockOutRealm">
-        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
-               resourceName="UserDatabase"/>
-      </Realm>
-
-		<!--为什么开发的时候把应用放到webapps里面，就是因为appBase="webapps"指定好了；unpackWARs="true" 自动解压war包；autoDeploy="true" 自动部署，war包放到运行着的服务器中时，war包自动部署了，无需重新启动服务器-->
-      <Host name="localhost"  appBase="webapps"
-            unpackWARs="true" autoDeploy="true">
-
-			<!--docBase="d:/course/myWeb" 虚拟目录，作用就像webapps这个应用目录，里面放着应用；path="/xxx" 应用路径，
-			URI -->
-			<!--<context path="/xxx" docBase="d:/course/myWeb" />	   -->
-
-        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
-               prefix="localhost_access_log" suffix=".txt"
-               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
-
-      </Host>
-	  <!--虚拟主机name其实对应了域名，但是域名如果没有对应的虚拟主机，则会找defaultHost -->
-	  <Host name="eureka3000.com"  appBase="webapps"
-            unpackWARs="true" autoDeploy="true">
-		</Host>
-    </Engine>
-  </Service>
-</Server>
-
-
-tomcat指定虚拟主机的默认应用可以将应用名改为Root
-修改host文件时需要先将host文件复制出来修改完再粘回去，不然即使在host文件中修改了也不会让你保存
 Servlet是单例的
 servlet中有个方法getservletinfo，这个方法一般可以在里面返回一些说明性文字，譬如版本，作者
 ServletConfig类可以看做是web. xml中的一个servlet的类，见下，当访问一个servlet时，会将访问的这个servlet抽象成一个对象，
@@ -459,8 +479,6 @@ ServletConfig类可以看做是web. xml中的一个servlet的类，见下，当�
 
 GenericServlet这个抽象类里面的init方法为什么会有一个重载
 这个重载是为了当servlet初始化时，我们开发人员可以做一些操作
-
-浏览器只接收iso8859-1的字节型编码，而不接收utf-8的字符型编码，先这样记着，后面相关知识点会继续更新
 
 servlet3.0三大组件使用注解，而不用在web. xml中进行注册
     servlet3.0是没有web. xml文件的，该规范允许了在定义servlet. FIlter. LIstener，方法都是在相应的组件上使
