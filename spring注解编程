@@ -1,0 +1,118 @@
+@Configuration:指定当前类是一个配置类
+细节：当配置类作为AnnotationConfigApplicationContext对象创建的参数时，可以不写此注解
+
+优先使用无参构造器将配置类注入容器，如果没有无参构造器使用有参构造器，有参构造器是能有一个，否则报错
+
+@ComponentScan:用于通过注解指定spring在创建容器时要扫描的包；
+    属性：value:它和basePackages的作用是一样的，都是用于指定创建容器时要扫描的包
+
+@Scope("prototype"):和@Bean配合使用,配置bean的单例或多例,默认单例;单例对象的创建是在容器启动时就创建了，
+                    而多例的对象的创建是在获取对象时创建
+@Lazy ：是针对单例对象的，配置这个注解后，单例对象会在第一次获取 对象时创建
+
+注册组件的方法
+    1、@Bean:用于把当前方法的返回值作为bean对象存入spring的ioc容器中；
+      属性：name：用于指定bean的id，默认时当前方法的名称
+      细节：当我们使用此注解配置方法时，如果方法有参数，spring框架会去容器中查找有没有可用的bean对象，
+              查找方式和autowired注解的作用时一样的
+
+    2、@Import：1、可以导入一个普通的类到容器
+            id默认是全类名
+            2、可以导入ImportSelector类型：返回需要导入的组件的全类名的数组；并将这些类创建的对象放入容器
+                配置类上：@Import({MySelectImport.class})
+                        将返回的所有全类名放到容器
+                public class MySelectImport implements ImportSelector {
+                    //返回值就是要导入到组件的全类名数组
+                    //AnnotationMetadata：获取到当前@import注解的类的所有注解以及他们的注解信息
+                    @Override
+                    public String[] selectImports(AnnotationMetadata importingClassMetadata) {
+                        return new String[]{"com.happiness.com.sjd.common.Role"};
+                    }
+                }
+            3、ImportBeanDefinitionRegistrar
+
+                public class MyBeanDefinitionRegistrar implements ImportBeanDefinitionRegistrar {
+                    /**
+                     * 1、AnnotationMetadata：当前类的注解信息
+                     * 2、BeanDefinitionRegistry：BeanDefinition注册类
+                     *      1、把所有需要添加到容器中的bean，调用BeanDefinitionRegistry的registerBeanDefinition手工注册进来
+                     */
+                    @Override
+                    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+                        registry.registerBeanDefinition("",new RootBeanDefinition(Role.class));
+                    }
+                }
+
+            4、可以导入配置类
+
+    3、使用FactoryBean像容器注册组件
+            由于MyFactoryBean实现了FactoryBean接口，所以注册到容器的对象是getObject方法返回的对象，而不是MyFactoryBean对象；
+            如果需要获取的就是MyFactoryBean对象，需要给id前添加&
+            @Bean
+            public MyFactoryBean myFactoryBean(){
+                return new MyFactoryBean();
+            }
+
+
+bean的生命周期内一些方法
+    1、@Bean(initMethod = "init",destroyMethod = "destroy"):设置对象初始化以及销毁方法
+
+    3、InitializingBean:通过让bean实现InitializingBean(定义初始化逻辑)，会在bean所有属性赋值后自动调用，和init方法相同
+        DisposableBean:通过让bean实现DisposableBean(定义销毁逻辑)，会在bean销毁后自动调用，和destroy方法相同
+
+    4、@PostConstruct 和 @PreDestroy 作用在被@component扫描到的类的方法上，作用在这个bean的生命周期；
+        @PostConstruct 是在这个bean对象创建完成并赋值之后，来执行初始化方法；
+        @PreDestroy 在bean被摧毁destroy之前，执行销毁方法；这两个方法在生命周期内都只执行一次；
+
+    5、BeanPostProcessor接口：初始化方法前后调用
+        postProcessBeforeInitialization：bean的初始化方法前(譬如InitializingBn的afterPropertiesSet方法或者init-method
+                                         方法)执行的方法
+        postProcessAfterInitialization：bean的初始化方法后(同理)执行的方法
+
+        BeanPostProcessor接口在spring底层中的应用
+            1、譬如ApplicationContextAwareProcessor
+                这个类实现了BeanPostProcessor接口，于是所有的组件创建时的初始化方法前后都会调用这个类里的方法，
+                在postProcessBeforeInitialization方法里会调用invokeAwareInterfaces方法从而将相应的属性赋值
+
+@PropertySource:用于加载外部properties文件中的K/V数据到运行的环境变量中；然后使用@value(${})取出数据
+                属性：value:指定文件的名称和路径
+                //这个就是运行的环境变量
+                 Environment environment = applicationContext.getEnvironment();
+                 //通过这个方法获取配置文件中的值也是可以的
+                  String property = environment.getProperty("");
+
+@value：使用@value赋值的几种方式
+        1、基本数值
+        2、可以写SpEL
+        3、可以写${}取出配置文件中的值(在运行的环境变量里的值)
+
+@Conditional(MyCondition.class)：按照某种条件判断，如果满足返回true，否则不满足
+
+    public class MyCondition implements Condition {
+        /*
+         * @author sunjid
+         * @date 2021/5/27
+         * @Describtion
+         * @param  ConditionContext:判断条件能使用的上下文(环境)  AnnotatedTypeMetadata：注解信息
+         * @return
+        */
+        @Override
+        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+            //获取ioc使用的beanFactory
+            ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+            //获取当前环境信息
+            Environment environment = context.getEnvironment();
+            //获取bean的定义信息
+            BeanDefinitionRegistry registry = context.getRegistry();
+
+            String property = environment.getProperty("os.name");
+
+            if("windows".equals(property)){
+                return true;
+            }
+            return false;
+        }
+    }
+
+@Profile
+    指定组件在那个环境的情况下才能被注册到容器中，不指定，任何环境下都能注册这个组件

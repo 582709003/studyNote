@@ -3,13 +3,40 @@ IOC
         1、容器创建完成的时候，容器里的对象也创建好了
         2、默认创建的对象是单例的
         3、ioc创建对象的时候会利用对象的setter方法为javaBean设置属性值
-   总结
-        1、当容器里同一个类型的对象有多个，我们此时如果按照类型从容器里获取这个类型的对象的话，会报错
+
+    创建对象
+        1、静态工厂
+            (不需要创建对象) factory-method="getUser"指定哪个方法是工厂方法,此方法要是静态的，
+            这个bean返回的不是MyFactoryBean的实例，而是getUser方法返回的实例
+
+            <bean id="factoryBean" class="com.happiness.factory.MyFactoryBean" factory-method="getUser"></bean>
+
+         2、实例工厂
+                1、先配置实例工厂
+                2、配置我们要创建的user使用的是哪个工厂
+                    1)配置 factory-bean指定工厂实例
+                    2)配置factory-method指定使用哪个工厂方法创建对象-->
+            <bean id="factoryBean2" class="com.happiness.factory.MyFactoryBean"></bean>
+            <bean id="user" class="com.happiness.pojo.User" factory-bean="factoryBean2" factory-method="getUser"></bean>
+
+         3、FactoryBean
+            介绍
+                是spring规定的一个接口，只要实现了这个接口的实现类，spring都认为是一个工厂
+            内部方法
+                1、T getObject() throws Exception：返回创建的对象，只在获取的时候才会创建
+                2、Class<?> getObjectType()：返回创建的对象类型，spring会自动调用这个方法来确认创建的对象是什么类型
+                3、default boolean isSingleton() {
+                  		return true;
+                  	}：
+
+             使用工厂的步骤
+                1、编写一个实现类
+                2、在spring配置文件中配置，和普通的对象注册一样
 
     底层原理
         xml的解析
         工厂模式
-        反射
+        反射:bean的创建默认就是利用反射new出来的bean实例
     ioc目的：解耦
         ioc的思想基于IOC容器完成，IOC容器底层就是对象工厂；
         Spring提供IOC容器实现的两种方式（两个接口）
@@ -63,7 +90,7 @@ IOC
         4、IOC操作Bean管理(FactoryBean)
             1、Spring中有两种bean，一种普通的bean，一种是工厂bean(FactoryBean)，这是sping内置的bean
                 1、普通bean：配置文件中配置什么类型返回的就是什么类型
-                2、FactoryBean：在配置文件中定义的bean类型返回的类型不一样
+                2、FactoryBean：在配置文件中定义的bean类型和返回的类型不一样
                     public class MyFactoryBean  implements FactoryBean<Role>{
                         @Override
                         public Role getObject() throws Exception {
@@ -89,16 +116,21 @@ IOC
             基于xml文件中可以使用scope属性，值singleton：单例  prototype：多例
 
         6、bean的生命周期
+            单实例bean容器启动的时候就创建，多实例bean获取的时候才会创建bean
             1、生命周期
                 1）通过构造器创建bean实例（无参构造器）
                 2）为bean属性设置值和aware接口需要实现的方法（调用set方法）
-                3）调用bean的初始化方法（需要进行配置）
+                3）调用bean的初始化方法（需要进行配置，方法自定义，不可以有参数） init-method="init"
                 4）bean的使用
-                5）当容器关闭的时候，调用bean的销毁方法（需要进行配置）
+                5）当容器关闭的时候，调用bean的销毁方法（多实例的对象才能调用，需要进行配置，方法自定义，不可以有参数）
+                                                        destroy-method="destroy"
             不能是接口以及实现类
             <bean id="role" class="com.happiness.com.sjd.common.Role" init-method="init"
                 destroy-method="destroy"></bean>
-        7、bean的后置处理器，在初始化方法前后调用
+        7、bean的后置处理器，在初始化方法前后调用，BeanPostProcessor
+            内部方法
+                postProcessBeforeInitialization：执行init-method方法前调用
+                postProcessAfterInitialization：执行init-method方法后调用
             生命周期
                 1）通过构造器创建bean实例（无参构造器）
                 2）为bean属性填充值和aware接口需要实现的方法（调用set方法）
@@ -111,7 +143,7 @@ IOC
                 创建后置处理器(创建对象的过程中会用到后置处理器，和AOP不一样，那是对象创建完毕后，增强对象内某个方法)
                     1、创建类，实现BeanPostProcessor
                     2、注册到xml文件中
-                    配置好的后置处理器会作用于spring容器里的所有对象
+                配置好的后置处理器会作用于spring容器里的所有对象
 
         8、自动装配
             当启用扫描的时候会有一个默认的过滤器去扫描bean，但是我们也可以不适用这个默认的过滤器
@@ -123,24 +155,21 @@ IOC
                 </context:component-scan>
 
         9、基于注解方式实现属性注入
-            1、@AutoWired
-                根据属性类型自动装配
+            1、@AutoWired  spring提供的
+                先根据属性类型自动装配，找到一个就赋值，没找到抛异常；如果按类型找到多个，那就按照变量名匹配
                 用法
                 //通过构造器注入
                 private DependencyA a;
+
                 @Autowired
                 public DI(DependencyA a){
-                this.a = a;
-
+                    this.a = a;
                 }
-                //通过setter方法注入
-                spring容器会在类加载后自动注入这个方法的参数，并执行一遍方法。
-                这就像static{}块语句会初始化执行，但顺序不一样。
-                private DependencyB b;
+                //方法上有这个注解的话
+                spring容器会在类加载后为这个方法上的每一个参数自动注入，并自动执行这个方法。
                 @Autowired
                 public void setDependencyB(DependencyB b){
-                this.b = b;
-
+                    this.b = b;
                 }
                 //通过field反射注入
                 @Autowired
@@ -148,8 +177,8 @@ IOC
 
                 }
             2、@Qualifier
-                根据属性名称自动装配；这个注解的使用需要和@Autowired一起使用
-            3、@Resource
+                根据属性名称自动装配；这个注解的使用需要和@Autowired一起使用,可在方法的形参上使用
+            3、@Resource  javaee提供的，如果框架不是spring了，这个还可以使用
                 可以根据类型注入，也可以根据名称注入
                 @Resource这样是根据类型注入
                 @Resource(name="xxx")这样根据名称注入
@@ -300,6 +329,11 @@ DI:依赖注入
         第一步引入jar包
 
 
+spring源码
+
+
+
+
 spring mvc
     <load-on-startup>1</load-on-startup>
     在启动tomcat时就创建DispatcherServlet
@@ -388,7 +422,7 @@ spring mvc
         　　效果等同于如下代码：
         　　@RequestMapping("/login")
         　　public void login(User user, HttpServletResponse response){
-        　　　　response.getWriter.write(JSONObject.fromObject(user).toString());
+        　　  response.getWriter.write(JSONObject.fromObject(user).toString());
         　　}
         Spring的ResponseBody和RestController注解返回的json数据不是json字符串，而是json对象
 
@@ -429,9 +463,9 @@ spring mvc
 
                 1、没有返回值的情况
                 @RequestMapping("/testServlet/{sid}")
-                                    public void testServlet(@ModelAttribute("role") Role role){
-                                        System.out.println(role);
-                                    }
+                public void testServlet(@ModelAttribute("role") Role role){
+                    System.out.println(role);
+                }
                     @ModelAttribute
                     public void testModelAttribute(String id, Map<String,Role> map) {
                         Role role = new Role(id,"111","222");
