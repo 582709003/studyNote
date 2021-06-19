@@ -1,0 +1,1353 @@
+springmvc有一个思想，就是有一个前端控制器拦截所有请求，并智能派发
+这个前端控制器在springmvc的实现就是dispatchServlet，他应该在web.xml中配置
+springmvc运行流程
+    1、所有请求，前端控制器收到请求，调用dodispatch方法
+    2、根据handlerMapping中保存的请求映射信息找到处理当前请求的处理器(方法)执行链
+    3、根据处理找到适配器
+    4、执行方法的拦截器的prehandle方法
+    5、适配器执行目标方法并返回modelAndView
+    6、拦截器的postHandle方法
+    7、处理目标方法的返回值
+        1、如果有异常使用异常处理器处理异常，处理完后返回modelAndView
+        2、调用render进行页面渲染
+        3、执行拦截器的afterCompletion方法
+
+
+spring mvc
+    <load-on-startup>1</load-on-startup>
+    在启动tomcat时就创建DispatcherServlet
+
+    springmvc是基于组件方式执行流程
+
+    引入jar包spring-web，这个jar包里面包含了@RequestMapping等一些请求使用到的东西
+    1、表单提交参数到后端时，不管是什么类型的参数，其实提交的都是字符串，然后到后端时通过类型转换器将参数转换成相应类型的数据
+        自定义类型转换器
+        1）、实现convertor接口
+            public class MyConvertor implements Converter<String, Date> {
+                @Override
+                public Date convert(String s) {
+                    return null;
+                }
+
+                @Override
+                public <U> Converter<String, U> andThen(Converter<? super Date, ? extends U> after) {
+                    return null;
+                }
+            }
+        2）、<bean id="myConverter" class="org.springframework.context.support.ConversionServiceFactoryBean">
+                  <property name="converters">
+                      <set>
+                          <bean class="com.happiness.com.sjd.convertor.MyConvertor"></bean>
+                      </set>
+                  </property>
+              </bean>
+
+            <mvc:annotation-driven conversion-service="myConverter"></mvc:annotation-driven>
+            注意：我们添加自定义类型转换器到spring容器中，并不会把原来springmvc中定义好的默认类型转换器覆盖。只是在原来的基础上增
+            加我们写的自定义类型转换器。
+
+
+     2、如何在spring mvc框架中的controller方法中使用原生servlet的api获取参数值（request.getParameter()）
+        public void testServlet(HttpServletRequest request, HttpServletResponse response){
+        //直接获取就行了
+            }
+        如果同时用了参数绑定和request获取参数，都是可以获得数据的；
+        请求方法的参数可以是以下几种
+            HttpServletRequest
+            HttpServletResponse
+            HttpSession
+            principal
+            locale
+            inputstream
+            outputstream
+            reader
+            writer
+
+        乱码问题
+            请求乱码
+                get请求：
+                    1、修改server.xml文件，在连接器中找到8080端口，添加URIEncoding="UTF-8"
+                        <Connector connectionTimeout="50000" port="8080" protocol="HTTP/1.1"
+                            redirectPort="8443" URIEncoding="UTF-8"/>
+                         因为大多数浏览器get请求时默认编码方式是utf-8，但是tomcat服务器解码的默认方式iso8859-1
+                    2、String str = new String(name.getByte("iso8859-1"),"utf-8");
+                post请求
+                    1、post请求使用原生api获取参数时，第一次(一定要是第一次，如果其他地方先获取但是没有指定编码方式，那这里再指定编码
+                        就没有用)获取参数值前
+                        request.setCharacterEncoding("utf-8");
+                    2、当参数不是servlet原生api时，例如方法参数是一些简单类型或者自定义的类型获取参数值时，就不好通过request在第一次获取参数时调用
+                        上面的方法设置编码方式，此时我们可以使用spring-web提供的过滤器CharacterEncodingFilter配置在web.xml文件中
+                        encoding   utf-8
+                       这个过滤器一定要配置在第一个，否则其他过滤器先配置的情况下，有可能这些过滤器中会获取参数，这样就导致编码
+                       方式定型了，后面再配置编码过滤器就没用了
+
+     3、注解说明
+        @RequestMapping
+            value和path属性效果是一样的都是指定请求路径
+            method:可接受的请求方式
+            params:用于指定限制请求参数的条件，它支持表达式，要求请求参数的key和value必须和配置的一模一样
+                    params = {"username"}  :请求参数必须有username
+                    params = {"!username"}  :请求参数不能有username
+                    params = {"username=heihei"}：请求参数必须是有username且值是heihei
+                    params = {"money!100"}:表示请求参数中的money不能是100
+
+            headers：用于指定限制请求消息头的条件，发送的请求中必须含有包含的请求头才能访问
+                //只接受谷歌发送的请求
+                @RequestMapping(headers = {"User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36"})
+
+            ant风格
+                url可以写模糊的通配符
+                    ？：能替代任意一个字符
+                    * ：能替代任意多个字符，和一层路径
+                    **：能替代多层路径
+
+            @pathVariable
+
+
+        请求参数的绑定
+            如果我们的请求方法的参数是一个对象，springmvc会自动为这个对象进行赋值
+            表单提交的数据都是k=v格式的，springmvc会将表单提交的请求参数作为控制器中方法的参数进行绑定，要求：提交表单
+            的name和参数的名称是相同的
+            支持的数据类型
+            1、基本数据类型以及字符串类型
+                要求：1、表单提交的name和参数名称苏相同的
+                    2、区分大小写
+            2、实体类(javaBean)
+                1、提交表单的name和javaBean中的属性名称是一致的
+                2、如果一个javaBean类中包含了其他的引用类型，那么表单的name需要编写成：对象.属性
+                    例如：user.name
+            3、集合数据类型(list、map集合等)
+                1、jsp页面编写方式：list[0].属性;  map['xxx'].属性
+
+
+
+
+        @RequestParam 用于注解方法的入参，默认情况下如果方法参数名称和传过来的参数名称一样，就可以直接获取参数值；
+                        但是如果不一样就会报错，此时可以使用name属性进行修改；
+                        这个注解默认不传参数也会报错，也可以通过required属性进行修改
+
+
+        @ResponseBody @ResponseBody注解的作用是将controller的方法返回的对象转化为json数据放到响应体中，返回给浏览器
+                        如果返回的是String等简单的类型，那就直接将此字符串放到响应体中返回给浏览器
+        1、
+        　　@responseBody注解的作用是将controller的方法返回的对象通过适当的转换器转换为指定的格式之后，
+        写入到response对象的body区，通常用来返回JSON数据或者是XML数据，需要注意的呢，在使用此注解之后不会再走试图处理器，
+        而是直接将数据写入到输入流中，他的效果等同于通过response对象输出指定格式的数据。
+        2、　　
+        　　@RequestMapping("/login")
+        　　@ResponseBody
+        　　public User login(User user){
+        　　　　return user;
+        　　}
+        　　User字段：userName pwd
+        　　那么在前台接收到的数据为：'{"userName":"xxx","pwd":"xxx"}'
+        　　效果等同于如下代码：
+        　　@RequestMapping("/login")
+        　　public void login(User user, HttpServletResponse response){
+        　　  response.getWriter.write(JSONObject.fromObject(user).toString());
+        　　}
+
+        @RequestBody 用于获取请求体的内容，直接得到的是key=value结构的数据，get请求不适用，因为没有请求体;
+            required:是否必须有请求体，默认值true；当为true时，get请求会报错，如果取值false，get请求得到null；
+            @requestBody注解常用来处理content-type不是默认的application/x-www-form-urlcoded编码的内容，
+            比如说：application/json或者是application/xml等。一般情况下来说常用其来处理application/json类型。
+            通过@requestBody可以将请求体中的JSON字符串绑定到相应的bean上(如果是绑定到bean上，需要在ajax中加入
+             contentType: ‘application/json’ ，意思是我传过去的是json字符串)，当然，也可以将其分别绑定到对应的字符串上。
+            需要注意的是，JSON字符串中的key必须对应user中的属性名，否则是请求不过去的。
+
+        HttpEntity:比@RequestBody更强，可以拿到所有的请求头内容
+            @RequestMapping("/hello")
+            public void hello(HttpEntity<String> body){
+                myServices.sayHello();
+                System.out.println("hello............");
+            }
+
+        @PathVariable springmvc支持rest风格url的一个重要标志；用于绑定url中的占位符
+            @RequestMapping("/testServlet/{sid}")
+            public void testServlet(@PathVariable("sid") String id){
+                System.out.println(id);
+            }
+            注意：restFul风格：请求资源url相同，但是可以根据请求方式或者@PathVariable格式来请求具体的资源；
+             rest风格推荐
+                url地址这么起名：/资源名/资源标识符
+                                举例：相同的url  /book/1    :get请求----查询一号图书；put----更新一号图书；delete----删除一号图书.....
+                                资源表示符(这里是1)就是用@PathVariable来获取
+
+
+            http协议里，四个表示操作方式的动词
+                get    ：获取资源
+                post   ：新建资源
+                put    ：更新资源
+                delete ：删除资源
+
+        @RequestHeader 用于获取请求消息头，属性value提供消息头的名称，required：是否必须有次消息头；
+                        实际开发中一般不适用此注解
+            //可以获取请求头中属性的相关值
+            @RequestMapping("/testServlet/{sid}")
+                public void testServlet(@RequestHeader("access-control-allow-origin") String id){
+                    System.out.println(id);
+                }
+
+        @CookieValue 用于把指定cookie名称的值传入控制器方法参数 属性value：指定cookie名称  required：是否必须有此cookie
+            @RequestMapping("/testServlet")
+                public void testServlet(@CookieValue("JSESSIONID") String id){
+                    System.out.println(id);
+                }
+
+        @ModelAttribute 用于修饰方法和参数上；出现在方法上，表示当前方法会在控制器的方法执行之前先执行。
+                        被该注解修饰的方法，会在每一次请求时优先执行;
+                1）@ModelAttribute注释void返回值的方法
+                1、没有返回值的情况
+                    @ModelAttribute
+                    public void testModelAttribute(String id, Map<String,Role> map) {
+                        Role role = new Role(id,"111","222");
+                        //先往请求域(map、model、modelMap都可以)中添加这个key-value
+                        map.put("role",role);
+                    }
+
+                @RequestMapping("/testServlet/{sid}")
+                //从请求域中获取之前设置的value值
+                public void testServlet(@ModelAttribute("role") Role role){
+                    System.out.println(role);
+                }
+
+                2、有返回值的情况
+                    @ModelAttribute
+                    public Role testModelAttribute(String id) {
+                        Role role = new Role(id,"111","222");
+                        //设置属性名为role，value为role这个对象到请求域中
+                        return role;
+                    }
+
+                    @RequestMapping("/testServlet/{sid}")
+                    //从请求域中获取之前设置到请求域中的对象
+                    public void testServlet(@ModelAttribute Role role){
+                        System.out.println(role);
+                    }
+
+
+            @SessionAttributes 用于多次执行控制器方法间的参数共享; value用于指定存入的属性名称，type 用于指定存入的数据类型，这两个是
+                或者的关系，只要满足一个就可以暂存到session；
+                注意：这个注解不推荐，还是使用原生api； Session().setAttribute(key,value);
+                若希望在多个请求之间共用数据，则可以在控制器类上标注一个 @SessionAttributes,配置需要在session中存放的数据范围，
+                Spring MVC将存放在model、map、modelMap、modelAndView中对应的数据也同时暂存到HttpSession中。
+                @SessionAttributes只能使用在类定义上。
+                @SessionAttributes 除了可以通过属性名指定需要放到会 话中的属性外，还可以通过模型属性的对象类型指定哪些模型属性需要放到会话中 例如：
+                @SessionAttributes(types=User.class)会将model中所有类型为 User的属性添加到会话中。
+                @SessionAttributes(value={“user1”, “user2”}) 会将model中属性名为user1和user2的属性添加到会话中。
+                @SessionAttributes(types={User.class, Dept.class}) 会将model中所有类型为 User和Dept的属性添加到会话中。
+                @SessionAttributes(value={“user1”,“user2”},types={Dept.class})会将model中属性名为user1和user2以及类型为Dept的属性添加到会话中。
+                value和type之间是并集关系
+
+            在方法参数传入Model、map、modelMap，在这些参数里保存的所有数据都会放在域中，可在页面获取这些数据
+            ①Model
+            Model是一个接口，它的实现类为ExtendedModelMap，继承ModelMap类，spring框架自动创建实例并作为controller的入参，
+                        用户无需自己创建此对象
+            Map用法和model一样
+            ②ModelMap
+            ModelMap继承LinkedHashMap，spring框架自动创建实例并作为controller的入参，用户无需自己创建此对象，用法和model差不多
+            ③ModelAndView
+            顾名思义，ModelAndView指模型和视图的集合，既包含模型 又包含视图；ModelAndView的
+            实例是开发者自己手动创建的，这也是和ModelMap主要不同点之一；ModelAndView其实就是两个作用，
+            一个是指定返回页面，另一个是在返回页面的同时添加属性
+           以上数据都是设置到request作用域里
+
+    4、响应方式
+        //返回值是void的情况下，如何响应
+         @RequestMapping("/testServlet/testSessionAttribute")
+             public void testSessionAttribute(HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+                 //1、方式1，请求转发,不用编写项目名称，
+                 request.getRequestDispatcher("/WEB-INF/pages/success.jsp").forward(request,response);
+
+                 //2、请求重定向,就是一个全新的请求，需要完整请求路径
+                 response.sendRedirect(request.getContextPath+"/index.jsp");
+                 //3、直接响应
+                 response.getWriter().println("");
+             }
+
+         //有返回值的情况下，如何响应
+             @RequestMapping("/testServlet/testSessionAttribute")
+             public String testFowardOrRedirect(HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+                 //使用关键字：请求转发
+                 //return "forward:/WEB-INF/pages/successful.jsp";
+                 //使用关键字：重定向（默认是当前项目下的页面）
+                 return "redirect:/successful.jsp";
+                 //或者直接返回字符串，通过视图解析器进行跳转
+             }
+
+
+
+    4、浏览器form表单只支持get和post请求，而delete以及put等请求方式是不支持的，基于HiddenHttpMethodFilter,可以将你的请求方式修改为其他方式，
+        基于表单实现更改请求方式的过程
+            1、在web.xml中配置过滤器
+            2、请求方式必须使用post
+            3、表单中提供隐藏域，name固定的是_method，这里写你想要转换的请求方式
+
+    5、文件上传
+        spring提供一个文件解析器multipartResolver(有一个实现类CommonsMultipartResolver,这个实现类里可以配置很多属性值,
+        譬如maxUploadSize最大上传的字节，默认编码等)，请求时首先会通过spring控制器，
+        控制器进行解析请求，并将请求的上传文件封装到MultipartFile file 对象里，这样我们就可以对上传的文件进行操作了；
+        步骤
+            1、文件上传表单里准备：enctype="multipart/form-data"
+            2、导入fileUpload
+                commons-fileupload-1.2.1.jar
+                commons-io-2.0.jar
+            3、在springmvc配置文件中配置文件解析器multipartResolver(CommonsMultipartResolver)
+            4、文件上传请求处理
+                  @RequestMapping("/upload")
+                     //文件上传时，表单里普通类型的参数可以直接在请求方法的参数里直接获取；file是文件项
+                     public void upload(String name, @RequestParam("fileName") MultipartFile file){
+                         String name = file.getName();
+                         System.out.println(name);
+                         String originalFilename = file.getOriginalFilename();
+                         System.out.println(originalFilename);
+                         //文件保存
+                         file.transferTo("保存的文件路径");
+
+                     }
+
+         多文件上传
+             @RequestMapping("/uploads")
+             //文件上传时，表单里普通类型的参数可以直接在请求方法的参数里直接获取；file是文件项
+             public void uploads(String name, @RequestParam("fileName") MultipartFile[] file){
+                 for (int i = 0; i < file.length; i++) {
+                     if(!file[i].isEmpty()){
+                         String name = file[i].getName();
+                         System.out.println(name);
+                         String originalFilename = file[i].getOriginalFilename();
+                         System.out.println(originalFilename);
+                         //文件保存
+                         file[i].transferTo("保存的文件路径");
+                     }
+                 }
+             }
+
+             @RequestMapping("/uploads")
+                //文件上传时，表单里普通类型的参数可以直接在请求方法的参数里直接获取；file是文件项
+                public void uploads(String name, @RequestParam("fileName") MultipartFile[] file, @RequestParam("img") MultipartFile img){
+                    //1、表单域里有多个type=file,name属性一样的情况下，就遍历
+                    //2、表单域里有多个type=file,name属性不一样的情况下，就再请求方法的参数上多添加几个@RequestParam("fileName") MultipartFile file
+                    for (int i = 0; i < file.length; i++) {
+                        if(!file[i].isEmpty()){
+                            String name = file[i].getName();
+                            System.out.println(name);
+                            String originalFilename = file[i].getOriginalFilename();
+                            System.out.println(originalFilename);
+                            //文件保存
+                            file[i].transferTo("保存的文件路径");
+                        }
+                    }
+                }
+
+       文件下载
+
+
+    6、springmvc异常处理
+        springmvc提供了异常处理器组件handlerExceptionResolvers
+        如果ioc容器里没有异常处理器，springmvc就使用默认的几个异常处理器
+        1、ExceptionHandlerExceptionResolver  处理标有@ExceptionHandler的注解
+        2、ResponseStatusExceptionResolver   处理标有@ResponseStatus的注解
+        3、DefaultHandlerExceptionResolver   处理springmvc自带的异常
+
+        异常处理流程
+        1、当执行mv = ha.handle(processedRequest, response, mappedHandler.getHandler());时出现异常
+        2、会执行processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException)方法
+            并传入dispatchException
+        3、if (exception != null) {
+            if (exception instanceof ModelAndViewDefiningException) {
+                logger.debug("ModelAndViewDefiningException encountered", exception);
+                mv = ((ModelAndViewDefiningException) exception).getModelAndView();
+            }
+            else {
+                Object handler = (mappedHandler != null ? mappedHandler.getHandler() : null);
+                //处理异常，如果这里的异常解析器都不能处理异常，异常就会抛出去给了tomcat
+                mv = processHandlerException(request, response, handler, exception);
+                errorView = (mv != null);
+            }
+          }
+         // Did the handler return a view to render?
+        if (mv != null && !mv.wasCleared()) {
+            //渲染页面
+            render(mv, request, response);
+            if (errorView) {
+                WebUtils.clearErrorRequestAttributes(request);
+            }
+        }
+
+        1、处理@ExceptionHandler的注解的异常
+                ExceptionHandlerExceptionResolver处理
+            //告诉springmvc这个方法专门处理这个类发生的异常
+            //1、参数接收请求方法产生的异常
+            //2、参数部分不能写model、map、modelmap，但是可以在方法体内new modelAndView并返回
+            @ExceptionHandler(Exception.class)
+            public void handleException(Exception ex){
+
+            }
+
+            @ExceptionHandler全局异常处理
+            1、自定义一个全局异常处理类
+            2、类上添加注解@ControllerAdvice,专门处理异常，这也是一个@Component注解
+            3、在类里添加方法，方法上添加 @ExceptionHandler，可以添加多个方法处理不同类型的异常
+             @ExceptionHandler(Exception.class)
+                public void handleException(Exception ex){
+
+                }
+            如果同时有这两个处理异常的地方，优先会使用本类里面的异常处理方法，找不到才会使用全局异常处理类里的方法
+
+        2、ResponseStatusExceptionResolver   处理标有@ResponseStatus注解的异常
+            1、自定义一个异常
+            2、在异常类上标有@ResponseStatus并写有异常的reason以及异常的状态码
+            3、请求方法时如果抛出我们自定义的异常，那么浏览器就会出现我们自定义的异常的状态码以及理由的页面
+
+    7、springmvc拦截器
+        用于对controller进行预处理和后处理；经过拦截器后响应时还会经过拦截器；运用了AOP思想
+        拦截器链就是按照一定的顺序连接成一条链，在访问被拦截的方法或字段时，拦截器链中的拦截器就会按照之前定义的顺序被调用；
+        他和过滤器链有几分相像，但是也有区别；
+        过滤器：时servlet中组件，任何javaweb工程都可以使用过滤器
+        拦截器：是springmvc框架的，是由使用了springmvc框架才可以使用拦截器
+        过滤器：在url-pattern配置了/*之后，可以对所有要访问的资源进行拦截
+        拦截器：他只会拦截访问的控制器方法，如果访问jsp，以及静态资源时不会被拦截
+        实现拦截器步骤
+        1、必须实现HandlerInterceptor接口
+        2、配置自定义拦截器的路径
+
+    8、拦截器方法介绍
+        //执行控制器方法前执行，return true:执行下一个拦截器，如果没有就执行控制器方法
+                             return false：不放行，使用request、response进行响应
+        default boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+            return true;
+        }
+            //这边也可以通过request以及response跳转其他页面，或者响应；目标方法调用之后来到这
+            default void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable ModelAndView modelAndView) throws Exception {
+            }
+            //已经放行了preHandle的拦截器总会执行这个方法
+            default void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) throws Exception {
+            }
+
+        多个拦截器执行流程
+            1、只要有一个拦截器在执行preHandle时返回false，下面的目标方法以及postHandle都不执行；
+                但是会将return true的拦截器执行triggerAfterCompletion方法
+                if (!interceptor.preHandle(request, response, this.handler)) {
+                        triggerAfterCompletion(request, response, null);
+                        return false;
+                    }
+
+
+
+    9、类型转换器
+        ConversionServiceFactoryBean对象创建完后会执行afterPropertiesSet方法，这个方法里会创建很多默认的转换器，
+        并且将这些转换器放入到conversionService，此时会将你自定义的类型转换器也放入到这个conversionService
+        GenericConversionService这个类里面的getConverter会根据你的提交的数据类型以及需要转换的类型来选择类型转换器
+
+       spring如何在启动服务器时初始化默认的类型转换器
+        1、启动spring
+
+        private static void base() {
+                ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
+                        new String[] { "classpath:applicationContext.xml" });
+                context.start();
+            }
+        2、ClassPathXmlApplicationContext中
+
+        public ClassPathXmlApplicationContext(String[] configLocations, boolean refresh, ApplicationContext parent)
+                    throws BeansException {
+
+                super(parent);
+                //设置默认的环境（包括默认的转换器及对路径表达式的解析），但是在springboot启动中没有这个
+                setConfigLocations(configLocations);
+                if (refresh) {
+                    refresh();
+                }
+            }
+        3、setConfigLocations(configLocations)方法中调用AbstractRefreshableConfigApplicationContext中的
+            resolvePath方法
+
+        protected String resolvePath(String path) {
+                //获取默认环境配置及转换路径中的表达式
+                return getEnvironment().resolveRequiredPlaceholders(path);
+            }
+        PropertySourcesPropertyResolver类里的 protected <T> T getProperty(String key, Class<T> targetValueType, boolean resolveNestedPlaceholders) 方法
+
+        然后调用convertValueIfNecessary方法
+
+        public static ConversionService getSharedInstance() {
+                DefaultConversionService cs = sharedInstance;
+                if (cs == null) {
+                    Class var1 = DefaultConversionService.class;
+                    synchronized(DefaultConversionService.class) {
+                        cs = sharedInstance;
+                        if (cs == null) {
+                            cs = new DefaultConversionService();
+                            sharedInstance = cs;
+                        }
+                    }
+                }
+
+                return cs;
+            }
+
+        4、DefaultConversionService类中
+
+        public static void addDefaultConverters(ConverterRegistry converterRegistry) {
+                addScalarConverters(converterRegistry);
+                addCollectionConverters(converterRegistry);
+
+                converterRegistry.addConverter(new ByteBufferConverter((ConversionService) converterRegistry));
+                if (jsr310Available) {
+                    Jsr310ConverterRegistrar.registerJsr310Converters(converterRegistry);
+                }
+
+                converterRegistry.addConverter(new ObjectToObjectConverter());
+                converterRegistry.addConverter(new IdToEntityConverter((ConversionService) converterRegistry));
+                converterRegistry.addConverter(new FallbackObjectToStringConverter());
+                if (javaUtilOptionalClassAvailable) {
+                    converterRegistry.addConverter(new ObjectToOptionalConverter((ConversionService) converterRegistry));
+                }
+            }
+
+
+
+
+
+
+
+
+spring配置文件如何配置可以通过注解创建dao、service、controller
+    1、给要添加的组件标注@service、@controller、@component...注解
+    2、配置文件中使用componentScan扫描组件
+    3、导入aop包，支持注解模式
+
+spring如何整合javaweb容器从而通过启动servlet容器工作
+    也就是如何在普通的servlet中使用spring容器中的对象进行工作
+    1、在web.xml文件中配置ContextLoaderListener监听器，并配置spring的配置文件位置
+         <context-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:xxx.xml</param-value>
+        </context-param>
+        这样在servlet容器启动时会加载spring配置文件并注入对象
+
+    2、我们可以在普通的servlet中通过以下方法获取spring容器进而获得容器里的对象
+        ContextLoader.getCurrentWebApplicationContext();
+        进而进行业务逻辑的处理
+
+Spring整合springmvc
+    整合的目的
+        1、分工明确
+            springmvc的配置文件就是来配置和网站转发逻辑以及网站功能有关的(视图解析器、文件上传解析器....)
+            spring的配置文件用来配置和业务有关的(事务控制、数据源.....)
+        2、整合的方式
+            1、在springmvc的配置文件中导入spring的配置文件，这种方式只会创建一个容器，两个配置文件共用
+            2、在web.xml文件中配置ContextLoaderListener监听器，将spring的配置文件路径配置上去
+                然后web.xml文件中配置dispatchServlet，由于dispatchServlet属于servlet，所以servlet容器启动时会加载这个
+                dispatchServlet，我们可以在这个dispatchServlet配置springmvc的配置文件
+                <servlet>
+                    <servlet-name>dispatcher</servlet-name>
+                    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+                    <init-param>
+                      <param-name>contextConfigLocation</param-name>
+                      <param-value>classpath:springmvc.xml</param-value>
+                    </init-param>
+                    <load-on-startup>1</load-on-startup>
+                  </servlet>
+                 这样我们的servlet容器启动后就会创建两个容器
+    推荐spring和springmvc分容器，各自创建自己的容器
+
+    问题：
+        这样创建好了两个容器后，如果俩个容器扫描的组件是一样的，这样就会分别在两个容器中各创建自己的组件对象；我们在访问服务时
+        都会被dispatchServlet拦截，这里面组件优先用的springmvc容器中创建的组件对象，那么如何让spring来管理业务逻辑的组件，
+        springmvc来管理控制器组件呢
+    解决：
+        spring扫描除controller以外的组件，springmvc扫描controller的组件
+
+    spring和springmvc父子容器
+        介绍
+            在spring和springmvc进行整合的时候，一般情况下我们会使用不同的配置文件来配置spring和springmvc，
+            因此我们的应用中会存在至少2个ApplicationContext实例，由于是在web应用中，因此最终实例化的是ApplicationContext的
+            子接口WebApplicationContext；
+            上图中显示了2个WebApplicationContext实例，为了进行区分，分别称之为：Servlet WebApplicationContext、
+            Root WebApplicationContext。 其中：
+            Servlet WebApplicationContext：这是对J2EE三层架构中的web层进行配置，如控制器(controller)、
+                                            视图解析器(view resolvers)等相关的bean。通过spring mvc中提供的DispatchServlet
+                                            来加载配置，通常情况下，配置文件的名称为spring-servlet.xml。
+            Root WebApplicationContext：这是对J2EE三层架构中的service层、dao层进行配置，如业务bean，数据源(DataSource)等。
+                                        通常情况下，配置文件的名称为applicationContext.xml。在web应用中，其一般通过
+                                        ContextLoaderListener来加载。
+
+            在上面的配置中：
+            1、ContextLoaderListener会被优先初始化时，其会根据<context-param>元素中contextConfigLocation参数指定的配置文件路径，
+            在这里就是"/WEB-INF/spring/applicationContext.xml”，来创建WebApplicationContext实例。 并调用ServletContext的
+            setAttribute方法，将其设置到ServletContext中，属性的key为”org.springframework.web.context.WebApplicationContext.ROOT”，
+            最后的”ROOT"字样表明这是一个 Root WebApplicationContext。
+            2、DispatcherServlet在初始化时，会根据<init-param>元素中contextConfigLocation参数指定的配置文件路径，
+              即"/WEB-INF/spring/spring-servlet.xml”，来创建Servlet WebApplicationContext。同时，其会调用ServletContext
+              的getAttribute方法来判断是否存在Root WebApplicationContext。如果存在，则将其设置为自己的parent。这就是父子上下文
+              (父子容器)的概念。
+              父子容器的作用在于，当我们尝试从child context(即：Servlet WebApplicationContext)中获取一个bean时，如果找不到，
+              则会委派给parent context (即Root WebApplicationContext)来查找。
+                如果我们没有通过ContextLoaderListener来创建Root WebApplicationContext，那么Servlet WebApplicationContext的parent就是null，也就是没有parent context
+                注意：父容器不能访问子容器对象，但子容器可以访问父容器对象
+        2、为什么要有父子容器
+        笔者理解，父子容器的作用主要是划分框架边界。
+                在J2EE三层架构中，在service层我们一般使用spring框架， 而在web层则有多种选择，如spring mvc、struts等。
+                因此，通常对于web层我们会使用单独的配置文件。例如在上面的案例中，一开始我们使用spring-servlet.xml来配置
+                web层，使用applicationContext.xml来配置service、dao层。如果现在我们想把web层从spring mvc替换成struts，
+                那么只需要将spring-servlet.xml替换成Struts的配置文件struts.xml即可，而applicationContext.xml不需要改变。
+                事实上，如果你的项目确定了只使用spring和spring mvc的话，你甚至可以将service 、dao、web层的bean都放到
+                spring-servlet.xml中进行配置，并不是一定要将service、dao层的配置单独放到applicationContext.xml中，
+                然后使用ContextLoaderListener来加载。在这种情况下，就没有了Root WebApplicationContext，
+                只有Servlet WebApplicationContext。
+
+        3、相关问题
+        1.为什么不能在Spring的applicationContext.xml中配置全局扫描
+        如果都在spring容器中，这时的SpringMVC容器中没有对象，所以加载处理器，适配器的时候就会找不到映射对象，映射关系，
+        因此在页面上就会出现404的错误。
+        因为在解析@ReqestMapping解析过程中，initHandlerMethods()函数只是对Spring MVC 容器中的bean进行处理的，
+        并没有去查找父容器的bean。因此不会对父容器中含有@RequestMapping注解的函数进行处理，更不会生成相应的handler。
+        所以当请求过来时找不到处理的handler，导致404。
+
+        2.如果不用Spring容器，直接把所有层放入SpringMVC容器的配置spring-servlet.xml中可不可以
+        如果把所有层放入SpringMVC的。但是事务和AOP的相关功能不能使用（事务的时候，是在同一个容器才能达到事务作用，
+        可能是因为sprigmvc容器事务相关没有配置，这个还没有验证）。
+
+        3.同时扫描
+        会在两个父子IOC容器中生成大量的相同bean，这就会造成内存资源的浪费。
+
+        一般正常的操作
+        因为@RequestMapping一般会和@Controller搭配使。为了防止重复注册bean，建议在spring-servlet.xml配置文件中只扫
+        描含有Controller bean的包，其它的共用bean的注册定义到applicationContext.xml文件中。
+
+    注意
+        1.Spring容器导入的properties配置文件，只能在Spring容器中用而在SpringMVC容器中不能读取到。 需要在SpringMVC的配置
+        文件中重新进行导入properties文件，并且同样在父容器Spring中不能被使用，导入后使用@Value("${key}")在java类中进行读取。
+
+    1、启动tomcat服务器时，需要加载spring的配置文件
+        启动tomcat时会创建servletContext对象，这个对象有一个监听器叫做ContextLoaderListener，这个监听器
+        里加载了spring的配置文件，这个监听器对象是spring-web jar包提供的，我们只需要配置这个监听器即可(
+        默认加载的是WEB-INF/下的，可以使用以下进行修改读取路径
+        <context-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:xxx.xml</param-value>
+        </context-param>
+        spring的配置文件默认名称是applictionContext.xml)
+
+
+
+spring整合mybatis框架
+    在spring的配置文件中配置mybatis
+
+    整合过程，启动tomcat时在web.xml文件中加载springmvc配置文件，并且配置servletconxt监听器，这个监听器会去默认路径加载
+    默认名称的spring的配置文件，然后我们在spring的配置文件中配置mybatis的配置信息
+
+spring的申明是事务管理
+    事务用到了Aop思想，事务其实就是通知，增强的部分，通知到切点，就是切面
+
+
+
+
+
+
+
+
+
+
+
+
+
+springmvc初始化
+    注意：在Web环境中是由Spring和SpringMvc两个容器组成的，在SpringBoot环境中只有一个容器
+    AnnotationConfigEmbeddedWebApplicationContext。也就是可以说是由SpringBoot容器管理的。
+    父子容器中，获取bean的时候会先从子容器中获取，获取不到再从父容器中获取
+
+    当启动dispatchservlet时，会调用init方法
+    1、HttpServletBean
+    重写了GenericServlet的init方法,servelt实例化时init方法会被调用：
+    总结：主要使用ServletConfig配置信息初始化DispatchServlet的一些属性，如使用web.xml时配置的contextConfigLocation
+
+    2、FrameworkServlet
+    1)重写initServletBean（）初始化IOC容器
+    调用链：HttpServletBean.init()-->FrameworkServlet.initServletBean（）
+
+    @Override
+    	protected final void initServletBean() throws ServletException {
+    		getServletContext().log("Initializing Spring FrameworkServlet '" + getServletName() + "'");
+    		if (this.logger.isInfoEnabled()) {
+    			this.logger.info("FrameworkServlet '" + getServletName() + "': initialization started");
+    		}
+    		long startTime = System.currentTimeMillis();
+
+    		try {
+             　　　　　　 　　//初始化ioc容器（设置父子容器并刷新子容器）
+    			this.webApplicationContext = initWebApplicationContext();
+              　　　　　　　　//空方法，留给子类扩展
+    			initFrameworkServlet();
+    		}
+    		...
+    	}
+
+    	核心方法initWebApplicationContext（）：
+
+        protected WebApplicationContext initWebApplicationContext() {
+          		//根据ServletContext.getAttribute来获取到WebApplicationContext（根容器），
+          		而获取到的根容器是之前由ContextLoaderListener（ServletContextListener）的contextInitialized方法将根容器
+          		保存在了ServletContext
+        		WebApplicationContext rootContext =
+        				WebApplicationContextUtils.getWebApplicationContext(getServletContext());
+        		WebApplicationContext wac = null;
+          		//this.webApplicationContext为子容器（保存SpringMVC组件），如果我们使用的是配置类的方式即继承
+          		AbstractAnnotationConfigDispatcherServletInitializer来指定创建父子容器，那么在Servlet容器启动的时侯
+          		webApplicationContext就被创建了
+        		if (this.webApplicationContext != null) {
+        			wac = this.webApplicationContext;
+        			if (wac instanceof ConfigurableWebApplicationContext) {
+        				ConfigurableWebApplicationContext cwac = (ConfigurableWebApplicationContext) wac;
+        				if (!cwac.isActive()) {
+        					if (cwac.getParent() == null) {
+                             	　　　　　　　　　　//将根容器设置为子容器（保存SpringMVC组件）的父容器
+        						cwac.setParent(rootContext);
+        					}
+                            //注解版走这走；配置并且刷新容器（启动初始化容器过程）,之前的子容器只是被创建没有调用refresh
+                            //这个方法里有
+                            //方法wac.addApplicationListener(new SourceFilteringListener(wac, new ContextRefreshListener()));
+                            //添加了ContextRefreshListener监听器，当refresh方法启动ApplicationContext
+                            //refresh->finishRefresh的时候会publishEvent(new ContextRefreshedEvent(this))触发
+                            //ContextRefreshListener();初始化handlerMapping等
+        					configureAndRefreshWebApplicationContext(cwac);
+        				}
+        			}
+        		}
+
+        		if (wac == null) {
+                  　//如果子容器还没又被创建，尝试去ServletContext中以获取
+        			wac = findWebApplicationContext();
+        		}
+        		//xml配置文件的方式而不是注解的方式时就走这走
+        		if (wac == null) {
+                  　//如果子容器还为空，就通过web.xml配置的参数contextConfigLocation指定的Xml配置文件路径来创建一个
+                    //XmlWebApplicationContext类型的ioc子容器，设置父子容器关系，并刷新。
+        			wac = createWebApplicationContext(rootContext);
+        		}
+
+        		if (!this.refreshEventReceived) {
+                   //在DispatchServlet中实现，配置文件xml版中的刷新容器的方法
+        			onRefresh(wac);
+        		}
+        		//this.publishContext指定是否将web容器发布在ServletContext中，默认为ture
+        		if (this.publishContext) {
+        			String attrName = getServletContextAttributeName();
+                  	//将初始化好的ioc容器放入ServletContext中
+        			getServletContext().setAttribute(attrName, wac);
+        			if (this.logger.isDebugEnabled()) {
+        				this.logger.debug("Published WebApplicationContext of servlet '" + getServletName() +
+        						"' as ServletContext attribute with name [" + attrName + "]");
+        			}
+        		}
+        		return wac;
+        	}
+
+        	FrameworkServlet的initServletBean方法主要就是初始化IOC容器，包括一个子容器（保存springmvc组件，
+        	如Controller、ViewResolver、HandlerMapping等等）和一个父容器（保存业务逻辑组件，如service,dao）,
+
+        	2）重写了HttpServelt的service方法
+            @Override
+            protected void service(HttpServletRequest request, HttpServletResponse response)
+            		throws ServletException, IOException {
+
+            	HttpMethod httpMethod = HttpMethod.resolve(request.getMethod());
+            	if (HttpMethod.PATCH == httpMethod || httpMethod == null) {
+                  	　　　　//处理PATCH请求
+            		processRequest(request, response);
+            	}
+            	else {
+                  	　　　　//如果不是PATCH请求，调用HttpServelt.service()
+            		super.service(request, response);
+            	}
+            }
+            FrameworkServlet也重写了doGet、doPost、xxx等对应处理各类型请求的方法，最终都是调用了processRequest(request, response)来处理：
+
+            protected final void processRequest(HttpServletRequest request, HttpServletResponse response)
+                  throws ServletException, IOException {
+
+               long startTime = System.currentTimeMillis();
+               Throwable failureCause = null;
+               //获取之前LocaleContext（主要作用是封装请求的 Locale 信息，主要就是语言信息）默认不存在
+               LocaleContext previousLocaleContext = LocaleContextHolder.getLocaleContext();
+              //创建本次请求的localeContext
+               LocaleContext localeContext = buildLocaleContext(request);
+            	//获取之前RequestAttributes（封装request，response）默认不存在
+               RequestAttributes previousAttributes = RequestContextHolder.getRequestAttributes();
+              	//创建本次请求的requestAttributes
+               ServletRequestAttributes requestAttributes = buildRequestAttributes(request, response, previousAttributes);
+            	//与异步请求相关的处理
+               WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+               asyncManager.registerCallableInterceptor(FrameworkServlet.class.getName(), new RequestBindingInterceptor());
+            	//将localeContext、requestAttributes分别保存在LocaleContextHolder、RequestContextHolder中，两者都是使用ThreadLocal与当前线程绑定
+               initContextHolders(request, localeContext, requestAttributes);
+
+               try {
+                 //真正的处理请求过程在DispatchServlet中实现
+                  doService(request, response);
+               }
+               catch (ServletException ex) {
+                  failureCause = ex;
+                  throw ex;
+               }
+               catch (IOException ex) {
+                  failureCause = ex;
+                  throw ex;
+               }
+               catch (Throwable ex) {
+                  failureCause = ex;
+                  throw new NestedServletException("Request processing failed", ex);
+               }
+
+               finally {
+                 //完成请求默认移除requestAttributes和localeContext
+                  resetContextHolders(request, previousLocaleContext, previousAttributes);
+                  if (requestAttributes != null) {
+                     requestAttributes.requestCompleted();
+                  }
+
+                  if (logger.isDebugEnabled()) {
+                     if (failureCause != null) {
+                        this.logger.debug("Could not complete request", failureCause);
+                     }
+                     else {
+                        if (asyncManager.isConcurrentHandlingStarted()) {
+                           logger.debug("Leaving response open for concurrent processing");
+                        }
+                        else {
+                           this.logger.debug("Successfully completed request");
+                        }
+                     }
+                  }
+            	  //无论请求是否成功都会发布请求处理完成事件（我们可以向容器中添加相应的事件监听器）
+                  publishRequestHandledEvent(request, response, startTime, failureCause);
+               }
+            }
+
+
+            总结：1、在Servlet初始化阶段，初始化了IOC容器
+                 2、在处理请求阶段，做了一些提前的准备工作
+
+        3、DispatcherServlet
+        1）重写onRefresh,初始化SpringMvc工作组件
+        HttpServletBean.init()-->FrameworkServlet.initServletBean（）-->FrameworkServlet.initWebApplicationContext()
+        -->DispatcherServlet.onRefresh(ApplicationContext context)
+
+        @Override
+        protected void onRefresh(ApplicationContext context) {
+          //context就是在FrameworkServlet.initWebApplicationContext()中完成初始化工作的IOC容器
+           initStrategies(context);
+        }
+        //完成各组件的初始化
+        protected void initStrategies(ApplicationContext context) {
+        　　//初始化文件上传的处理类
+           initMultipartResolver(context);
+           initLocaleResolver(context);
+           initThemeResolver(context);
+           initHandlerMappings(context);
+           initHandlerAdapters(context);
+           initHandlerExceptionResolvers(context);
+           initRequestToViewNameTranslator(context);
+           initViewResolvers(context);
+           initFlashMapManager(context);
+        }
+
+1、mappedHandler = getHandler(processedRequest)方法介绍
+    1、protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+      		if (this.handlerMappings != null) {
+      			for (HandlerMapping mapping : this.handlerMappings) {
+      				HandlerExecutionChain handler = mapping.getHandler(request);
+      				if (handler != null) {
+      					return handler;
+      				}
+      			}
+      		}
+      		return null;
+      	}
+      	首先要获取所有handlerMapping并且遍历，通过request获取到这个请求的执行链
+      	那么这里的handlerMappings是什么并且又是何时初始化进去的，这可以看上面的讲解，但是这个handlerMappings里的
+      	handlerMapping类型的bean是怎么注册的呢？
+      	原来当我们在配置类上标记@EnableWebmvc注解后，就会自动往容器注册一些组件里面就有handlerMapping类型的bean，这里我们就看
+      	主要的RequestMappingHandlerMapping，这里为这个RequestMappingHandlerMapping里面赋值了很多属性，譬如拦截器等等东西，
+      	这些是为我们之后请求的时候处理请求预先准备好的一些可能用到的组件；好，RequestMappingHandlerMapping注册完了之后就是创建
+      	对象，由于RequestMappingHandlerMapping实现了WebApplicationObjectSupport接口，所以会调用initApplicationContext
+      	方法，这个方法主要作用就是初始化拦截器，将所有HandlerInterceptor和WebRequestInterceptor类型的拦截器加入到
+      	adaptedInterceptors中；接下来由于RequestMappingHandlerMapping还实现了InitializingBean接口，所以创建对象的时候
+      	还会调用afterPropertiesSet方法，那这个方法又是做了什么？
+      	简单来说就是找到类中可以作为处理器的方法并获取匹配条件T组成映射集Map<Method, T>
+      	到此RequestMappingHandlerMapping的创建就结束了；
+      	结束了之后就会在initHandlerMappings(context)中和其他handlerMapping当道集合中并被赋值给了handlerMappings；
+      	然后在请求的时候，通过request请求获取到可以处理当前请求的处理器以及匹配当前拦截器链组成的执行器链；
+
+2、HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler())简单介绍
+        1、这个方法主要就是通过上面获取到的执行器链获取HandlerAdapter
+            protected HandlerAdapter getHandlerAdapter(Object handler) throws ServletException {
+                if (this.handlerAdapters != null) {
+                    for (HandlerAdapter adapter : this.handlerAdapters) {
+                        if (adapter.supports(handler)) {
+                            return adapter;
+                        }
+                    }
+                }
+            this.handlerAdapters是怎么来的呢，其实和handlerMappings的情况很相似，首先是@EnableWebmvc注解后会自动创建
+            一些handlerAdapter，然后在initStrategies中执行initHandlerAdapters(context)方法将刚刚创建的对象放到
+            this.handlerAdapters里，我们这里主要谈一下RequestMappingHandlerAdapter，这个bean在注册的时候往里面也设
+            置了很多属性值，譬如MessageConverters，WebBindingInitializer这些和参数绑定以及返回值有关的组件等等；注册之后
+            就是创建对象，由于实现了InitializingBean接口,对象创建后也会调用afterPropertiesSet方法，这里会预先为此适配器添加很多
+            argumentResolvers、initBinderArgumentResolvers、returnValueHandlers、MessageConverter
+            以方便在处理请求参数以及返回值；
+
+            真正处理请求的也就是handler(request请求获取到的处理当前请求的处理器，拦截器链已经在上面的
+            mappedHandler.applyPreHandle执行)，handlerAdapter只是在处理请求的时候提供了一些必要的组件方便处理参数
+            以及返回值；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        这里我们以处理器映射器的初始化initHandlerMappings(context)为例分析，其他组件的初始化处理也类似
+        private void initHandlerMappings(ApplicationContext context) {
+        		this.handlerMappings = null;
+          		//this.detectAllHandlerMappings默认为true
+        		if (this.detectAllHandlerMappings) {
+        			//在容器中找到所有的HandlerMapping,这里的HandlerMapping类型的bean的定义信息什么时候注册的呢？
+        			//其实是当我们在配置类标记了@EnableWebmvc注解就自动往容器注册了，但如果没有标注这个注解那就下面这样
+        			//各个SpringMvc工作组件的初始化过程为：首先从IOC容器中找对应接口类型的组件，如果没到，
+                    // 就创建一个在DispatcherServlet.properties中指定的默认组件接口实现类的实例
+        			Map<String, HandlerMapping> matchingBeans =
+        					BeanFactoryUtils.beansOfTypeIncludingAncestors(context, HandlerMapping.class, true, false);
+        			if (!matchingBeans.isEmpty()) {
+                      //将所有的HandlerMapping保存在handlerMappings中
+        				this.handlerMappings = new ArrayList<HandlerMapping>(matchingBeans.values());
+        				// 排序
+        				AnnotationAwareOrderComparator.sort(this.handlerMappings);
+        			}
+        		}
+        		else {
+        			try {
+        				HandlerMapping hm = context.getBean(HANDLER_MAPPING_BEAN_NAME, HandlerMapping.class);
+        				this.handlerMappings = Collections.singletonList(hm);
+        			}
+        			catch (NoSuchBeanDefinitionException ex) {
+        				// Ignore, we'll add a default HandlerMapping later.
+        			}
+        		}
+
+        		//如果在IOC容器中没有找到任何的HandlerMapping，获取默认的HandlerMapping
+        		if (this.handlerMappings == null) {
+        			this.handlerMappings = getDefaultStrategies(context, HandlerMapping.class);
+        			if (logger.isDebugEnabled()) {
+        				logger.debug("No HandlerMappings found in servlet '" + getServletName() + "': using default");
+        			}
+        		}
+        	}
+        getDefaultStrategies(context, HandlerMapping.class)获取默认的组件：
+
+        protected <T> List<T> getDefaultStrategies(ApplicationContext context, Class<T> strategyInterface) {
+          //这的key为org.springframework.web.servlet.HandlerMapping
+           String key = strategyInterface.getName();
+          //在defaultStrategies获取我们需要创建的组件的类型，多个的话，使用逗号隔开
+           String value = defaultStrategies.getProperty(key);
+           if (value != null) {
+             //使用逗号为分隔符，转化成数组
+              String[] classNames = StringUtils.commaDelimitedListToStringArray(value);
+              List<T> strategies = new ArrayList<T>(classNames.length);
+             //遍历classNames利用反射创建对象
+              for (String className : classNames) {
+                 try {
+                    Class<?> clazz = ClassUtils.forName(className, DispatcherServlet.class.getClassLoader());
+                   //创建并添加到IOC容器中
+                    Object strategy = createDefaultStrategy(context, clazz);
+                    strategies.add((T) strategy);
+                 }
+                 catch (ClassNotFoundException ex) {
+                    throw new BeanInitializationException(
+                          "Could not find DispatcherServlet's default strategy class [" + className +
+                                "] for interface [" + key + "]", ex);
+                 }
+                 catch (LinkageError err) {
+                    throw new BeanInitializationException(
+                          "Error loading DispatcherServlet's default strategy class [" + className +
+                                "] for interface [" + key + "]: problem with class file or dependent class", err);
+                 }
+              }
+              return strategies;
+           }
+           else {
+              return new LinkedList<T>();
+           }
+        }
+        //保存了各组件接口对应的默认实现类
+        private static final Properties defaultStrategies;
+        //静态代码块，用于初始化defaultStrategies
+        static {
+           try {
+             //private static final String DEFAULT_STRATEGIES_PATH = "DispatcherServlet.properties"，创建了一个与DispatcherServlet.class处于同一包下的DispatcherServlet.properties文件的资源对象
+              ClassPathResource resource = new ClassPathResource(DEFAULT_STRATEGIES_PATH, DispatcherServlet.class);
+              //创建Properties对象，保存了组件接口的对应的默认实现类
+              defaultStrategies = PropertiesLoaderUtils.loadProperties(resource);
+           }
+           catch (IOException ex) {
+              throw new IllegalStateException("Could not load '" + DEFAULT_STRATEGIES_PATH + "': " + ex.getMessage());
+           }
+        }
+      DispatcherServlet.properties配置文件中指定了各组件的默认实现类的全类名：
+        org.springframework.web.servlet.LocaleResolver=org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver
+        org.springframework.web.servlet.ThemeResolver=org.springframework.web.servlet.theme.FixedThemeResolver
+        org.springframework.web.servlet.HandlerMapping=org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping,\
+        org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping
+        org.springframework.web.servlet.HandlerAdapter=org.springframework.web.servlet.mvc.HttpRequestHandlerAdapter,\
+        org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter,\
+        org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter
+        org.springframework.web.servlet.HandlerExceptionResolver=org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver,\
+        org.springframework.web.servlet.mvc.annotation.ResponseStatusExceptionResolver,\
+        org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver
+        org.springframework.web.servlet.RequestToViewNameTranslator=org.springframework.web.servlet.view.DefaultRequestToViewNameTranslator
+        org.springframework.web.servlet.ViewResolver=org.springframework.web.servlet.view.InternalResourceViewResolver
+        org.springframework.web.servlet.FlashMapManager=org.springframework.web.servlet.support.SessionFlashMapManager
+
+
+
+
+        2）重写doService,进入核心方法doDispatch(request, response)
+        @Override
+        protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception {
+           if (logger.isDebugEnabled()) {
+              String resumed = WebAsyncUtils.getAsyncManager(request).hasConcurrentResult() ? " resumed" : "";
+              logger.debug("DispatcherServlet with name '" + getServletName() + "'" + resumed +
+                    " processing " + request.getMethod() + " request for [" + getRequestUri(request) + "]");
+           }
+
+         	//这里与RequestDispatcher.include()相关
+           Map<String, Object> attributesSnapshot = null;
+           if (WebUtils.isIncludeRequest(request)) {
+              attributesSnapshot = new HashMap<String, Object>();
+              Enumeration<?> attrNames = request.getAttributeNames();
+              while (attrNames.hasMoreElements()) {
+                 String attrName = (String) attrNames.nextElement();
+                 if (this.cleanupAfterInclude || attrName.startsWith(DEFAULT_STRATEGIES_PREFIX)) {
+                    attributesSnapshot.put(attrName, request.getAttribute(attrName));
+                 }
+              }
+           }
+
+           //将一些组件设置到request中
+           request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());
+           request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, this.localeResolver);
+           request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);
+           request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());
+
+           FlashMap inputFlashMap = this.flashMapManager.retrieveAndUpdate(request, response);
+           if (inputFlashMap != null) {
+              request.setAttribute(INPUT_FLASH_MAP_ATTRIBUTE, Collections.unmodifiableMap(inputFlashMap));
+           }
+           request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, new FlashMap());
+           request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, this.flashMapManager);
+
+           try {
+             //最终调用了
+              doDispatch(request, response);
+           }
+           finally {
+              if (!WebAsyncUtils.getAsyncManager(request).isConcurrentHandlingStarted()) {
+                 // Restore the original attribute snapshot, in case of an include.
+                 if (attributesSnapshot != null) {
+                    restoreAttributesAfterInclude(request, attributesSnapshot);
+                 }
+              }
+           }
+        }
+        最终进入doDispatch(request, response)，作为DispatchServlet最核心方法，调度着各工作组件进行具体的请求处理
+
+    请求处理的大致流程
+        protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        		HttpServletRequest processedRequest = request;
+        		HandlerExecutionChain mappedHandler = null;
+        		boolean multipartRequestParsed = false;
+
+        		WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+
+        		try {
+        			ModelAndView mv = null;
+        			Exception dispatchException = null;
+
+        			try {
+        			    //1、检查请求是不是文件上传请求
+        				processedRequest = checkMultipart(request);
+        				multipartRequestParsed = (processedRequest != request);
+
+        				// 2、根据当前请求找到哪个类的方法处理
+        				mappedHandler = getHandler(processedRequest);
+        				if (mappedHandler == null) {
+        					noHandlerFound(processedRequest, response);
+        					return;
+        				}
+
+        				// 3、根据当前请求找到能执行这个类的所有方法的适配器(类似于反射工具)
+        				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
+
+        				// Process last-modified header, if supported by the handler.
+        				String method = request.getMethod();
+        				boolean isGet = "GET".equals(method);
+        				if (isGet || "HEAD".equals(method)) {
+        					long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
+        					if (new ServletWebRequest(request, response).checkNotModified(lastModified) && isGet) {
+        						return;
+        					}
+        				}
+                            //处理当前请求的拦截器前的方法
+        				if (!mappedHandler.applyPreHandle(processedRequest, response)) {
+        					return;
+        				}
+
+        				// 4、请求的处理器的方法被调用，使用适配器执行处理目标方法
+        				//将目标方法执行完成后的返回值作为视图名，设置保存到modelAndView中
+        				//目标方法无论如何写，适配器执行完成后都会将执行后的信息封装成modelAndView中
+        				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+
+        				if (asyncManager.isConcurrentHandlingStarted()) {
+        					return;
+        				}
+                        //5、如果没有视图名，设置一个默认的视图名
+        				applyDefaultViewName(processedRequest, mv);
+        				//处理当前请求的拦截器后的方法
+        				mappedHandler.applyPostHandle(processedRequest, response, mv);
+        			}
+        			catch (Exception ex) {
+        				dispatchException = ex;
+        			}
+        			catch (Throwable err) {
+        				// As of 4.3, we're processing Errors thrown from handler methods as well,
+        				// making them available for @ExceptionHandler methods and other scenarios.
+        				dispatchException = new NestedServletException("Handler dispatch failed", err);
+        			}
+        			//转发到页面
+        			//6、根据方法最终执行完后封装的modelAndView；转发到对应页面，而且modelAndView中的数据可以从请求域中获取
+        			processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
+        		}
+        		catch (Exception ex) {
+        			triggerAfterCompletion(processedRequest, response, mappedHandler, ex);
+        		}
+        		catch (Throwable err) {
+        			triggerAfterCompletion(processedRequest, response, mappedHandler,
+        					new NestedServletException("Handler processing failed", err));
+        		}
+        		finally {
+        			if (asyncManager.isConcurrentHandlingStarted()) {
+        				// Instead of postHandle and afterCompletion
+        				if (mappedHandler != null) {
+        					mappedHandler.applyAfterConcurrentHandlingStarted(processedRequest, response);
+        				}
+        			}
+        			else {
+        				// Clean up any resources used by a multipart request.
+        				if (multipartRequestParsed) {
+        					cleanupMultipart(processedRequest);
+        				}
+        			}
+        		}
+        	}
+
+            1、所有请求过来dispatchServlet收到请求
+            2、调用doDispatch()方法进行处理
+                1、getHandler(processedRequest)；根据当前请求找到能处理这个请求的目标处理类和方法
+                返回一个HandlerExecutionChain处理器的执行链，它是由处理器以及处理器对应的拦截器组成
+                    //handlerMappings保存了每一个处理器能处理哪些请求的映射信息，ioc容器启动的时候
+                    扫描每个controller都能处理哪些请求并保存在handlerMapping
+                    protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+                    		if (this.handlerMappings != null) {
+                    			for (HandlerMapping mapping : this.handlerMappings) {
+                    				HandlerExecutionChain handler = mapping.getHandler(request);
+                    				if (handler != null) {
+                    					return handler;
+                    				}
+                    			}
+                    		}
+                    		return null;
+                    	}
+                2、getHandlerAdapter(mappedHandler.getHandler())；根据当前处理器获取到能执行这个处理器方法的适配器，
+                                                                这就是从默认的几个类型的适配器中选取一个能处理这个处理器方法的适配器
+                3、ha.handle(processedRequest, response, mappedHandler.getHandler());使用获取到的适配器执行目标方法
+                4、目标方法执行后会返回一个modelAndView对象
+                5、根据modelAndView对象转发到具体的页面，并可以在请求域中取出modelAndView对象中的模型数据
+                6、但是如果在mv = ha.handle(processedRequest, response, mappedHandler.getHandler())执行过程中
+                    就做出了响应的话，那么mv就为null，此时也不会进入进行视图解析
+
+    springmvc的九大组件
+        springmvc在工作的时候，关键位置都是由这些组件完成的
+        共同点：全部都是接口，接口就是规范
+            //文件上传解析器
+        	private MultipartResolver multipartResolver;
+        	//区域信息解析器，和国际化有关
+        	private LocaleResolver localeResolver;
+        	//主题解析器，主题效果更换
+        	private ThemeResolver themeResolver;
+        	//请求对应到哪个类的哪个方法的映射信息集合
+        	private List<HandlerMapping> handlerMappings;
+        	//处理器的适配器
+        	private List<HandlerAdapter> handlerAdapters;
+        	//异常解析功能
+        	private List<HandlerExceptionResolver> handlerExceptionResolvers;
+        	//没啥用
+        	private RequestToViewNameTranslator viewNameTranslator;
+        	//flashMap：springmvc中运行重定向携带数据的功能
+        	private FlashMapManager flashMapManager;
+        	//视图解析器
+        	private List<ViewResolver> viewResolvers;
+
+      九大组件初始化方法
+        DispatcherServlet的onRefresh(）方法(xml配置版)，在dispatchServlet初始化的时候调用，onrefresh方法中调用
+        或者是在注解版的时候，进行初始化容器完成后发布了ContextRefreshedEvent事件)触发ContextRefreshListener进而
+        初始化了九大组件;
+
+
+      锁定到目标方法的执行
+        1、确定方法参数的值是最难的
+     数据绑定原理
+        1、请求方法中的javabean要和页面里的数据进行一一绑定
+            1、页面提交的所有数据都是字符串
+            2、java对象中的属性有各种类型
+
+        这就牵扯到以下操作
+            1、数据绑定期间，页面中的字符串数据如何绑定到java对象中的各类型属性中，数据类型如何转换
+            2、数据绑定期间的数据格式化问题
+                譬如：birth=2017-12-15  转换成Date  2017/12/15
+            3、数据校验
+                我们提交的数据必须是合法的
+        原理
+            WebDataBinder:数据绑定器负责数据绑定工作
+                1、属性ConversionService负责类型转换，格式化
+                    这个类里的converters属性里包含了转换器
+                    springmvc默认创建的ConversionService是DefaultFormattingConversionService
+                    (1、容器启动时WebMvcConfigurationSupport类mvcConversionService方法创建
+                     2、容器启动WebMvcConfigurationSupport类注册了requestMappingHandlerAdapter，并往里面设置
+                        ConfigurableWebBindingInitializer初始化器
+                     3、ConfigurableWebBindingInitializer初始化器里设置了ConversionService，校验器、消息转化器等
+                     4、然后在请求时通过DefaultDataBinderFactory创建WebDataBinder，在创建ServletRequestDataBinderFactory
+                        时就已经将初始化器ConfigurableWebBindingInitializer设置到了DefaultDataBinderFactory
+                        protected InitBinderDataBinderFactory createDataBinderFactory(List<InvocableHandlerMethod> binderMethods)
+                                throws Exception {
+                            return new ServletRequestDataBinderFactory(binderMethods, getWebBindingInitializer());
+                        }
+                     5、在创建WebDataBinder时调用createBinder，进而调用通过ConfigurableWebBindingInitializer的initBinder方法
+                        进而将ConfigurableWebBindingInitializer初始化器里的ConversionService传到了WebDataBinder
+                     6、ConversionService里有各种各样的converters，所以可以转换各种类型的数据)
+                    自定义converters步骤
+                        1、自定义类实现converter接口，重写convert方法
+                        2、将converter实现类放入ConversionService中
+                        3、将webDataBinder中的ConversionService设置成我们这个加了自定义转换器的ConversionService(DefaultConversionService)
+                springboot中操作
+                    @Configuration
+                    public class SpringDataConvert {
+                        @Autowired
+                        private RequestMappingHandlerAdapter requestMappingHandlerAdapter;
+                        /**
+                         * 增加字符串转换为List集合
+                         */
+                        @PostConstruct
+                        public void addConversionConfig() {
+                            ConfigurableWebBindingInitializer initializer = (ConfigurableWebBindingInitializer) requestMappingHandlerAdapter.getWebBindingInitializer();
+                            if (initializer.getConversionService() != null) {
+                                GenericConversionService genericConversionService = (GenericConversionService)initializer.getConversionService();
+                                //添加字符串转换为list集合的转换机器
+                                genericConversionService.addConverter(new StringToListConverter());
+                                //添加字符串转换为日期类型的字符串
+                                genericConversionService.addConverter(new StringToDateConverter());
+                            }
+                        }
+                    }
+
+
+                2、属性validators负责校验工作
+                    数据校验：只做前端校验是不安全的，重要数据一定要加上后端验证
+                    在SpringMvc中做数据校验有2中方式：一种是 Spring 自带的验证框架，另外一种是利用 JSR 实现。
+                    JSR 是一个规范，提供了完整得一套 API，通过标注给对象属性添加约束。
+                    Hibernate Validator 就是 对JSR
+                    规范所有注解的具体实现，以及一些附加的约束注解。用户还可以自定义约束注解。Hibernate Validator提供得注解如下
+                    　注解	　　 作用目标	 　　检查规则
+                     @Length(min=, max=)	 属性（String）	 检查字符串长度是否符合范围
+                     @Max(value=)	 属性（以 numeric 或者 string 类型来表示一个数字）	 检查值是否小于或等于最大值
+                     @Min(value=)	 属性（以 numeric 或者 string 类型来表示一个数字）	 检查值是否大于或等于最小值
+                     @NotNull	 属性	 检查值是否非空（not null）
+                     @Future	 属性（date 或 calendar）	 检查日期是否是未来
+                     @Pattern(regex="regexp", flag=)	 属性（string）	 检查属性是否与给定匹配标志的正则表达式相匹配
+                     @Range(min=, max=)	 属性（以 numeric 或者 string 类型来表示一个数字）	 检查值是否在最小和最大值之间（包括临界值）
+                     @Size(min=, max=)	 属性（array，collection，map）	 检查元素大小是否在最小和最大值之间（包括临界值）
+                     @AssertFalse	 属性	 检查方法的演算结果是否为 false（对以代码方式而不是注解表示的约束很有用）
+                     @AssertTrue	 属性	 检查方法的演算结果是否为 true（对以代码方式而不是注解表示的约束很有用）
+                     @Valid	 属性（object）	 对关联对象递归进行验证。如果对象是集合或数组，就递归地验证其元素；如果对象是 Map，则递归验证其值元素
+                     @Email	 属性（String）	 检查字符串是否符合有效的 email 地址规范
+                     @Past	 属性（date 或 calendar）	 检查日期是否是过去
+
+                     二 使用示例
+                     　　SpringBoot对数据校验也做了支持，默认提供的参数校验依赖于 hibernate-validator来实现。
+                        使用 Hibernate Validator校验数据，需要定义一个接收的数据模型，使用注解的形式描述字段校验的规则。
+                        通过前台页面提交form表单保存数据，后台做校验。
+
+                      　　在pom.xml文件中引入依赖
+                     <dependency>
+                                 <groupId>org.springframework.boot</groupId>
+                                 <artifactId>spring-boot-starter-thymeleaf</artifactId>
+                             </dependency>
+                             <dependency>
+                                 <groupId>org.hibernate.validator</groupId>
+                                 <artifactId>hibernate-validator</artifactId>
+                             </dependency>
+                     　　写一个实体类，对相关属性字段通过注解添加校验规则
+                     public class Person {
+
+                         @NotBlank(message = "不能为空")
+                         @Length(min = 2, max = 20, message = "长度要在2到20之间")
+                         private String name;
+
+                         @NotNull
+                         @Min(value = 17, message = "最小值为17")
+                         private Integer age;
+
+                         @NotEmpty
+                         @Email(message="邮件格式不正确")
+                         private String email;
+
+                       // 此处省略getter和setter
+
+                     }
+                     　　每个注解中得属性message是数据校验不通过时我们要给出得提示信息，如 @Email(message="邮件格式不
+                     正确") 当邮件格式校验不通过时，提示邮件格式不正确。
+
+                     　　控制器
+                     @Controller
+                     public class TestController {
+                         @GetMapping("/info")
+                         public String info(Model model){
+                             Person person = new Person();
+                             model.addAttribute("person", person);
+                             return "person_info.html";
+                         }
+
+                         @PostMapping("/save")
+                         public String save(@Valid Person person, BindingResult result, Model model){
+                             if (result.hasErrors()) {
+                                 model.addAttribute("person", person);
+                                 return "person_info.html";
+                             }　　　　//数据保存。。。
+                             model.addAttribute("success","校验通过，数据已保存");
+                             return "success.html";
+                         }
+
+                     }
+                     　　我们通过访问info方法，跳转到信息输入页面，提交数据时访问save方法，Person前得注解@Valid 说明当
+                     前对象要做数据校验，BindingResult 中会存储数据校验得结果，@Valid和BindingResult必须成对出现。
+                     如果校验不通过时即有错误信息，会进入if略记判断中，返回信息输入页面，展示错误提示信息。
+
+                3、属性bindingResult负责保存以及解析数据绑定期间的数据校验产生的错误
+                       ModelAttributeMethodProcessor里的resolveArgument方法---bindRequestParameters---bind

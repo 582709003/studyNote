@@ -6,27 +6,38 @@ springboot引入
     插件，本地测试时，springboot就会默认将应用打成包含有启动需要的所有jar包以及环境的可执行jar包，
     然后将可执行jar包部署到springboot自带的内置tomcat
 
+springboot特点
+    1、依赖管理
+       1、父项目做依赖管理
+       2、开发导入stater场景启动器
+       3、无需关注版本号，自动版本仲裁
+       4、可以修改版本号
+        <properties>
+            //可以覆盖上面声明的版本号
+            <java.version>1.8</java.version>
+        </properties>
 
-<properties>
-        //可以覆盖上面声明的版本号
-        <java.version>1.8</java.version>
-    </properties>
-
-
-所有stater启动器里面都会依赖spring-boot-starter，核心依赖，包括auto-configuration , logging和YAML。
-springboot所有自动配置功能都依赖这个
-<groupId>org.springframework.boot</groupId>
-<artifactId>spring-boot-autoconfigure</artifactId>
-这个里面，这个里面有很多自动配置的包，可以打开看看
-
-springboot已经自动配好springmvc
-    1、引入springmvc全套组件
-    2、自动配好springmvc常用组件
- 自动配好web常见功能，如字符编码问题
-
-每个stater启动器里面都有很多的默认配置，但是只有我们引入了某个启动器之后才会开启这些启动器里面的
-默认配置
-
+    2、自动配置
+        1、自动配置tomcat
+            譬如我们引入 <groupId>org.springframework.boot</groupId>
+                       <artifactId>spring-boot-starter-web</artifactId>web应用场景就会自动引入tomcat依赖
+        2、自动配好springmvc
+            引入<groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>就自动引入springmvc的所有组件并自动配好springmvc
+                常用组件
+        3、自动配好web常见功能
+            如字符编码问题
+        4、默认的额包结构
+            主配置类所在包及其子包下的组件都会被默认扫描注册
+        5、各种配置拥有默认值
+        6、按需加载所有自动配置项
+            引入了哪个stater，这些场景的自动配置才会生效
+            所有stater启动器里面都会依赖spring-boot-starter，核心依赖，包括auto-configuration , logging和YAML。
+            springboot所有自动配置功能都依赖这个
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            这个包里的配置类如果发红的话，说明还没有引入响应的stater，所以不会自动配置，带我们引入了这些stater后才会开启默认配置
+            这个里面，这个里面有很多自动配置的包，可以打开看看
 
 @Configration
     1、使用@Bean标注在方法上给容器注册组件，默认也是单例的
@@ -52,13 +63,19 @@ springboot已经自动配好springmvc
 
 
   @Import注解须知
-  1、@Import只能用在类上 ，@Import通过快速导入的方式实现把实例加入spring的IOC容器中
-  2、加入IOC容器的方式有很多种，@Import注解就相对很牛皮了，@Import注解可以用于导入第三方包 ，当然@Bean注解也可以，但是@Import注解快速导入的方式更加便捷
+  1、@Import只能用在类上 ，@Import通过快速导入的方式实现把实例加入spring的IOC容器中，
+        可以标注在容器里的组件上(能被ioc容器扫描到的组件上)
+  2、加入IOC容器的方式有很多种，@Import注解就相对很牛皮了，@Import注解可以用于导入第三方包 ，当然@Bean注解也可以，
+    但是@Import注解快速导入的方式更加便捷
   3、@Import注解有三种用法
   @Import的三种用法主要包括：
   1、直接填class数组方式
   2、ImportSelector方式【重点】
   3、ImportBeanDefinitionRegistrar方式
+
+  不同地方可以注册相同类型的组件，进而创建相同类型的不同实例，在@bean标注的方法只能控制此方法创建的对象是单例的，
+  但是不能控制其他地方创建相同类型的对象时获取到刚刚创建的单例对象，除非这里的beanname时一致的；
+  如果beanname相同但类型不同的组件在注册时创建的对象会相互覆盖
 
   2.1、第一种用法：直接填class数组
   直接填对应的class数组，class数组可以有0到多个。
@@ -115,28 +132,30 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
   以上三种用法方式皆可混合在一个@Import中使用，特别注意第一种和第二种都是以全类名的方式注册，而第三中可自定义方式。
   @Import注解本身在springboot中用的很多，特别是其中的第二种用法ImportSelector方式在springboot中使用的特别多，尤其要掌握
 
-
+@Bean注解注册的bean的id是以方法名称来作为beanid ,
+@Import注解以当前类的完整路径地址注册 ，相比来说@Import注入类更加简单
 
 @Conditional
     条件装配：满足Conditional指定的条件，则进行组件注入,又很多派生注解
 
 @ImportResource
     原生配置文件导入；当有一个原生的spring.xml,文件里有很多bean的定义，但是这个文件即使写好之后放在类路径里，他也不会
-    将配置文件申明的bean注入到容器；我们也可以不用去添加注解，而是直接在配置类上使用这个
-    注解引入原生的配置文件也是可以的；
+    将配置文件申明的bean注入到容器；这时我们可以直接在配置类上使用这个注解引入原生的配置文件也是可以的；
 
 @propertySource:加载指定路径的配置文件
 
 
 属性配置绑定javaBean
     如何使用Java读取到的properties文件中的内容，并且把它封装到javaBean中
-
-    1、@ConfigurationProperties，默认从全局配置文件中获取值，并在类上添加此注解并且添加@Component，只有在容器内的组件才能被springboot提供强大的功能
-
-    2、@EnableConfigurationProperties(Cat.class)，并且在Cat.class上添加@ConfigurationProperties注解，
-        但是不用添加@Component
-      //1、开启cat的属性配置功能
+    1、@ConfigurationPropeties，默认从全局配置文件中获取值，在类上添加此注解并且添加@Component，
+        只有在容器内的组件才能被springboot提供强大的功能
+    2、在配置类上标注@EnableConfigurationProperties(Cat.class)，并且在Cat.class上添加@ConfigurationProperties注解，
+        Cat类上不用添加@Component
+      //1、开启cat的属性配置功能，也就是cat的@ConfigurationPropeties功能开启
       //2、将cat这个组件注入容器内
+      这个注解一个使用场景：如果引用的cat.class是第三方jar包里的，这个cat.class类上只标注了@ConfigurationPropeties，
+      那我们想把它引进容器咋办，我们只能通过在我们的配置类上添加@EnableConfigurationProperties(Cat.class)注解就可以了，
+      并且还可以开启cat的自动属性配置功能
 
 
 自动配置原理
@@ -147,12 +166,11 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
         @ComponentScan  组成，其中@EnableAutoConfiguration重要
 
     @EnableAutoConfiguration
-        由@AutoConfigurationPackage
-         @Import({AutoConfigurationImportSelector.class}) 组成
-         先看@AutoConfigurationPackage注解
+        由@AutoConfigurationPackage和@Import({AutoConfigurationImportSelector.class}) 组成
+        先看@AutoConfigurationPackage注解
 
     @AutoConfigurationPackage
-        由@Import({Registrar.class})组成
+        由@Import(AutoConfigurationPackages.Registrar.class)组成
         这个是将自定义的组件注入容器内
         进入Registrar.class，由一个方法registerBeanDefinitions
         此方法是将某一个包下(主程序所在包)的所有组件批量注入到容器,
@@ -162,19 +180,17 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
         selectImports方法中获取所有要导入的组件，是通过getAutoConfigurationEntry方法获取的，然后封装成string数组返回，
         利用getAutoConfigurationEntry方法给容器中批量导入组件
         上面这个方法又通过getCandidateConfigurations这个方法获取到所有需要导入到容器的组件
-      利用工厂加载器
+        利用工厂加载器
           private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
             获取到所有组件
-
-       从META-INF/spring.factories这个地方加载组件，默认扫描我们当前系统里面所有META-INF/spring.factories位置的文件
+       从META-INF/spring.factories这个地方加载组件，默认扫描我们当前系统里面所有这个META-INF/spring.factories位置的文件
         spring-boot-autoconfigure-2.3.4.RELEASE.jar这个包也有这个文件
-        这个文件里面由127个自动配置的配置类，虽然有这么多配置默认全部加载，但最终会按照条件装配规则配置；
+        这个文件里面由127个自动配置的配置类，虽然有这么多配置默认全部加载，但并不是全部生效，最终会按照“条件装配”规则配置；
         例如
-        @ConditionalOnBean({JobLauncher.class})   //JobLauncher.class 这个类都没有导入，所以这个配置类不会加载
+        @ConditionalOnBean({JobLauncher.class})   //JobLauncher.class 这个类都没有导入，所以这个配置类不会生效
         @EnableConfigurationProperties({BatchProperties.class})
         @Import({BatchConfigurerConfiguration.class})
         public class BatchAutoConfiguration {}
-
 
         springboot默认会在底层配置好所有的组件，但是如果用户自己配置了就以用户的优先，因为用户配置的组件会优先加载到容器里，
         所以当springboot自带的bean上添加了诸如@ConditionalOnMissingBean(xxx.class)时，此时xxx.class就已经优先加载，所以
@@ -196,7 +212,7 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
 
        开发工具
         lombok：是为类在编译期添加get、set等方法
-                    也可以在类上添加@Slf4j,然后直接使用log.info("");  log.error(""); 等等
+                也可以在类上添加@Slf4j,然后直接使用log.info("");  log.error(""); 等等
 
 
         dev_tools
@@ -228,7 +244,7 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
               k1: v1  需要空格
               k2: v2
 
-        数组
+        数组:一组按次序排列的值，包括array、list、queue
             行内写法  k: [v1,v2,v3]
             或者
             k:
@@ -245,34 +261,56 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
 
 
  web开发
+
+    1、
+        a、不用@EnableWebmvc注解，使用@Configration+webmvcconfigurer自定义规则；
+        b、可以声明WebMvcRegistrations改变默认的底层组件；
+        c、可以使用@EnableWebmvc+@Configration+DelegatingWebmvcConfiguration全面接管springmvc
+        springboot的web配置的介绍
+            1、当导入spring-web场景的starter时，就会注册WebMvcAutoConfiguration自动配置类
+            2、这个自动配置类主要是有内部还有几个静态配置类，我们主要将以下两个
+                EnableWebMvcConfiguration和
+                1、EnableWebMvcConfiguration
+                    这个类继承了DelegatingWebMvcConfiguration，这就和springmvc里配置@EnableWebmvc的效果是一样的
+                    而EnableWebMvcConfiguration里面主要是针对springboot扩展了一些springboot特性的功能，譬如从
+                    preperties文件中获取值创建conversionService等，然后再把使用preperties文件中获取的值创建的conversionService
+                    重新封装到到RequestMappingHandlerMapping中，这样创建的FormattingConversionService我们就可以简单的通过
+                    preperties文件修改他的属性
+                2、WebMvcAutoConfigurationAdapter
+                    WebMvcAutoConfigurationAdapter实现了WebMvcConfigurer
+                    DelegatingWebMvcConfiguration再执行过程中会获取到所有的WebMvcConfigurer类型的组件然后执行
+                    addResourceHandlers、configureAsyncSupport、addFormatters等方法
+                    WebMvcAutoConfigurationAdapter这个类是SpringBoot内部提供专门处理用户自行添加的配置，
+                    里面不仅仅包含了修改视图的过滤还有其他很多的方法，包括我们后面章节要讲到的拦截器，过滤器，Cors配置等
+
+
     1、静态资源规则与定制化
         默认静态资源目录
             类路径下 /static(/public or /resources or /META-INF/resources)
-            访问项目名/静态资源路径即可
-
+            访问项目名/静态资源文件路径即可
+            测试：如果请求方法上的请求路径是aaa.jpg,同时静态资源名也有一个aaa.jpg的图片，那么请求会访问谁？
+            会先访问动态资源
             原理：静态映射/**
             因为动态资源也是映射的所有请求，所以请求进来，先去controller，如果找不到，再去找静态资源
 
         静态资源访问前缀
-            #修改静态资源访问的前缀，/res 其实就相当与classpath，不需要新建res文件夹
+            #默认无前缀，修改静态资源访问的前缀，/res 其实就相当与classpath，不需要新建res文件夹
             spring.mvc.static-path-pattern=/res/**
 
         改变默认的静态资源目录
-        spring.resources.static-locations=["/haha"]
+            也就是说haha现在是默认的静态资源文件夹
+            spring.resources.static-locations=["/haha"]
 
     2、欢迎页支持
-
-        静态资源路径下 index.html，访问根路径可以自动跳转到这个index.html,静态资源路径不能修改，修改的话就不能默认转到index.html
-            可以配置静态资源路径，但是不可以配置静态资源访问前缀,
-        controller能处理/index
+        静态资源路径下放一个名为index.html的欢迎页，然后访问根路径可以自动跳转到这个index.html；静态资源访问前缀不能修改，
+        修改的话就不能默认转到index.html，可以配置静态资源路径，但是不可以配置静态资源访问前缀,controller能处理/index
 
      favicon功能  网站小图标
-        图标名称一定要是favicon.ico ,然后放在静态资源下,静态资源路径不能修改，修改的话就不能找到图标
+        图标名称一定要是favicon.ico ,然后放在静态资源目录下,静态资源访问前缀不能修改，修改的话就不能找到图标
 
    3、静态资源配置管理
         springmvc启动默认加载xxxAutoConfiguration类(自动配置类)
-        springmvc功能的自动配置类集中在这个WebMvcAutoConfiguration里面
-
+        springmvc功能的自动配置类集中在这个WebMvcAutoConfiguration里面，当然“静态资源”的配置也在这里
         @Configuration(
             proxyBeanMethods = false
         )
@@ -300,7 +338,59 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
        WebMvcProperties.class  ==spring.mvc
        ResourceProperties.class==spring.resources
 
-       配置类中只有一个有参构造器且没有无参构造器的情况下，有参构造器的所有参数的值都会从容器中获取
+       ****配置类中只有一个有参构造器且没有无参构造器的情况下，有参构造器的所有参数的值都会从容器中获取
+        (addResourceHandlers方法的执行原理
+            1、EnableWebMvcConfiguration配置类继承了DelegatingWebMvcConfiguration，而DelegatingWebMvcConfiguration
+                又继承了WebMvcConfigurationSupport，这个类里注册了resourceHandlerMapping
+                @Bean
+                	@Nullable
+                	public HandlerMapping resourceHandlerMapping(
+                			@Qualifier("mvcUrlPathHelper") UrlPathHelper urlPathHelper,
+                			@Qualifier("mvcPathMatcher") PathMatcher pathMatcher,
+                			@Qualifier("mvcContentNegotiationManager") ContentNegotiationManager contentNegotiationManager,
+                			@Qualifier("mvcConversionService") FormattingConversionService conversionService,
+                			@Qualifier("mvcResourceUrlProvider") ResourceUrlProvider resourceUrlProvider) {
+
+                		Assert.state(this.applicationContext != null, "No ApplicationContext set");
+                		Assert.state(this.servletContext != null, "No ServletContext set");
+
+                		ResourceHandlerRegistry registry = new ResourceHandlerRegistry(this.applicationContext,
+                				this.servletContext, contentNegotiationManager, urlPathHelper);
+                		//****这里就是调用了addResourceHandlers,但是具体实现是在DelegatingWebMvcConfiguration里
+                		(
+                		    @Override
+                         	protected void addResourceHandlers(ResourceHandlerRegistry registry) {
+                         		这里的configurers(
+                         		  WebMvcConfigurerComposite configurers = new WebMvcConfigurerComposite();
+                         		  然后由于 标注@Autowired所以自动执行这个方法
+                         		  @Autowired(required = false)
+                                  	public void setConfigurers(List<WebMvcConfigurer> configurers) {
+                                  		//然后这个configurers自动从容器查找WebMvcConfigurer类型的组件
+                                  		//这样就找到了WebMvcAutoConfigurationAdapter
+                                  		//然后就执行了这个类里面的addResourceHandlers方法，从这里就能看处理资源的源码
+                                  		if (!CollectionUtils.isEmpty(configurers)) {
+                                  			this.configurers.addWebMvcConfigurers(configurers);
+                                  		}
+                                  	}
+
+                         		)
+                         		this.configurers.addResourceHandlers(registry);
+                         	}
+                        )
+
+                		addResourceHandlers(registry);
+                		AbstractHandlerMapping handlerMapping = registry.getHandlerMapping();
+                		if (handlerMapping == null) {
+                			return null;
+                		}
+                		handlerMapping.setPathMatcher(pathMatcher);
+                		handlerMapping.setUrlPathHelper(urlPathHelper);
+                		handlerMapping.setInterceptors(getInterceptors(conversionService, resourceUrlProvider));
+                		handlerMapping.setCorsConfigurations(getCorsConfigurations());
+                		return handlerMapping;
+                	}
+        )
+
 
        资源处理的默认规则就在这个方法里
        public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -360,40 +450,80 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
             mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
             //执行目标方法
             mav = this.invokeHandlerMethod(request, response, handlerMethod);
+            //
+            1、参数解析器
+                invocableMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
+                //this.argumentResolvers ,HandlerMethodArgumentResolver接口 参数解析器
+                //(来确定将要执行的目标方法的每一个参数的值是什么)大概有二十几种，处理标注在请求参数上的注解，
+                //譬如@PathVariable、@RequestParam等等，springmvc目标方法能写多少种参数类型，取决于参数解析器
+                譬如有一个参数解析器RequestParamMethodArgumentResolver是用来解析标有@RequestParam参数的；
+                HandlerMethodArgumentResolver接口有两个抽象方法
+                    //当前解析器是否支持解析给定的参数
+                    supportsParameter(MethodParameter parameter);
+                    //如果支持就处理参数
+                    resolveArgument;
 
-            invocableMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
-            //this.argumentResolvers ,HandlerMethodArgumentResolver接口 参数解析器(来确定将要执行的目标方法的每一个参数的值是什么)
-                大概有二十几种，处理标注请求参数的注解，譬如@PathVariable、@RequestParam等等
+                //支持就调用这个方法
+                 boolean supportsParameter(MethodParameter var1);
 
-            HandlerMethodArgumentResolver有两个抽象方法
+                 //当前解析器是否支持解析这种参数
+                @Nullable
+                Object resolveArgument(MethodParameter var1, @Nullable ModelAndViewContainer var2, NativeWebRequest var3, @Nullable WebDataBinderFactory var4) throws Exception;
 
-            //支持就调用这个方法
-             boolean supportsParameter(MethodParameter var1);
-
-             //当前解析器是否支持解析这种参数
-            @Nullable
-            Object resolveArgument(MethodParameter var1, @Nullable ModelAndViewContainer var2, NativeWebRequest var3, @Nullable WebDataBinderFactory var4) throws Exception;
-
+            2、返回值处理器
             //invokeHandlerMethod这个方法里还有一个returnValueHandlers 返回值处理器
-            就是说能处理多少种类型的返回值由返回值处理器决定，默认有15种处理器
+                就是说能处理多少种类型的返回值由返回值处理器决定，默认有15种处理器
             if (this.returnValueHandlers != null) {
                 invocableMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
             }
-
+            处理真正目标方法
             //ServletInvocableHandlerMethod类里真正处理目标的方法
-            Object returnValue = this.invokeForRequest(webRequest, mavContainer, providedArgs);
+              Object returnValue = this.invokeForRequest(webRequest, mavContainer, providedArgs);
+              1、invokeForRequest再调用InvocableHandlerMethod的getMethodArgumentValues获取方法参数值
+                protected Object[] getMethodArgumentValues(NativeWebRequest request,
+                            @Nullable ModelAndViewContainer mavContainer, Object... providedArgs) throws Exception {
+                        //这里会获取方法的每一个参数的详细信息
+                        MethodParameter[] parameters = this.getMethodParameters();
+                        if (ObjectUtils.isEmpty(parameters)) {
+                            return EMPTY_ARGS;
+                        } else {
+                            Object[] args = new Object[parameters.length];
+                            for(int i = 0; i < parameters.length; ++i) {
+                                MethodParameter parameter = parameters[i];
+                                parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
+                                args[i] = findProvidedArgument(parameter, providedArgs);
+                                if (args[i] == null) {
+                                    //遍历所有参数解析器，找到能够解析这个参数的解析器
+                                    if (!this.resolvers.supportsParameter(parameter)) {
+                                        throw new IllegalStateException(formatArgumentError(parameter, "No suitable resolver"));
+                                    }
+                                    try {
+                                        args[i] = this.resolvers.resolveArgument(parameter, mavContainer, request, this.dataBinderFactory);
+                                    } catch (Exception var10) {
+                                        if (this.logger.isDebugEnabled()) {
+                                            String exMsg = var10.getMessage();
+                                            if (exMsg != null && !exMsg.contains(parameter.getExecutable().toGenericString())) {
+                                                this.logger.debug(formatArgumentError(parameter, exMsg));
+                                            }
+                                        }
+                                        throw var10;
+                                    }
+                                }
+                            }
+                            return args;
+                        }
+                    }
 
-            //InvocableHandlerMethod 类里获取方法参数值
-                getMethodArgumentValues
 
 
-                挨个判断所有参数解析器哪个支持解析这个参数
-            @Nullable
+                2、如何确定每个参数值呢？遍历每一个参数，然后在针对每一个参数遍历每一个参数解析器
+                    看哪个支持解析当前这个参数，找到这个解析器，找到这个解析器后，具体就让这个解析器用它对应的方式去找参数值
+                @Nullable
                 private HandlerMethodArgumentResolver getArgumentResolver(MethodParameter parameter) {
+                    //先从缓存里通过MethodParameter找是否之前有缓存过对应的参数解析器
                     HandlerMethodArgumentResolver result = (HandlerMethodArgumentResolver)this.argumentResolverCache.get(parameter);
                     if (result == null) {
                         Iterator var3 = this.argumentResolvers.iterator();
-
                         while(var3.hasNext()) {
                             HandlerMethodArgumentResolver resolver = (HandlerMethodArgumentResolver)var3.next();
                             if (resolver.supportsParameter(parameter)) {
@@ -403,100 +533,101 @@ public class Myclass2 implements ImportBeanDefinitionRegistrar {
                             }
                         }
                     }
-
-1
-2
-
-
-
                     return result;
                 }
 
-         HandlerMethodArgumentResolver  参数解析器
+                3、找到这个解析器后开始让这个解析器去找参数值，譬如PathVariableMethodArgumentResolver去url上去找，找到后就赋值
 
 
-servlet API参数解析原理
-    在所有参数解析器中查找解析器，找到一个servletRequestMethodArgumentResolver
+        1、普通参数与基本注解
+            1.1、注解
+                @Pathvarible、@RequestHeader、@ModelAttribute、@RequestParam、@CookieValue、@RequestBody
+                整个过程就是上面讲解的
+        2、servlet API参数解析原理
+            请求参数属于以下类型的
+                WebRequest、ServletRequest、MultipartRequest、HttpSession、
+                Principal、InputStream、Reader.class、HttpMethod、Locale、TimeZone、ZoneId
+                过程和上面一样，会在所有参数解析器中查找解析器，找到一个servletRequestMethodArgumentResolver
 
+        3、复杂参数的处理
+            1、Map、Errors/BindingResult、Model......
+                Map和model,modelMap类型的参数,会找到MapMethodProcessor或者ModelMethodProcessor参数处理器，
+                具体处理参数(执行resolveArgument方法)的时候会返回ModelAndViewContainer里面的一
+                个BindingAwareModelMap对象，它既是model也是map
+                map,model里面的数据会被放在request请求域里
+         4、自定义对象参数,封装pojo
+            自动类型转换与格式化，可以级联封装，页面提交的请求数据(get请求和post请求)都可以和对象属性进行绑定
+            是由ServletModelAttributeMethodProcessor这个参数解析器进行处理的，譬如自定义的User对象
+            BeanUtils判断是否为简单类型,通过这个方法发现不是简单类型，就用了这个解析器
+                public static boolean isSimpleValueType(Class<?> type) {
+                    return Void.class != type && Void.TYPE != type &&
+                    (ClassUtils.isPrimitiveOrWrapper(type)
+                    || Enum.class.isAssignableFrom(type)
+                    || CharSequence.class.isAssignableFrom(type)
+                     || Number.class.isAssignableFrom(type)
+                     || Date.class.isAssignableFrom(type) ||
+                      Temporal.class.isAssignableFrom(type)
+                       || URI.class == type || URL.class == type
+                       || Locale.class == type || Class.class == type);
+                }
 
+            这个解析器会为自定义的参数创建一个空对象(new一个对象并赋值给这个方法参数)
+             attribute = this.createAttribute(name, parameter, binderFactory, webRequest),
+             然后通过webDataBinder这个数据绑定器将request里的参数和这个空对象的属性及进行绑定;
+             webDataBinder数据绑定器：将请求参数的值绑定到指定的javaBean里面,这个绑定器里封装了一个conversionService,
+             这个是用来处理类型转换的
 
-model、map参数原理
-    map,model里面的数据会被放在request请求域里
+            关键代码
+            ModelAttributeMethodProcessor类里的resolveArgument方法
+            //获取参数绑定器,此时的参数绑定器里面已经initBinder了，而initializer正是ConfigurableWebBindingInitializer
+            WebDataBinder binder = binderFactory.createBinder(webRequest, attribute, name);
 
-自定义参数绑定原理
-    是由ServletModelAttributeMethodProcessor这个参数解析器进行处理的，譬如自定义的User对象
-    这个解析器会为自定义的参数创建一个空对象(new 一个对象并赋值给这个方法参数)，然后通过
-    webDataBinder这个数据绑定器将request里的参数和这个空对象的属性及进行绑定
+            public final WebDataBinder createBinder(NativeWebRequest webRequest, @Nullable Object target, String objectName) throws Exception {
+                    WebDataBinder dataBinder = this.createBinderInstance(target, objectName, webRequest);
+                    //此初始化器是ConfigurableWebBindingInitializer类型，在spring启动时会自动配置到
+                    if (this.initializer != null) {
+                        this.initializer.initBinder(dataBinder, webRequest);
+                    }
 
-    关键代码
-    ModelAttributeMethodProcessor类里的resolveArgument方法
-    //获取参数绑定器,此时的参数绑定器里面已经initBinder了，而initializer正是ConfigurableWebBindingInitializer
-    WebDataBinder binder = binderFactory.createBinder(webRequest, attribute, name);
+                    this.initBinder(dataBinder, webRequest);
+                    return dataBinder;
+                }
 
-public final WebDataBinder createBinder(NativeWebRequest webRequest, @Nullable Object target, String objectName) throws Exception {
-            WebDataBinder dataBinder = this.createBinderInstance(target, objectName, webRequest);
-            //此初始化器是ConfigurableWebBindingInitializer类型，在spring启动时会自动配置到
-            if (this.initializer != null) {
-                this.initializer.initBinder(dataBinder, webRequest);
+                //而ConfigurableWebBindingInitializer初始化器放到RequestMappingHandlerAdapter
+             @Bean
+                public RequestMappingHandlerAdapter requestMappingHandlerAdapter(@Qualifier("mvcContentNegotiationManager") ContentNegotiationManager contentNegotiationManager, @Qualifier("mvcConversionService") FormattingConversionService conversionService, @Qualifier("mvcValidator") Validator validator) {
+                    RequestMappingHandlerAdapter adapter = this.createRequestMappingHandlerAdapter();
+                    adapter.setContentNegotiationManager(contentNegotiationManager);
+                    adapter.setMessageConverters(this.getMessageConverters());
+                    adapter.setWebBindingInitializer(this.getConfigurableWebBindingInitializer(conversionService, validator));
+                    adapter.setCustomArgumentResolvers(this.getArgumentResolvers());
+                    adapter.setCustomReturnValueHandlers(this.getReturnValueHandlers());
+                    if (jackson2Present) {
+                        adapter.setRequestBodyAdvice(Collections.singletonList(new JsonViewRequestBodyAdvice()));
+                        adapter.setResponseBodyAdvice(Collections.singletonList(new JsonViewResponseBodyAdvice()));
+                    }
+
+            这样dataBinder里面就有了类型转换器等东西;
+            如果要自定义数据绑定初始化器WebBindingInitializer，可以如下做
+            1、自定义CustomDateWebBindingInitializer
+        public class CustomDateWebBindingInitializer implements WebBindingInitializer {
+            @Override
+            public void initBinder(WebDataBinder binder) {
+                binder.registerCustomEditor(Date.class, new MyCustomDateEditor());
             }
-
-            this.initBinder(dataBinder, webRequest);
-            return dataBinder;
         }
 
-        //而ConfigurableWebBindingInitializer初始化器放到RequestMappingHandlerAdapter
-     @Bean
-        public RequestMappingHandlerAdapter requestMappingHandlerAdapter(@Qualifier("mvcContentNegotiationManager") ContentNegotiationManager contentNegotiationManager, @Qualifier("mvcConversionService") FormattingConversionService conversionService, @Qualifier("mvcValidator") Validator validator) {
-            RequestMappingHandlerAdapter adapter = this.createRequestMappingHandlerAdapter();
-            adapter.setContentNegotiationManager(contentNegotiationManager);
-            adapter.setMessageConverters(this.getMessageConverters());
-            adapter.setWebBindingInitializer(this.getConfigurableWebBindingInitializer(conversionService, validator));
-            adapter.setCustomArgumentResolvers(this.getArgumentResolvers());
-            adapter.setCustomReturnValueHandlers(this.getReturnValueHandlers());
-            if (jackson2Present) {
-                adapter.setRequestBodyAdvice(Collections.singletonList(new JsonViewRequestBodyAdvice()));
-                adapter.setResponseBodyAdvice(Collections.singletonList(new JsonViewResponseBodyAdvice()));
+            2、注册WebBindingInitializer
+            @Configuration
+            public class CustomDateEditorConfiguration {
+
+                @Autowired
+                public void setWebBindingInitializer(RequestMappingHandlerAdapter requestMappingHandlerAdapter) {
+                    //将自定义的CustomDateWebBindingInitializer属性编辑器绑定到RequestMappingHandlerAdapter里面.
+                    requestMappingHandlerAdapter.setWebBindingInitializer(new CustomDateWebBindingInitializer());
+                }
+
             }
-
-    这样dataBinder里面就有了类型转换器等东西;
-    如果要自定义数据绑定初始化器WebBindingInitializer，可以如下做
-    1、自定义CustomDateWebBindingInitializer
-public class CustomDateWebBindingInitializer implements WebBindingInitializer {
-    @Override
-    public void initBinder(WebDataBinder binder) {
-        binder.registerCustomEditor(Date.class, new MyCustomDateEditor());
-    }
-}
-
-    2、注册WebBindingInitializer
-    @Configuration
-    public class CustomDateEditorConfiguration {
-
-        @Autowired
-        public void setWebBindingInitializer(RequestMappingHandlerAdapter requestMappingHandlerAdapter) {
-            //将自定义的CustomDateWebBindingInitializer属性编辑器绑定到RequestMappingHandlerAdapter里面.
-            requestMappingHandlerAdapter.setWebBindingInitializer(new CustomDateWebBindingInitializer());
-        }
-
-    }
-
-
-
-    BeanUtils判断是否为简单类型
-        public static boolean isSimpleValueType(Class<?> type) {
-            return Void.class != type && Void.TYPE != type &&
-            (ClassUtils.isPrimitiveOrWrapper(type)
-            || Enum.class.isAssignableFrom(type)
-            || CharSequence.class.isAssignableFrom(type)
-             || Number.class.isAssignableFrom(type)
-             || Date.class.isAssignableFrom(type) ||
-              Temporal.class.isAssignableFrom(type)
-               || URI.class == type || URL.class == type
-               || Locale.class == type || Class.class == type);
-        }
-
-        通过这个方法发现不是简单类型，就用了这个解析器
-
 
         @Nullable
             public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
@@ -514,6 +645,7 @@ public class CustomDateWebBindingInitializer implements WebBindingInitializer {
                     attribute = mavContainer.getModel().get(name);
                 } else {
                     try {
+                        //创建一个请求方法上的自定义类型的空实例对象
                         attribute = this.createAttribute(name, parameter, binderFactory, webRequest);
                     } catch (BindException var10) {
                         if (this.isBindExceptionRequired(parameter)) {
@@ -533,6 +665,7 @@ public class CustomDateWebBindingInitializer implements WebBindingInitializer {
                     WebDataBinder binder = binderFactory.createBinder(webRequest, attribute, name);
                     if (binder.getTarget() != null) {
                         if (!mavContainer.isBindingDisabled(name)) {
+                            //绑定参数
                             this.bindRequestParameters(binder, webRequest);
                         }
 
@@ -555,10 +688,18 @@ public class CustomDateWebBindingInitializer implements WebBindingInitializer {
                 return attribute;
             }
 
-            webDataBinder数据绑定器：将请求参数的值绑定到指定的javaBean里面
-            这个绑定器里封装了一个conversionService,这个是用来处理类型转换的
 
-
+             //绑定参数过程
+             this.bindRequestParameters(binder, webRequest);
+            调用WebRequestDataBinder的bind方法，这里面将请求参数封装成
+            MutablePropertyValues mpvs = new MutablePropertyValues(request.getParameterMap());
+            然后调用this.doBind(mpvs)，然后再调用this.applyPropertyValues(mpvs)，这个方法再调用属性访问器的设置属性值的方法
+            this.getPropertyAccessor().setPropertyValues(mpvs, this.isIgnoreUnknownFields(), this.isIgnoreInvalidFields());
+            然后将之前封装好的请求参数进行遍历设置值；那么如何设置值呢？
+            遍历每一个参数然后调用 this.setPropertyValue(pv);进而调用processLocalProperty方法
+            这个方法再调用
+            this.convertForProperty(tokens.canonicalName, oldValue, originalValue, ph.toTypeDescriptor());
+            获取经过转换后的值，因为它又调用了convertIfNecessary，将请求参数转换成目标对象里面的值
 
 
             WebMvcConfigurationSupport这个配置类里初始化了转换器，且可以自定义类型转换器
@@ -566,51 +707,173 @@ public class CustomDateWebBindingInitializer implements WebBindingInitializer {
                 public FormattingConversionService mvcConversionService() {
                     FormattingConversionService conversionService = new DefaultFormattingConversionService();
                     this.addFormatters(conversionService);
+                    //这个里面有很多converter
                     return conversionService;
                 }
+               //添加自定义的cnverter
+                 //webmvcConfiguree定制化springmvc的功能,这里不是覆盖了springboot设置的属性，而是额外添加
+                   @Bean
+                   public WebMvcConfigurer webMvcConfigurer() {
+                       return new WebMvcConfigurer() {
+                           @Override
+                           public void addFormatters(FormatterRegistry registry) {
+                               registry.addConverter(new Converter<String, User>() {
+                                 @Override
+                                 public User convert(String var1){
+                                     return new User();
+                                 }
+                               });
+                           }
 
-                //可以自定义类型转换器
-                protected void addFormatters(FormatterRegistry registry) {
+                           @Override
+                           public void addInterceptors(InterceptorRegistry registry) {
+                               registry.addInterceptor(new HandlerInterceptor() {
+                                   @Override
+                                   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+                                       return true;
+                                   }
+                                   @Override
+                                   public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable ModelAndView modelAndView) throws Exception {
 
+                                   }
+                                   @Override
+                                   public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) throws Exception {
+
+                                   }
+                               });
+                           }
+
+                           @Override
+                           public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+                               converters.add(new MyMessageConverter());
+                           }
+
+                           //自定义内容协商策略
+                           @Override
+                           public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+                               Map<String, MediaType> map = new HashMap();
+                               map.put("json", MediaType.APPLICATION_JSON);
+                               map.put("xml", MediaType.APPLICATION_XML);
+                               map.put("sjd", MediaType.parseMediaType("application/x-sjd"));
+                               ParameterContentNegotiationStrategy parameterContentNegotiationStrategy = new ParameterContentNegotiationStrategy(map);
+                               //基于请求头以及请求参数都可以使用自定义的媒体类型
+                               configurer.strategies(Arrays.asList(parameterContentNegotiationStrategy, new HeaderContentNegotiationStrategy()));
+                           }
+                       };
+                   }
+
+
+数据响应与内同协商
+    1、数据响应分两种
+        1、响应到页面，前后端一体的单体项目
+        2、响应数据，前后端分离
+            响应的数据格式包括有json、xml、xfs、图片、音视频、自定义协议数据
+
+    2、响应json步骤
+        1.1、jackson.jar+@ResponseBody
+            引入web场景的启动器时就已经引入了
+            <dependency>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-starter-json</artifactId>
+              <version>2.3.4.RELEASE</version>
+              <scope>compile</scope>
+            </dependency>
+           这个启动器内已经引入了下面的和数据响应有关的jar包
+           <dependency>
+                 <groupId>com.fasterxml.jackson.core</groupId>
+                 <artifactId>jackson-databind</artifactId>
+                 <version>2.11.2</version>
+                 <scope>compile</scope>
+               </dependency>
+               <dependency>
+                 <groupId>com.fasterxml.jackson.datatype</groupId>
+                 <artifactId>jackson-datatype-jdk8</artifactId>
+                 <version>2.11.2</version>
+                 <scope>compile</scope>
+               </dependency>
+               <dependency>
+                 <groupId>com.fasterxml.jackson.datatype</groupId>
+                 <artifactId>jackson-datatype-jsr310</artifactId>
+                 <version>2.11.2</version>
+                 <scope>compile</scope>
+               </dependency>
+
+            1.2、在控制器上添加或者请求的方法上添加@ResponseBody注解
+                给前端自动返回json数据
+
+        原理
+            1.1、目标方法执行完之后有一个返回值,遍历所有返回值处理器，判断哪个返回值处理器可以处理当前返回值
+                (springmvc支持处理哪些返回值就看有多少种返回值处理器，可以具体看一下每一种返回值处理器处理的什么格式的数据)
+                这样就找到了RequestResponseBodyMethodProcessor这个返回值处理器,判断返回值上有没有ResponseBody这个注解
+                @Override
+                public boolean supportsReturnType(MethodParameter returnType) {
+                    return (AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), ResponseBody.class) ||
+                            returnType.hasMethodAnnotation(ResponseBody.class));
                 }
 
+            1.2、RequestResponseBodyMethodProcessor这个返回值处理器如何处理返回值的呢？
+                调用handleReturnValue方法处理返回值，RequestResponseBodyMethodProcessor可以处理返回值标了@ResponseBody注解的
+                @Override
+                public void handleReturnValue(@Nullable Object returnValue, MethodParameter returnType,
+                        ModelAndViewContainer mavContainer, NativeWebRequest webRequest)
+                        throws IOException, HttpMediaTypeNotAcceptableException, HttpMessageNotWritableException {
 
+                    mavContainer.setRequestHandled(true);
+                    ServletServerHttpRequest inputMessage = createInputMessage(webRequest);
+                    ServletServerHttpResponse outputMessage = createOutputMessage(webRequest);
 
+                    // Try even with null return value. ResponseBodyAdvice could get involved.
+                    //使用消息转换器进行写出操作
+                    writeWithMessageConverters(returnValue, returnType, inputMessage, outputMessage);
+                }
 
-返回值处理器原理
-    响应分两种
-        1、响应到页面，前后端一体
-        2、响应数据，前后端一体
-        响应数据需要在处理器上添加@ResponseBody
+            1.3、writeWithMessageConverters方法的执行，将数据写为json
+                1、内容协商(浏览器发送请求时默认会以请求头的方式告诉服务器他能接收什么样的内容类型)
+                2、服务器最终根据返回值的类型以及目标类型等，决定服务器能产生什么样的内容类型的数据
+                根据浏览器能够接收的类型以及服务器能产生什么样的类型选出大家都可以接收的类型；
 
-        如何获取返回值处理器呢？
-    1、返回值处理器判断是否支持这种类型返回值supportReturnType
-    2、返回值处理器调用handleReturnValue进行处理
-        返回值处理器有很多种类型
-    3、假如处理器方法上有@ResponseBody注解后，根据返回值以及返回类型找到返回值处理器RequestResponseBodyMethodProcessor
-        1、利用messageConverters进行处理返回值，调用了writeWithMessageConverters方法，将数据写为json
-            1、内容协商(浏览器发送请求时默认会以请求头的方式告诉服务器他能接收什么样的内容类型)
-            2、服务器最终根据返回值的类型以及目标类型等，决定服务器能产生什么样的内容类型的数据
-            根据浏览器能够接收的类型以及服务器能产生什么样的类型选出大家都可以接收的类型；
-            3、springmvc会遍历容器底层的消息转换器messageConverters，看谁能处理这个返回值(就是将这个返回值类型转换成大家都能够接受的内容类型)
-                messageConverters作用：看是否支持将此class类型的对象转换为MediaType类型的数据
-                例子：是否支持将person对象转化为json；或者是否支持将json转换为person对象；
-                消息转换器可以双向转换
-            4、默认的消息转换器共有十个左右
-                有只支持返回值类型是byte类型的，还有返回值为String类型的，resources类型的；
+                选出媒体类型后开始"查找"可以将返回的class类型的对象转换为MediaType类型数据的消息转换器
+                3、springmvc会遍历容器底层的消息转换器messageConverters，看谁能处理这个返回值
+                    (就是将这个返回值类型转换成选出来的媒体类型)
+                    messageConverters作用：看是否支持将此class类型的对象转换为MediaType类型的数据
+                    例子：是否支持将person对象转化为json；或者是否支持将json转换为person对象；
+                    消息转换器可以双向转换
+                4、默认的消息转换器共有十个左右
+                    有只支持返回值类型是byte类型的，还有返回值为String类型的，resources类型的；
+                    最终找到MappingJackson2HttpMessageConverter，支持所有类型的返回值转换成json
+                    (利用jackson底层的objectMapper进行转换)
+                5、找到这个消息转换器之后就准备开始转换成json了
+                    1、首先获取到返回的对象，这个就是准备转换json并且写入响应体的数据
+                        body = getAdvice().beforeBodyWrite(body, returnType, selectedMediaType,
+                                (Class<? extends HttpMessageConverter<?>>) converter.getClass(),
+                                inputMessage, outputMessage);
 
-                MappingJackson2HttpMessageConverter支持将除byte，string等类型外的所有类型的返回值转换成json
-                (利用jackson底层的objectMapper进行转换)
+                    2、开始转换并响应数据
+                        genericConverter.write(body, targetType, selectedMediaType, outputMessage);
+                    3、write方法调用
+                        //将返回的对象转换成json并写到outputMessage
+                        writeInternal(t, type, outputMessage);
+                        //刷到响应体中
+                        outputMessage.getBody().flush();
+
 
 
             内容协商原理
-                1、判断当前响应头张是否已经确定媒体类型，mediaType(有可能是在拦截器里确定了响应的媒体类型)
+                1、判断当前响应头中是否已经确定媒体类型，mediaType(有可能是在拦截器里确定了响应的媒体类型)
                 2、获取客户端支持接收的媒体类型(获取客户端Accept请求头字段)，【application/xml等】
-                3、服务器遍历循环当前系统所有的消息转换器，看谁支持操作这个对象
-                4、找到支持操作这个对象的消息转换器，把这个转换器里面的媒体类型统计出来
+                    使用contentNegotiationManager内容协商管理器获取
+                3、服务器遍历循环当前系统所有的消息转换器，看哪些消息转换器支持写这个对象
+                    可以添加一些jar包，这样就可以添加一些服务器可以处理的媒体类型
+                     <dependency>
+                        <groupId>com.fasterxml.jackson.dataformat</groupId>
+                        <artifactId>jackson-dataformat-xml</artifactId>
+                        <version></version>
+                    </dependency>
+                    添加了这个jar包后，消息转换器就会多一个处理xml的，服务器可以处理的媒体类型就会多一个application/xml
+                4、支持的话就把这个消息转换器支持的媒体类型放到集合中返回出来，这就是服务器针对这个返回值对象能生产的媒体类型，
                 5、客户端需要【application/xml】，服务端有可能支持好几种
-                6、进行内容协商选出最佳媒体类型
-                7、用支持 将对象转换为最佳匹配媒体类型的消息转换器，调用它进行转化
+                6、for循环进行内容协商选出最佳媒体类型
+                7、用支持“将对象转换为最佳匹配媒体类型的消息转换器”，调用它进行转化
 
             浏览器请求时是没法自定义接收的媒体类型的，如何设置
                 1、开启浏览器请求参数方式的内容协商功能
@@ -686,6 +949,8 @@ public class CustomDateWebBindingInitializer implements WebBindingInitializer {
 
 
                 到此就可以使用自定义的媒体类型得到想要的响应数据格式；
+
+
 
 注解@Order或者接口Ordered的作用是定义Spring IOC容器中Bean的执行顺序的优先级，而不是定义Bean的加载顺序，
 Bean的加载顺序不受@Order或Ordered接口的影响,只是执行顺序受此影响；譬如实现CommandLineRunner接口的类会在Spring IOC容
@@ -801,7 +1066,7 @@ web原生组件注入(servlet、filter、listener)
 
      推荐使用这种方式
 
-    2、使用RegistrationBean
+    2、使用RegistrationBeanConversionService
         ServletRegistrationBean、FilterRegistrationBean、ServletListenerRegistrationBean
 
         @Configuration
@@ -965,7 +1230,6 @@ public class Person implements Animal{
 
     private String name;
     private  int age;
-
 }
 当获取Animal的类型时，会根据当前是使用什么环境，然后将@Profile("test")所标注的对应的类型注入容器；可以使用在类上，也可以使用在bean上；
 
