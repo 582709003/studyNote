@@ -570,8 +570,7 @@ ServletContainerInitializer
         ServletContainerInitializer 是 Servlet 3.0 新增的一个接口，主要用于在容器启动阶段通过编程风格注册Filter,
         Servlet以及Listener，以取代通过web.xml配置注册。这样就利于开发内聚的web应用框架.
     2、使用
-        1、Servlet容器启动会扫描，当前应用里面每一个jar包的
-            ServletContainerInitializer的实现
+        1、Servlet容器启动会扫描，当前应用里面每一个jar包的ServletContainerInitializer的实现
         2、提供ServletContainerInitializer的实现类；
             必须绑定在，META-INF/services/javax.servlet.ServletContainerInitializer
             文件的内容就是ServletContainerInitializer实现类的全类名
@@ -591,7 +590,7 @@ ServletContainerInitializer
             }
         }
 
-servlet3.0和springmvc整合
+servlet3.0容器和springmvc整合
     1、spring-web jar包；里有一个 META-INF/services/javax.servlet.ServletContainerInitializer
         web容器启动的时候会扫描每个jar包下的这个文件夹的文件
     2、加载文件中指定的类SpringServletContainerInitializer
@@ -637,3 +636,7 @@ servlet3.0和springmvc整合
                 return new String[]{"/"};
             }
         }
+
+
+        springboot向容器注册dispatchservlet的方式和springmvc注解版的不一样,springboot
+        是使用DispatcherServletAutoConfiguration仔顶配置类注册的

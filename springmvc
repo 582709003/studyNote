@@ -406,7 +406,7 @@ spring mvc
         过滤器：时servlet中组件，任何javaweb工程都可以使用过滤器
         拦截器：是springmvc框架的，是由使用了springmvc框架才可以使用拦截器
         过滤器：在url-pattern配置了/*之后，可以对所有要访问的资源进行拦截
-        拦截器：他只会拦截访问的控制器方法，如果访问jsp，以及静态资源时不会被拦截
+        拦截器：
         实现拦截器步骤
         1、必须实现HandlerInterceptor接口
         2、配置自定义拦截器的路径
@@ -830,7 +830,7 @@ springmvc初始化
                  2、在处理请求阶段，做了一些提前的准备工作
 
         3、DispatcherServlet
-        1）重写onRefresh,初始化SpringMvc工作组件
+        1）重写onRefresh,初始化SpringMvc工作组件,这些组件都封装到了DispatcherServlet
         HttpServletBean.init()-->FrameworkServlet.initServletBean（）-->FrameworkServlet.initWebApplicationContext()
         -->DispatcherServlet.onRefresh(ApplicationContext context)
 
@@ -839,7 +839,7 @@ springmvc初始化
           //context就是在FrameworkServlet.initWebApplicationContext()中完成初始化工作的IOC容器
            initStrategies(context);
         }
-        //完成各组件的初始化
+        //完成各组件的初始化，目的是为dispatchservlet添加web组件
         protected void initStrategies(ApplicationContext context) {
         　　//初始化文件上传的处理类
            initMultipartResolver(context);
