@@ -1644,8 +1644,11 @@ springApplication创建初始化流程
                 return context;
             }
 
-
-
+serlvlet启动过程
+    1、创建servletContext
+    2、找ServletContainerInitializer并调用onstarteUp方法
+    3、执行完之后触发contextloaderListener
+    4、执行注入的servlet的init方法
 
 单元测试
     1、//添加了这个注解就会在spring容器中进行测试
