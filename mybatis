@@ -1,3 +1,5 @@
+官方文档：https://mybatis.org/mybatis-3/zh
+
 mybatis:持久层框架，用Java写的，他封装了jdbc操作的很多的细节，使开发者只需要关注sql语句本身，
         ，而无需关注注册驱动等细节，它使用了ORM思想实现了结果集的封装；
 
@@ -12,7 +14,7 @@ mybatis:持久层框架，用Java写的，他封装了jdbc操作的很多的细�
     4、创建映射配置文件IRoleDao.xml
 
 环境搭建注意事项
-    1、在idea创建目录的时候，目录呵呵包是不一样的，
+    1、在idea创建目录的时候，目录和包是不一样的，
         包在创建的时候：com.itheima.dao是三级结构
         目录在创建的时候：com.itheima.dao是一级目录，这个目录名就是com.itheima.dao
 
@@ -24,438 +26,1164 @@ mybatis:持久层框架，用Java写的，他封装了jdbc操作的很多的细�
 工厂模式就是解耦（降低类之间的依赖关系）
 代理模式（优势：不修改源码的基础上对已有的方法增强）
 
-xml配置文件
-    <properties resource="org/mybatis/example/config.properties">
-      <property name="username" value="dev_user"/>
-      <property name="password" value="F2Fa3!33TYyg"/>
-    </properties>
+两个文件
+    xml全局配置文件：指导mybatis正确运行的一些全局配置
+    sql映射文件：相当于是对Dao接口的一个实现描述，虽然没有实现类，但是mybatis会自动为这个dao创建了一个代理对象
+细节
+    1、获取到的mapper对象是它的代理对象，mybatis自动创建
+    2、SqlSessionFactoryBuilder、SqlSessionFactory和SqlSession
+        SqlSessionFactoryBuilder
+            这个类可以被实例化、使用和丢弃，一旦创建了 SqlSessionFactory，就不再需要它了。 因此 SqlSessionFactoryBuilder
+            实例的最佳作用域是方法作用域（也就是局部方法变量）。 你可以重用 SqlSessionFactoryBuilder 来创建多个
+            SqlSessionFactory 实例，但最好还是不要一直保留着它，以保证所有的 XML 解析资源可以被释放给更重要的事情。
 
-    <dataSource type="POOLED">
-      <property name="driver" value="${driver}"/>
-      <property name="url" value="${url}"/>
-      <property name="username" value="${username}"/>
-      <property name="password" value="${password}"/>
-    </dataSource>
+        SqlSessionFactory
+            SqlSessionFactory 一旦被创建就应该在应用的运行期间一直存在，没有任何理由丢弃它或重新创建另一个实例。 使用
+            SqlSessionFactory 的最佳实践是在应用运行期间不要重复创建多次，多次重建 SqlSessionFactory 被视为一种代码
+            “坏习惯”。因此 SqlSessionFactory 的最佳作用域是应用作用域。 有很多方法可以做到，最简单的就是使用单例模式
+            或者静态单例模式。
 
-    如果一个属性在不只一个地方进行了配置，那么，MyBatis 将按照下面的顺序来加载：
-    首先读取在 properties 元素体内指定的属性。
-    然后根据 properties 元素中的 resource 属性读取类路径下属性文件，或根据 url 属性指定的路径读取属性文件，
+        SqlSession
+            每个线程都应该有它自己的 SqlSession 实例。SqlSession 的实例不是线程安全的，
+              每个线程都应该有自己的sqlsession，如果共用一个，某个用户把sqlsession给close了，另一个用户不是就不能用了；
+              或者一个用户commit了，但是另一个用户不需要commit，不是出问题了吗；因此是不能被共享的，所以它的最佳
+            的作用域是请求或方法作用域。 绝对不能将 SqlSession 实例的引用放在一个类的静态域，甚至一个类的实例变量也不行。
+            也绝不能将 SqlSession 实例的引用放在任何类型的托管作用域中，比如 Servlet 框架中的 HttpSession。 如果你现在
+            正在使用一种 Web 框架，考虑将 SqlSession 放在一个和 HTTP 请求相似的作用域中。 换句话说，每次收到 HTTP 请求，
+            就可以打开一个 SqlSession，返回一个响应后，就关闭它。 这个关闭操作很重要，为了确保每次都能执行关闭操作，你应该
+            把这个关闭操作放到 finally 块中。 下面的示例就是一个确保 SqlSession 关闭的标准模式：
+
+xml全局配置文件
+    1、properties（属性）
+        这些属性可以在外部进行配置，并可以进行动态替换。你既可以在典型的 Java 属性文件中配置这些属性，
+        也可以在 properties 元素的子元素中设置
+        <properties resource="org/mybatis/example/config.properties">
+          <property name="username" value="dev_user"/>
+          <property name="password" value="F2Fa3!33TYyg"/>
+        </properties>
+        设置好的属性可以在整个配置文件中用来替换需要动态配置的属性值
+        <dataSource type="POOLED">
+          <property name="driver" value="${driver}"/>
+          <property name="url" value="${url}"/>
+          <property name="username" value="${username}"/>
+          <property name="password" value="${password}"/>
+        </dataSource>
+
+        如果一个属性在不只一个地方进行了配置，那么，MyBatis 将按照下面的顺序来加载：
+        首先读取在 properties 元素体内指定的属性。
+        然后根据 properties 元素中的 resource 属性读取类路径下属性文件，或根据 url 属性指定的路径读取属性文件，
         并覆盖之前读取过的同名属性。
-    最后读取作为方法参数传递的属性，并覆盖之前读取过的同名属性。
-    因此，通过方法参数传递的属性具有最高优先级，resource/url 属性中指定的配置文件次之，最低优先级的则是 properties 元素中指定的属性
+        最后读取作为方法参数传递的属性，并覆盖之前读取过的同名属性。
+        因此，通过方法参数传递的属性具有最高优先级，resource/url 属性中指定的配置文件次之，最低优先级的则是 properties
+        元素中指定的属性
 
-    从 MyBatis 3.4.2 开始，你可以为占位符指定一个默认值。例如：
-    <dataSource type="POOLED">
-      <!-- ... -->
-      <property name="username" value="${username:ut_user}"/> <!-- 如果属性 'username' 没有被配置，'username' 属性的值将为 'ut_user' -->
-    </dataSource>
+        从 MyBatis 3.4.2 开始，你可以为占位符指定一个默认值。例如：
+        <dataSource type="POOLED">
+           <!-- 如果属性 'username' 没有被配置，'username' 属性的值将为 'ut_user' -->
+          <property name="username" value="${username:ut_user}"/>
+        </dataSource>
 
-    这个特性默认是关闭的。要启用这个特性，需要添加一个特定的属性来开启这个特性。例如：
-    <properties resource="org/mybatis/example/config.properties">
-        <!-- 启用默认值特性 -->
-      <property name="org.apache.ibatis.parsing.PropertyParser.enable-default-value" value="true"/>
-    </properties>
+        这个特性默认是关闭的。要启用这个特性，需要添加一个特定的属性来开启这个特性。例如：
+        <properties resource="org/mybatis/example/config.properties">
+            <!-- 启用默认值特性 -->
+          <property name="org.apache.ibatis.parsing.PropertyParser.enable-default-value" value="true"/>
+        </properties>
+
+    设置（settings）
+        这是 MyBatis 中极为重要的调整设置，它们会改变 MyBatis 的运行时行为。 下表描述了设置中各项设置的含义、默认值等。
+        请查阅文档
 
     类型别名（typeAliases）
-    类型别名可为 Java 类型设置一个缩写名字。 它仅用于 XML 配置，意在降低冗余的全限定类名书写。例如：
-        <typeAliases>
-          <typeAlias alias="Author" type="domain.blog.Author"/>
-          <typeAlias alias="Blog" type="domain.blog.Blog"/>
-          <typeAlias alias="Comment" type="domain.blog.Comment"/>
-          <typeAlias alias="Post" type="domain.blog.Post"/>
-          <typeAlias alias="Section" type="domain.blog.Section"/>
-          <typeAlias alias="Tag" type="domain.blog.Tag"/>
-        </typeAliases>
+        类型别名可为 Java 类型设置一个缩写名字。 它仅用于 XML 配置，意在降低冗余的全限定类名书写。例如：
+            方式1
+                <typeAliases>
+                  <typeAlias alias="Author" type="domain.blog.Author"/>
+                  <typeAlias alias="Blog" type="domain.blog.Blog"/>
+                  <typeAlias alias="Comment" type="domain.blog.Comment"/>
+                  <typeAlias alias="Post" type="domain.blog.Post"/>
+                  <typeAlias alias="Section" type="domain.blog.Section"/>
+                  <typeAlias alias="Tag" type="domain.blog.Tag"/>
+                </typeAliases>
 
-        下面是一些为常见的 Java 类型内建的类型别名，如果没有内建的类型别名，那么每次使用类型时还得要写全限定名。
-        它们都是不区分大小写的，注意，
-            为了应对原始类型的命名重复，采取了特殊的命名风格。
-        别名	       映射的类型
-        _byte	    byte
-        _long	    long
-        _short	    short
-        _int	    int
-        _integer	int
-        _double	    double
-        _float	    float
-        _boolean	boolean
-        string	    String
-        byte	    Byte
-        long	    Long
-        short	    Short
-        int	        Integer
-        integer	    Integer
-        double	    Double
-        float	    Float
-        boolean	    Boolean
-        date	    Date
-        decimal	    BigDecimal
-        bigdecimal	BigDecimal
-        object	    Object
-        map	        Map
-        hashmap	    HashMap
-        list	    List
-        arraylist	ArrayList
-        collection	Collection
-        iterator	Iterator
+             方式二
+                也可以指定一个包名，MyBatis 会在包名下面搜索需要的 Java Bean，比如：
+                <typeAliases>
+                  <package name="domain.blog"/>
+                </typeAliases>
+                每一个在包 domain.blog 中的 Java Bean，在没有注解的情况下，会使用 Bean 的首字母小写的非限定类名来作为它的别名。
+                比如 domain.blog.Author 的别名为 author
 
-SQL 映射文件只有很少的几个顶级元素：
-    cache – 该命名空间的缓存配置。
-    cache-ref – 引用其它命名空间的缓存配置。
-    resultMap – 描述如何从数据库结果集中加载对象，是最复杂也是最强大的元素。
-    sql – 可被其它语句引用的可重用语句块。
-    insert – 映射插入语句。
-    update – 映射更新语句。
-    delete – 映射删除语句。
-    select – 映射查询语句。
+            下面是一些为常见的 Java 类型内建的类型别名，如果没有内建的类型别名，那么每次使用类型时还得要写全限定名。
+            它们都是不区分大小写的，注意，
+                为了应对原始类型的命名重复，采取了特殊的命名风格。
+            别名	       映射的类型
+            _byte	    byte
+            _long	    long
+            _short	    short
+            _int	    int
+            _integer	int
+            _double	    double
+            _float	    float
+            _boolean	boolean
+            string	    String
+            byte	    Byte
+            long	    Long
+            short	    Short
+            int	        Integer
+            integer	    Integer
+            double	    Double
+            float	    Float
+            boolean	    Boolean
+            date	    Date
+            decimal	    BigDecimal
+            bigdecimal	BigDecimal
+            object	    Object
+            map	        Map
+            hashmap	    HashMap
+            list	    List
+            arraylist	ArrayList
+            collection	Collection
+            iterator	Iterator
+
+    类型处理器（typeHandlers）
+        MyBatis 在设置预处理语句（PreparedStatement）中的参数或从结果集中取出一个值时，
+        都会用类型处理器将获取到的值以合适的方式转换成 Java 类型;
+        mybatis为我们准备了一些默认的类型处理器
+        类型处理器的工作流程
+          当我们处理一条sql语句时必然要传入参数，如果有很多参数，那就一个一个的处理，如何处理呢？
+          执行sql准备参数时，mybatis已经知道了每一个参数的数据库的类型，已经对应的传入的参数的java类型，并把这些对应关系存放到了
+          parameterMappings，当为PreparedStatement准测i参数值时，他会遍历每一个parameterMapping，然后根据parameterMapping
+          里面存放的java类型和数据库类型的对应关系找到类型处理器；
+          假如传入的参数是string类型，数据库要存到varchar类型上，
+          那就会根据string类型----varchar类型找到StringTypeHandler类型处理器
+          我们也可以自定义一个类型处理器，譬如这样的场景
+            假设现在在 java实体类Person中一个属性 boolean sex（性别），而在mysql数据库中的表person的sex属性类型为int。
+            在这个过程中，java和数据库的类型相互之间发生了转化，但是有没有内置的类型处理器可以处理，所以我们可以自定义专门
+            处理这种情况的类型处理器来进行处理
+            步骤1、继承BaseTypeHandler
+                /**
+                 * 将普通类变成类型处理器的 两种方法
+                 * 方法一：implements TypeHandler
+                 * 方法二：extends BaseTypeHandler
+                 *
+                 * 此处的泛型写 要转化的java类型
+                 */
+
+                public class BooleanAndIntConverter extends BaseTypeHandler<Boolean> {
+
+                    /**
+                     * set方法：java->数据库
+                     * java(boolean)-DB(number)
+                     *
+                     * ps:PreparedStatement对象
+                     * i：PreparedStatement对象操作参数的位置
+                     * parameter:java值
+                     * jdbcType：jdbc操作的数据库类型
+                     */
+                    public void setNonNullParameter(PreparedStatement ps, int i,
+                            Boolean parameter, JdbcType jdbcType) throws SQLException {
+                        if (parameter) {
+                            ps.setInt(i, 1);
+                        }else {
+                            ps.setInt(i, 0);
+                        }
+                    }
+
+                    /**
+                     * get方法，从数据库->java
+                     * db(number)->java(boolean)
+                     *
+                     * get重写了三种方式来从数据库提取数据进行转换，分别通过列名、索引、回调函数来处理，实际的代码流程差不多
+                     */
+
+                    public Boolean getNullableResult(ResultSet rs, String columnName)
+                            throws SQLException {
+                        int sexNum = rs.getInt(columnName);
+                //
+                //		if (sexNum==1) {
+                //			return true;
+                //		}else{
+                //			return false;
+                //		}
+
+                        return sexNum==1?true:false;
+                    }
+
+                    @Override
+                    public Boolean getNullableResult(ResultSet rs, int columnIndex)
+                            throws SQLException {
+                        int sexNum = rs.getInt(columnIndex);
+                        return sexNum==1?true:false;
+                    }
+
+                    @Override
+                    public Boolean getNullableResult(CallableStatement cs, int columnIndex)
+                            throws SQLException {
+                        int sexNum = cs.getInt(columnIndex);
+                        return sexNum==1?true:false;
+                    }
+
+                }
+
+            通过类型处理器的泛型，MyBatis 可以得知该类型处理器处理的 Java 类型，不过这种行为可以通过两种方法改变：
+                1、在类型处理器的配置元素（typeHandler 元素）上增加一个 javaType 属性（比如：javaType="String"）；
+                    <typeHandlers>
+                        <typeHandler handler="org.ltx.converter.BooleanAndIntConverter" javaType="BOOLEAN" jdbcType="INTEGER"/>
+                    </typeHandlers>
+                2、在类型处理器的类上增加一个 @MappedTypes 注解 指定与其关联的 Java 类型列表。 如果在 javaType 属性中也
+                    同时指定，则注解上的配置将被忽略。
+
+            可以通过两种方式来指定关联的 JDBC 类型：
+                1、在类型处理器的配置元素上增加一个 jdbcType 属性（比如：jdbcType="VARCHAR"）；
+                 <typeHandlers>
+                    <typeHandler handler="org.ltx.converter.BooleanAndIntConverter" javaType="BOOLEAN" jdbcType="INTEGER"/>
+                </typeHandlers>
+                2、在类型处理器的类上增加一个 @MappedJdbcTypes 注解指定与其关联的 JDBC 类型列表。
+                    如果在 jdbcType 属性中也同时指定，则注解上的配置将被忽略。
+
+        步骤2、注册类型转换器
+            <configuration>
+            	<typeHandlers>
+            		<!-- 单个注册 -->
+            		<typeHandler handler="org.ltx.converter.BooleanAndIntConverter" javaType="BOOLEAN" jdbcType="INTEGER"/>
+
+            		<!-- 批量注册org.ltx.converter包下的所有类型处理器 -->
+            		<package name="org.ltx.converter"/>
+            	</typeHandlers>
+            </configuration>
+            springboot注册类型处理器方式
+                mybatis:
+                  type-handlers-package: com.*.*.*.*.mybatis.handlers
+
+    对象工厂（objectFactory）
+        当你从数据库通过条件查找数据并封装成一个对象时，那这个结果对象mybatis是如何创建的呢？
+        每次 MyBatis 创建结果对象的新实例时，它都会使用一个对象工厂（ObjectFactory）实例来完成实例化工作。默认的对象工厂需要
+        做的仅仅是实例化目标类，要么通过默认无参构造方法，要么通过存在的参数映射来调用带有参数的构造方法。 如果想覆盖对象工厂的
+        默认行为，可以通过创建自己的对象工厂来实现。
+        我们就了解这个事情就行了
+
+    插件（plugins）
+       分页
+               limit:(pageStart-1) * size  size:size
+       PageHelper
+        1、导入第三方 分页jar包
+            <!-- pagehelper 分页插件 -->
+                <dependency>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper-spring-boot-starter</artifactId>
+                </dependency>
+
+        2、springboot的配置文件中配置好自定义的属性,一般就这么配
+            pagehelper:
+              helperDialect: mysql
+              !-- 启用合理化时，如果pageNum<1会查询第一页，如果pageNum>pages会查询最后一页 -->
+              <!-- 禁用合理化时，如果pageNum<1或pageNum>pages会返回空数据 -->
+              reasonable: false
+              supportMethodsArguments: true
+              params: count=countSql
+        3、使用
+            public PageInfo<OrderInfo> getAllOrders(int page, int pageSize){
+                  PageHelper.startPage(page, pageSize);
+                  List<OrderInfo> list = orderMapper.selectAllOrders();
+                  PageInfo<OrderInfo> pageInfo = new PageInfo<>(list);
+                  return pageInfo;
+              }
+
+
+
+
+
+    环境配置（environments）
+        MyBatis 可以配置成适应多种环境
+        //通过修改default来指定使用哪种环境来修改数据源以及事务，这里面配置的事务管理器以及数据源都是mybatis提供的，
+        //当我们使用springboot后这里其实都不用配置，直接使用springboot自动配置的数据源以及事务管理，或者使用第三方的比较好
+        <environments default="development">
+          <environment id="development">
+            //在 MyBatis 中有两种类型的事务管理器（也就是 type="[JDBC|MANAGED]"这些都是全类名的别名）：
+            //  JDBC – 这个配置直接使用了 JDBC 的提交和回滚设施，它依赖从数据源获得的连接来管理事务作用域。
+             // MANAGED – 这个配置几乎没做什么。它从不提交或回滚一个连接，而是让容器来管理事务的整个生命周期
+             // （比如 JEE 应用服务器的上下文）。 默认情况下它会关闭连接。
+             // 然而一些容器并不希望连接被关闭，因此需要将 closeConnection 属性设置为 false 来阻止默认的关闭行为。例如:
+              <transactionManager type="MANAGED">
+                <property name="closeConnection" value="false"/>
+              </transactionManager>
+              <transactionManager type="JDBC">
+                <property name="..." value="..."/>
+              </transactionManager>
+
+            //mybatis提供有三种内建的数据源类型（也就是 type="[UNPOOLED|POOLED|JNDI]"，这些都是全类名的别名），
+            //你也可以自定义数据源
+            //通过实现DataSourceFactory 接口重写getDataSource方法，这个方法是返回数据源，你可以返回你想要的数据源，
+            //譬如DruidDataSource数据源，然后将自定义的全类名写在type后面即可;
+            <dataSource type="POOLED">
+              <property name="driver" value="${driver}"/>
+              <property name="url" value="${url}"/>
+              <property name="username" value="${username}"/>
+              <property name="password" value="${password}"/>
+            </dataSource>
+          </environment>
+
+          <environment id="test">
+                  <transactionManager type="JDBC">
+                    <property name="..." value="..."/>
+                  </transactionManager>
+                  <dataSource type="POOLED">
+                    <property name="driver" value="${driver}"/>
+                    <property name="url" value="${url}"/>
+                    <property name="username" value="${username}"/>
+                    <property name="password" value="${password}"/>
+                  </dataSource>
+                </environment>
+        </environments>
+
+    数据库厂商标识（databaseIdProvider）
+        //type值是固定的DB_VENDOR
+        <databaseIdProvider type="DB_VENDOR">
+            //name：数据库厂商表标识  value：给这个标识起一个好用的名字,对应这sql配置文件中的databaseId
+          <property name="SQL Server" value="sqlserver"/>
+          <property name="DB2" value="db2"/>
+          <property name="Oracle" value="oracle" />
+          <property name="MYSQL" value="mysql" />
+        </databaseIdProvider>
+        这个元素的作用是这样的
+            由于不同数据库的sql写法是不一样的，所以我们可以在sql的xml文件中将同样功能的sql多写几个以适应不同的数据库；
+                //这个是不区分数据库的，可能大多数据库的写法都是一样的，如果一个没匹配到就使用这个
+                <delete id="deleteMarketActiveById" parameterType="Long">
+                    delete from market_active where id = #{id}
+                </delete>
+                //如果是mysql数据库，优先匹配这个
+                 <delete id="deleteMarketActiveById" parameterType="Long" databaseId="mysql">
+                    delete from market_active where id = #{id}
+                </delete>
+                //如果是oracle数据库，优先匹配这个
+                <delete id="deleteMarketActiveById" parameterType="Long" databaseId="oracl">
+                    delete from market_active where id = #{id}
+                </delete>
+            如何找到的呢？当我们连接数据库时，connection通过驱动包获取到驱动包中的数据库厂商标识，我们再为这个厂商标识
+            起个别名，以便在sql的配置文件中使用
+
+    映射器（mappers）
+        <!-- 使用相对于类路径的资源引用 -->
+        <mappers>
+          <mapper resource="org/mybatis/builder/AuthorMapper.xml"/>
+          <mapper resource="org/mybatis/builder/BlogMapper.xml"/>
+          <mapper resource="org/mybatis/builder/PostMapper.xml"/>
+        </mappers>
+
+        <!-- 使用完全限定资源定位符（URL），也可以是网络的xml -->
+        <mappers>
+          <mapper url="file:///var/mappers/AuthorMapper.xml"/>
+          <mapper url="file:///var/mappers/BlogMapper.xml"/>
+          <mapper url="file:///var/mappers/PostMapper.xml"/>
+        </mappers>
+
+        <!-- 将包内的映射器接口实现全部注册为映射器 -->
+        <mappers>
+          <package name="org.mybatis.builder"/>
+        </mappers>
+
+SQL 映射文件
+    1、nameSpace:写dao接口的全类名
+
+    2、这个映射文件中只有很少的几个顶级元素：
+        cache – 该命名空间的缓存配置。
+        cache-ref – 引用其它命名空间的缓存配置。
+        resultMap – 描述如何从数据库结果集中加载对象，是最复杂也是最强大的元素。
+        sql – 可被其它语句引用的可重用语句块。
+        insert – 映射插入语句。
+        update – 映射更新语句。
+        delete – 映射删除语句。
+        select – 映射查询语句。
         select 元素允许你配置很多属性来配置每条语句的行为细节。
-        <select
-          id="selectPerson"
-          parameterType="int"
-          parameterMap="deprecated"
-          resultType="hashmap"
-          resultMap="personResultMap"
-          flushCache="false"
-          useCache="true"
-          timeout="10"
-          fetchSize="256"
-          statementType="PREPARED"
-          resultSetType="FORWARD_ONLY">
+
+        1、select
+            <select
+              id="selectPerson"
+              parameterType="int"
+              parameterMap="deprecated"
+              resultType="hashmap"
+              resultMap="personResultMap"
+              flushCache="false"
+              useCache="true"
+              timeout="10"
+              fetchSize="256"
+              statementType="PREPARED"
+              resultSetType="FORWARD_ONLY">
+
+              id	在命名空间中唯一的标识符，可以被用来引用这条语句。方法名
+              parameterType	将会传入这条语句的参数的类全限定名或别名。这个属性是可选的，因为 MyBatis 可以通过类型处理器
+                            （TypeHandler）推断出具体传入语句的参数，默认值为未设置（unset）。
+                            注意：一般我们的javaBean类型里面的数据类型譬如int，long的基本类型，我们最好使用他们的包装类型，
+                            因为当我们传入的对象未给int类型的属性赋值时，这时int类型会有一个默认值0，这就导致在非空判断时是判断不出来的；
+              resultType	期望从这条语句中返回结果的类全限定名或别名。 注意，如果返回的是集合，那应该设置为集合包含的类型，
+                            而不是集合本身的类型。 resultType 和 resultMap 之间只能同时使用一个。
+              resultMap	    对外部 resultMap 的命名引用。结果映射是 MyBatis 最强大的特性，如果你对其理解透彻，许多复杂的映射问题都
+                            能迎刃而解。 resultType 和 resultMap 之间只能同时使用一个。
+              flushCache	将其设置为 true 后，只要语句被调用，都会导致本地缓存和二级缓存被清空，默认值：false。
+              useCache	将其设置为 true 后，将会导致本条语句的结果被二级缓存缓存起来，默认值：对 select 元素为 true。
+              timeout	这个设置是在抛出异常之前，驱动程序等待数据库返回请求结果的秒数。默认值为未设置（unset）（依赖数据库驱动）。
+              fetchSize	这是一个给驱动的建议值，尝试让驱动程序每次批量返回的结果行数等于这个设置值。 默认值为未设置（unset）
+                        （依赖驱动）。
+              statementType	可选 STATEMENT，PREPARED 或 CALLABLE。这会让 MyBatis 分别使用 Statement，PreparedStatement
+                            或 CallableStatement，默认值：PREPARED。
+              resultSetType	FORWARD_ONLY，SCROLL_SENSITIVE, SCROLL_INSENSITIVE 或 DEFAULT（等价于 unset） 中的一个，
+                                默认值为 unset （依赖数据库驱动）。
+              databaseId	如果配置了数据库厂商标识（databaseIdProvider），MyBatis 会加载所有不带 databaseId 或匹配当前
+                            databaseId 的语句；如果带和不带的语句都有，则不带的会被忽略。
+              resultOrdered	这个设置仅针对嵌套结果 select 语句：如果为 true，将会假设包含了嵌套结果集或是分组，当返回一个主结
+                                果行时，就不会产生对前面结果集的引用。 这就使得在获取嵌套结果集的时候不至于内存不够用。默认值：false。
+              resultSets	这个设置仅适用于多结果集的情况。它将列出语句执行后返回的结果集并赋予每个结果集一个名称，多个名称之间
+                            以逗号分隔。
+
+        2、insert, update 和 delete
+            数据变更语句 insert，update 和 delete 的实现非常接近：
+            <insert
+              id="insertAuthor"
+              parameterType="domain.blog.Author"
+              flushCache="true"
+              statementType="PREPARED"
+              keyProperty=""
+              keyColumn=""
+              useGeneratedKeys=""
+              timeout="20">
+
+            <update
+              id="updateAuthor"
+              parameterType="domain.blog.Author"
+              flushCache="true"
+              statementType="PREPARED"
+              timeout="20">
+
+            <delete
+              id="deleteAuthor"
+              parameterType="domain.blog.Author"
+              flushCache="true"
+              statementType="PREPARED"
+              timeout="20">
+            属性                      描述
+            id	        在命名空间中唯一的标识符，可以被用来引用这条语句，这里就写方法名
+            parameterType	将会传入这条语句的参数的类全限定名或别名。"这个属性是可选的"，因为 MyBatis 可以通过类型处理器
+                            （TypeHandler）推断出具体传入语句的参数，默认值为未设置（unset）。
+            flushCache	将其设置为 true 后，只要语句被调用，都会导致本地缓存和二级缓存被清空，默认值：
+                            （对 insert、update 和 delete 语句）true。
+            timeout	这个设置是在抛出异常之前，驱动程序等待数据库返回请求结果的秒数。默认值为未设置（unset）
+                        （依赖数据库驱动）。
+            statementType	可选 STATEMENT，PREPARED 或 CALLABLE。这会让 MyBatis 分别使用 Statement，
+                            PreparedStatement 或 CallableStatement(存储过程用到)，默认值：PREPARED。
+            useGeneratedKeys	（仅适用于 insert 和 update）这会令 MyBatis 使用 原生JDBC 的 getGeneratedKeys
+                                方法来取出由数据库内部生成的自增主键id值，会封装到返回的对象的id中（比如像 MySQL和SQLServer
+                                这样的关系型数据库管理系统的自动递增字段），默认值：false。
+            keyProperty	（仅适用于 insert 和 update）指定能够唯一识别对象的属性，指明MyBatis 将 getGeneratedKeys获取到的自增
+                            主键id封装到对象的哪个属性中
+                            的返回值或 insert 语句的 selectKey 子元素设置它的值，默认值：未设置（unset）。如果生成列
+                            不止一个，可以用逗号分隔多个属性名称。
+            keyColumn	（仅适用于 insert 和 update）设置生成键值在表中的列名，在某些数据库（像 PostgreSQL）中，
+                            当主键列不是表中的第一列的时候，是必须设置的。如果生成列不止一个，可以用逗号分隔多个属性名称。
+            databaseId	如果配置了数据库厂商标识（databaseIdProvider），MyBatis 会加载所有不带 databaseId 或匹配当前
+                            databaseId 的语句；如果带和不带的语句都有，则不带的会被忽略。
+
+            1、首先，如果你的数据库支持自动生成主键的字段（比如 MySQL 和 SQL Server），那么你可以设置 useGeneratedKeys=”true”，
+                然后再把 keyProperty 设置为目标属性就 OK 了。例如，如果上面的 Author 表已经在 id 列上使用了自动生成，
+                那么语句可以修改为：
+                <insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
+                  insert into Author (username,password,email,bio)
+                  values (#{username},#{password},#{email},#{bio})
+                </insert>
+
+                注意：
+                    首先使用自增，必须保证数据库自动递增选项勾选上了，如果没有勾上会报错
+                    <insert id="insertRole" parameterType="Role" useGeneratedKeys="true" keyProperty="id">
+                    useGeneratedKeys="true" :表示要使用自增的主键，主键自增值的回填
+                    keyProperty="id"：表示把自增的主键赋给javabean的哪个成员变量
+                            Role r= new Role();
+                            r.setRoleDesc("描述11");
+                            r.setRoleName("角色11");
+                            int i1 = sqlSession.insert("com.com.sjd.dao.IRoleDao.insertRole",r);
+                            //此时就可以获得自增的主键
+                            System.out.println(r.getId());
+
+            2、如果你的数据库还支持多行插入, 你也可以传入一个 Author 数组或集合，并返回自动生成的主键。
+                <insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
+                  insert into Author (username, password, email, bio) values
+                  <foreach item="item" collection="list" separator=",">
+                    (#{item.username}, #{item.password}, #{item.email}, #{item.bio})
+                  </foreach>
+                </insert>
 
 
+            3、对于不支持自动生成主键列的数据库和可能不支持自动生成主键的 JDBC 驱动，MyBatis 有另外一种方法来生成主键。
+                这里有一个简单（也很傻）的示例，它可以生成一个随机 ID（不建议实际使用，这里只是为了展示 MyBatis 处理
+                问题的灵活性和宽容度）：
+                <insert id="insertAuthor" parameterType	= "Autor">
+                   //在核心sql语句执行之前先运行一个查询sql查到id，将查到的id先赋值给javaBean的keyProperty指定的属性
+                  <selectKey keyProperty="id" resultType="int" order="BEFORE">
+                    select CAST(RANDOM()*1000000 as INTEGER) a from SYSIBM.SYSDUMMY1
+                  </selectKey>
+                  insert into Author
+                    (id, username, password, email,bio, favourite_section)
+                  values
+                    (#{id}, #{username}, #{password}, #{email}, #{bio}, #{favouriteSection,jdbcType=VARCHAR})
+                </insert>
+                在上面的示例中，首先会运行 selectKey 元素中的语句，并设置 Author 的 id，然后才会调用插入语句。这样就实现了
+                数据库自动生成主键类似的行为，同时保持了 Java 代码的简洁。
+
+                selectKey 元素描述如下：
+                <selectKey
+                  keyProperty="id"
+                  resultType="int"
+                  order="BEFORE"
+                  statementType="PREPARED">
+
+        3、#{}和 ${}的区别
+            使用 #{} 参数语法时，MyBatis 会创建 PreparedStatement 参数占位符，并通过占位符安全地设置参数（就像使用 ? 一样）；
+            而使用${}时，参数会被直接拼接在sql语句后面，不安全
+            #:相当于？占位符，将传进来的值当作一个整体赋值给某个字段；但是$就是单纯将传进来的值拼接起来，这样有sql注入风险；
+            ${}使用场景：可以在order by以及表名处使用
+
+        4、传入的参数
+              1、单个参数
+                  原始类型或简单数据类型：取值 #{随便写}
+                  传入pojo：下面谈
+              2、多个参数
+                  取值 #{参数名}这样取值无效，可行的方法：0，1(参数的索引) 或者 param1，param2.....
+                  原因：只要传入多个参数，mybatis就会自动将这些参数封装到一个map中，封装时使用的key就是参数的索引和参数的
+                        第几个表示
+                        Map map = new HashMap();
+                        map.put("1","传入的值");
+                        map.put("2","传入的值");
+                        #{key}就是从map中取这个值
+
+                      我们可以告诉mybatis封装map别乱来，使用我们指定的key,使用@Param注解
+                       public GenTable selectGenTableByName(@Param("id") String tableName,@Param("num") Integer num);
+              3、传入pojo
+                  取值：#{pojo的属性名}
+
+              4、传入map
+                  取值：#{map的key}
 
 
+        5、结果映射resultMap
+                主要是为了将数据库的字段值封装到pojo中，解决列名不匹配，，自定义封装规则
+              1、隐式调用ResultMap
+                MyBatis 会在幕后自动创建一个 ResultMap，再根据属性名来映射列到 JavaBean 的属性上。如果列名和属性名不能
+                匹配上，可以在 SELECT 语句中设置列别名（这是一个基本的 SQL 特性）来完成匹配。比如：
+                  <select id="selectUsers" resultType="User">
+                    select
+                      user_id             as "id",
+                      user_name           as "userName",
+                      hashed_password     as "hashedPassword"
+                    from some_table
+                    where id = #{id}
+                  </select>
 
-<insert id="insert">
-  <selectKey keyProperty="id" resultType="int" order="BEFORE">
-    <if test="_databaseId == 'oracle'">
-      select seq_users.nextval from dual
-    </if>
-    <if test="_databaseId == 'db2'">
-      select nextval for seq_users from sysibm.sysdummy1"
-    </if>
-  </selectKey>
-  insert into users values (#{id}, #{name})
-</insert>
+                2、显式调用ResultMap
+                    在学习了上面的知识后，你会发现上面的例子没有一个需要显式配置 ResultMap，这就是 ResultMap 的优秀之处——
+                      你完全可以不用显式地配置它们。 虽然上面的例子不用显式配置 ResultMap。 但为了讲解，我们来看看如果在刚刚的示例中，
+                      显式使用外部的 resultMap 会怎样，“这也是解决列名不匹配的另外一种方式”。
+                      <resultMap id="userResultMap" type="User">
+                        <id property="id" column="user_id" />
+                        <result property="username" column="user_name"/>
+                        <result property="password" column="hashed_password"/>
+                      </resultMap>
+                      然后在引用它的语句中设置 resultMap 属性就行了（注意我们去掉了 resultType 属性）。比如:
+                      <select id="selectUsers" resultMap="userResultMap">
+                        select user_id, user_name, hashed_password
+                        from some_table
+                        where id = #{id}
+                      </select>
 
+                3、复杂结果映射resultMap
+                    1、一对一，级联属性方式查出数据封装到对象中的javaBean类型中，
+                        比如一个Man 男人类,一个男的只有一个老婆
+                        public class Man {
+                            private int id;
+                            private String name;
+                            private int age;
+                            private Wife wife;
+                        }
+                        //老婆类
+                        public class Wife {
+                            private int id;
+                            private String name;
+                            private int age;
+                        }
+                        sql查询语句：
+                            select m.id as man_id,m.name as man_name,m.age as man_age,
+                                w.id as wife_id,w.age as wife_age,w.name as wife_name
+                                from man m left join wife w
+                                on  m.wife_id = w.id where m.id = '1';
 
-首先，如果你的数据库支持自动生成主键的字段（比如 MySQL 和 SQL Server），那么你可以设置 useGeneratedKeys=”true”，然后再把 keyProperty 设置为目标属性就 OK 了。例如，如果上面的 Author 表已经在 id 列上使用了自动生成，那么语句可以修改为：
+                        查找一个男人对象，如何将查出来的wife数据也封装到wife属性中
+                        方式1:
+                              <resultMap id="manMap" type="Man">
+                              <id property="id" column="man_id"/>
+                              <result property="name" column="man_name"/>
+                              <result property="age" column="man_age"/>
+                              //如何封装老婆？使用wife属性里的属性
+                              <result property="wife.id" column="wife_id"/>
+                               <result property="wife.name" column="wife_name"/>
+                                <result property="wife.age" column="wife_age"/>
+                            </resultMap>
+                            这样就可以将查出来的老婆封装到男人对象里了；
 
-<insert id="insertAuthor" useGeneratedKeys="true"
-    keyProperty="id">
-  insert into Author (username,password,email,bio)
-  values (#{username},#{password},#{email},#{bio})
-</insert>
-如果你的数据库还支持多行插入, 你也可以传入一个 Author 数组或集合，并返回自动生成的主键。
+                        方式2：
+                            也可以使用association 标签处理
+                                <resultMap id="manMap" type="Man">
+                                  <id property="id" column="man_id"/>
+                                  <result property="name" column="man_name"/>
+                                  <result property="age" column="man_age"/>
+                                  //如何封装老婆？使用wife属性里的属性
+                                  <association property="wife" javaType="Wife" >
+                                        这里的column是需要使用查出来的哪个表字段或者是字段的别名的值去查找数据
+                                      <id property="id" column="wife_id"/>
+                                      <result property="name" column="wife_name"/>
+                                      <result property="age" column="wife_age"/>
+                                  </association>
+                                </resultMap>
 
-<insert id="insertAuthor" useGeneratedKeys="true"
-    keyProperty="id">
-  insert into Author (username, password, email, bio) values
-  <foreach item="item" collection="list" separator=",">
-    (#{item.username}, #{item.password}, #{item.email}, #{item.bio})
-  </foreach>
-</insert>
+                         方式3：
+                            还是使用association
+                                <resultMap id="blogResult" type="Blog">
+                                  <id property="id" column="blog_id" />
+                                  <result property="title" column="blog_title"/>
+                                  <association property="author" column="blog_author_id"
+                                                    javaType="Author" resultMap="authorResult"/>
+                                </resultMap>
 
+                                <resultMap id="authorResult" type="Author">
+                                  <id property="id" column="author_id"/>
+                                  <result property="username" column="author_username"/>
+                                  <result property="password" column="author_password"/>
+                                  <result property="email" column="author_email"/>
+                                  <result property="bio" column="author_bio"/>
+                                </resultMap>
 
-对于不支持自动生成主键列的数据库和可能不支持自动生成主键的 JDBC 驱动，MyBatis 有另外一种方法来生成主键。
+                   2、一对多，collection定义集合类型的属性
+                        //当前类里面是一对多的
+                        //javaType="ArrayList"  存储的集合类型
+                        //ofType="Emp" 集合里面存储的对象类型
+                        //用哪个列去查找数据，条件：column="deptNo"  select：在哪用什么语句查找
+                        <collection property="emps" javaType="ArrayList" ofType="Emp" column="deptNo"
+                                        select="com.com.sjd.dao.IEmpDao.selectEmpInfoMapper"></collection>
 
-这里有一个简单（也很傻）的示例，它可以生成一个随机 ID（不建议实际使用，这里只是为了展示 MyBatis 处理问题的灵活性和宽容度）：
+                        比如一个Man 男人类,一个男的可以有多个老婆
+                            public class Man {
+                                private int id;
+                                private String name;
+                                private int age;
+                                private List<Wife> wifes;
+                            }
+                            //老婆类
+                            public class Wife {
+                                private int id;
+                                private String name;
+                                private int age;
+                            }
+                            sql查询语句一样：
+                                select m.id as man_id,m.name as man_name,m.age as man_age,
+                                    w.id as wife_id,w.age as wife_age,w.name as wife_name
+                                    from man m left join wife w
+                                    on  m.wife_id = w.id where m.id = '1';
 
-<insert id="insertAuthor">
-  <selectKey keyProperty="id" resultType="int" order="BEFORE">
-    select CAST(RANDOM()*1000000 as INTEGER) a from SYSIBM.SYSDUMMY1
-  </selectKey>
-  insert into Author
-    (id, username, password, email,bio, favourite_section)
-  values
-    (#{id}, #{username}, #{password}, #{email}, #{bio}, #{favouriteSection,jdbcType=VARCHAR})
-</insert>
-在上面的示例中，首先会运行 selectKey 元素中的语句，并设置 Author 的 id，然后才会调用插入语句。这样就实现了数据库自动生成主键类似的行为，同时保持了 Java 代码的简洁。
+                            查找一个男人对象，如何将查出来的所有wife数据也封装到wifes属性中
+                            方式1:
+                                  <resultMap id="manMap" type="Man">
+                                  <id property="id" column="man_id"/>
+                                  <result property="name" column="man_name"/>
+                                  <result property="age" column="man_age"/>
+                                  //如何封装老婆？
+                                  //"ofType” 属性。指代集合里存放的对象类型
+                                  //"javaType"属性指代集合的类型
+                                  //<collection property="posts" javaType="ArrayList" column="id" ofType="Post"
+                                  //                                  select="selectPostsForBlog"/>
+                                  //读作： “posts 是一个存储 Post 的 ArrayList 集合”
+                                  //在一般情况下，MyBatis 可以推断 javaType 属性，因此并不需要填写。所以很多时候你可以简略成：
+                                  //<collection property="posts" column="id" ofType="Post" select="selectPostsForBlog"/>
 
-selectKey 元素描述如下：
+                                 <collection  property="wifes"  ofType="Wife" >
+                                    //标签体中指定集合中对象的封装规则；
+                                    //这里的column属性是表字段或者是字段的别名，
+                                    //注意：在使用复合主键的时候，你可以使用 column="{prop1=col1,prop2=col2}" 这样的语法来指定
+                                    //多个传递给嵌套 Select 查询语句的列名。这会使得 prop1 和 prop2 作为参数对象，被设置为对应嵌套
+                                     //Select 语句的参数。
+                                  <id property="id" column="wife_id"/>
+                                  <result property="name" column="wife_name"/>
+                                  <result property="age" column="wife_age"/>
+                                 </collection>
+                                </resultMap>
+                                这样就可以将查出来的老婆封装到男人对象里了；
 
-<selectKey
-  keyProperty="id"
-  resultType="int"
-  order="BEFORE"
-  statementType="PREPARED">
+                            方式2、
+                                <resultMap id="blogResult" type="Blog">
+                                  <id property="id" column="blog_id" />
+                                  <result property="title" column="blog_title"/>
+                                  //column:使用sql语句中哪个字段下的值去查询，一般来说外键关联字段，这里查询出来的是wife_id
+                                  <collection property="posts" ofType="Post" column="wife_id" resultMap="blogPostResult" />
+                                </resultMap>
 
+                                <resultMap id="blogPostResult" type="Post">
+                                  <id property="id" column="id"/>
+                                  <result property="subject" column="subject"/>
+                                  <result property="body" column="body"/>
+                                </resultMap>
+                   3、关联的嵌套 Select 查询
+                        示例：
+                        <resultMap id="blogResult" type="Blog">
+                            //这个查询的结果中有一个Author类的对象，如何封装这个对象
+                            //告诉mybatis自己去调用一个sql查询语句查找Author的数据并进行封装
+                            //这里的column属性是SELECT * FROM BLOG WHERE ID = #{id}查询出来的列名或者是别名
+                            //你需要使用这些字段中的哪一个字段的值去查询
+                            //而select属性指定了使用哪个sql语句，最好加上 namespace.
+                          <association property="author" column="author_id" javaType="Author"
+                                                                    select="selectAuthor"/>
+                        </resultMap>
 
-  每个线程都应该有自己的sqlsession，如果共用一个，某个用户把sqlsession给close了，另一个用户不是就不能用了；或者一个用户commit了，
-  但是另一个用户不需要commit，不是出问题了吗；
+                        <select id="selectBlog" resultMap="blogResult">
+                          SELECT * FROM BLOG WHERE ID = #{id}
+                        </select>
 
-在 MyBatis 中有两种类型的事务管理器（也就是 type="[JDBC|MANAGED]"）：
+                        <select id="selectAuthor" resultType="Author">
+                          SELECT * FROM AUTHOR WHERE ID = #{id}
+                        </select>
 
-JDBC – 这个配置直接使用了 JDBC 的提交和回滚设施，它依赖从数据源获得的连接来管理事务作用域。
-MANAGED – 这个配置几乎没做什么。它从不提交或回滚一个连接，而是让容器来管理事务的整个生命周期（比如 JEE 应用服务器的上下文）。 默认情况下它会关闭连接。
-        然而一些容器并不希望连接被关闭，因此需要将 closeConnection 属性设置为 false 来阻止默认的关闭行为。例如:
-        <transactionManager type="MANAGED">
-          <property name="closeConnection" value="false"/>
-        </transactionManager>
+                4、多表联查，延迟查询
+                      //开启延迟加载开关
+                      <setting name="lazyLoadingEnabled" value="true"/>
+                      //开启对象中的属性按需加载，懒加载
+                      <setting name="aggressiveLazyLoading" value="false" />
+                          //fetchType="lazy"
+                      <association property="dept"  fetchType="lazy"
+                                      column="deptno" select="com.com.sjd.dao.IDeptDao.selectDeptMapper"></association>
 
-映射器（mappers）
-    <!-- 使用相对于类路径的资源引用 -->
-    <mappers>
-      <mapper resource="org/mybatis/builder/AuthorMapper.xml"/>
-      <mapper resource="org/mybatis/builder/BlogMapper.xml"/>
-      <mapper resource="org/mybatis/builder/PostMapper.xml"/>
-    </mappers>
+    3、动态sql
+        1、if
+            <select id="findActiveBlogWithTitleLike" resultType="Blog">
+              SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+              <if test="title != null">
+                AND title like #{title}
+              </if>
+            </select>
+        2、choose、when、otherwise
+            它有点像 Java 中的 switch 语句，有一个满足就返回了
+            <select id="findActiveBlogLike" resultType="Blog">
+              SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+              <choose>
+                <when test="title != null">
+                  AND title like #{title}
+                </when>
+                <when test="author != null and author.name != null">
+                  AND author_name like #{author.name}
+                </when>
+                <otherwise>
+                  AND featured = 1
+                </otherwise>
+              </choose>
+            </select>
+        3、set
+            用于动态更新语句的类似解决方案叫做 set。set 元素可以用于动态包含需要更新的列，忽略其它不更新的列。比如：
+            <update id="updateAuthorIfNecessary">
+              update Author
+                <set>
+                  <if test="username != null">username=#{username},</if>
+                  <if test="password != null">password=#{password},</if>
+                  <if test="email != null">email=#{email},</if>
+                  <if test="bio != null">bio=#{bio}</if>
+                </set>
+              where id=#{id}
+            </update>
 
-    <!-- 使用完全限定资源定位符（URL），也可以是网络的xml -->
-    <mappers>
-      <mapper url="file:///var/mappers/AuthorMapper.xml"/>
-      <mapper url="file:///var/mappers/BlogMapper.xml"/>
-      <mapper url="file:///var/mappers/PostMapper.xml"/>
-    </mappers>
+        4、foreach
+          动态 SQL 的另一个常见使用场景是对集合进行遍历（尤其是在构建 IN 条件语句的时候）。比如：
+          <select id="selectPostIn" resultType="domain.blog.Post">
+            SELECT *
+            FROM POST P
+            WHERE ID in
+            <foreach item="item" index="index" collection="list"
+                open="(" separator="," close=")">
+                  #{item}
+            </foreach>
+          </select>
+          foreach 元素的功能非常强大，它允许你指定一个集合，声明可以在元素体内使用的集合项（item）和索引（index）变量。
+          它也允许你指定开头与结尾的字符串以及集合项迭代之间的分隔符。这个元素也不会错误地添加多余的分隔符，看它多智能！
+          提示 你可以将任何可迭代对象（如 List、Set 等）、Map 对象或者数组对象作为集合参数传递给 foreach。当使用可迭代对
+          象或者数组时，index 是当前迭代的序号，item 的值是本次迭代获取到的元素。当使用 Map 对象（或者 Map.Entry 对象的
+          集合）时，index 是键，item 是值，collection是集合类型的别名，可以是list，map。
 
-    #:相当于？占位符，将传进来的值当作一个整体；但是$就是单纯将传进来的值拼接起来，这样有sql注入风险；
+          注意：这里有个OGNL表达式，test属性里面写的表达式
+            <if test="username != null">
 
-    Mybatis 通过使用内置的日志工厂提供日志功能。内置日志工厂将会把日志工作委托给下面的实现之一：
+    4|<sql>标签
+        <sql id="selectGenTableVo">
+            select table_id, table_name from gen_table
+        </sql>
 
-    SLF4J
-    Apache Commons Logging
-    Log4j 2
-    Log4j
-    JDK logging
-    MyBatis 内置日志工厂会基于运行时检测信息选择日志委托实现。它会（按上面罗列的顺序）使用第一个查找到的实现。
-    当没有找到这些实现时，将会禁用日志功能。
-    <configuration>
-      <settings>
-        <setting name="logImpl" value="LOG4J"/>
-      </settings>
-    </configuration>
-    可选的值有：SLF4J、LOG4J、LOG4J2、JDK_LOGGING、COMMONS_LOGGING、STDOUT_LOGGING、NO_LOGGING
-
-
-    MyBatis 会在幕后自动创建一个 ResultMap，再根据属性名来映射列到 JavaBean 的属性上。如果列名和属性名不能匹配上，可以在 SELECT 语句中设置列别名（这是一个基本的 SQL 特性）来完成匹配。比如：
-    <select id="selectUsers" resultType="User">
-      select
-        user_id             as "id",
-        user_name           as "userName",
-        hashed_password     as "hashedPassword"
-      from some_table
-      where id = #{id}
-    </select>
-
-
-    在学习了上面的知识后，你会发现上面的例子没有一个需要显式配置 ResultMap，这就是 ResultMap 的优秀之处——你完全可以不用显式地配置它们。 虽然上面的例子不用显式配置 ResultMap。 但为了讲解，我们来看看如果在刚刚的示例中，显式使用外部的 resultMap 会怎样，这也是解决列名不匹配的另外一种方式。
-    <resultMap id="userResultMap" type="User">
-      <id property="id" column="user_id" />
-      <result property="username" column="user_name"/>
-      <result property="password" column="hashed_password"/>
-    </resultMap>
-    然后在引用它的语句中设置 resultMap 属性就行了（注意我们去掉了 resultType 属性）。比如:
-    <select id="selectUsers" resultMap="userResultMap">
-      select user_id, user_name, hashed_password
-      from some_table
-      where id = #{id}
-    </select>
-
+        <select id="selectGenTableList"  resultMap="GenTableResult">
+            //引入进来
+            <include refid="selectGenTableVo"/>
+            <where>
+                <if test="tableName != null and tableName != ''">
+                    AND lower(table_name) like lower(concat('%', #{tableName}, '%'))
+                </if>
+            </where>
+        </select>
 
     模糊查询
-    <select id="selectAllRoles" resultType="Role" parameterType="Role">
-        select * from role where roleName like concat('%', #{roleName},'%')
-    </select>
+        <selt id="selectAllRoles" resultType="Role" parameterType="Role">
+            select * from role where roleName like concat('%', #{roleName},'%')
+        </select>
 
-    &gt;  大于
-    &lt;  小于
+        &gt;  大于
+        &lt;  小于
 
-    分页
-        limit:(pageStart-1) * size  size:size
+    缓存机制
+        相同查询条件的sql语句执行一遍后所得到的结果存在内存或某种缓存介质中，当下一次遇到相同的sql时就不用和数据库进行交互了，
+        而是直接从缓存中获取结果；
+        MyBatis 内置了一个强大的事务性查询缓存机制，它可以非常方便地配置和定制。 为了使它更加强大而且易于配置，
+        我们对 MyBatis 3 中的缓存实现进行了许多改进。
+        默认情况下，只启用了本地的会话缓存，它仅仅对一个会话中的数据进行缓存。 要启用全局的二级缓存，只需要在你的
+        SQL 映射文件中添加一行：
+        <cache/>
 
-    自增主键回填
-        首先使用自增，必须保证自增递增勾选上了，如果没有勾上会报错
-        <insert id="insertRole" parameterType="Role" useGeneratedKeys="true" keyProperty="id">
-        useGeneratedKeys="true" :表示要使用自增的主键，主键自增值的回填
-        keyProperty="id"：表示把自增的主键赋给javabean的哪个成员变量
-                Role r= new Role();
-                r.setRoleDesc("描述11");
-                r.setRoleName("角色11");
-                int i1 = sqlSession.insert("com.com.sjd.dao.IRoleDao.insertRole",r);
-                //此时就可以获得自增的主键
-                System.out.println(r.getId());
+        一级缓存:当同一个sqlsession执行相同一条sql时，会将数据缓存起来，等到下一次遇到同样的sql时，就不需要执行sql了，之前
+                从缓存获取结果，这个功能默认是开启的；
+                不同的sqlSESSION执行相同的sql时，缓存是互不干扰的，每个sqlsession都有一个缓存；
+                在同一个sqlsession上执行任何一次的写操作都会使缓存清空；原理是先从缓存中获取，如果没有那就执行sql语句
 
+        二级缓存： <cache/> 在映射文件中加这行，开启二级缓存；
+                由同一个sqlsessionFactory创建的sqlsession，当其中一个session close或者commit时，会将数据缓存到二级缓存，
+                当另一个sqlsession遇到相同的sql时就直接从二级缓存获取数据；
+                Mybatis的二级缓存是和命名空间绑定的，所以通常情况下每一个Mapper映射文件都有自己的二级缓存，
+                不同的mapper的二级缓存互不影响，容易出现脏读；
+                映射语句文件中的所有 insert、update 和 delete 语句会清空缓存。
 
+springboot整合mybtis原理
+    1、引入mybatis的包
+    2、这就导入了自动配置类MybatisAutoConfiguration
+    3、这个人自动配置类里面像容器注册了SqlSessionFactory,注册的时候先是查找配置的mybatis的配置xml文件，然后
+       再从properties文件中获取配置信息来配置SqlSessionFactory；这样我们就可以通过创建的SqlSessionFactory
+       创建sqlsession和数据库进行交互了，创建session的时候
 
-    <select id="findActiveBlogLike"
-         resultType="Blog">
-      SELECT * FROM BLOG WHERE state = ‘ACTIVE’
-      <if test="title != null">
-        AND title like #{title}
-      </if>
-      <if test="author != null and author.name != null">
-        AND author_name like #{author.name}
-      </if>
-    </select>
-
-    //<where>标签
-    <select id="findActiveBlogLike"
-         resultType="Blog">
-      SELECT * FROM BLOG
-      <where>
-        <if test="state != null">
-             state = #{state}
-        </if>
-        <if test="title != null">
-            AND title like #{title}
-        </if>
-        <if test="author != null and author.name != null">
-            AND author_name like #{author.name}
-        </if>
-      </where>
-    </select>
-
-    <select id="findActiveBlogLike"
-         resultType="Blog">
-      SELECT * FROM BLOG WHERE state = ‘ACTIVE’
-      <choose>
-        <when test="title != null">
-          AND title like #{title}
-        </when>
-        <when test="author != null and author.name != null">
-          AND author_name like #{author.name}
-        </when>
-        <otherwise>
-          AND featured = 1
-        </otherwise>
-      </choose>
-    </select>
-
-    //bind
-    <select id="selectAllRoles2" resultType="Role" parameterType="Role">
-      <bind name="name" value="'%'+roleName+'%'"/>
-        select * from role where roleName like #{name}
-    </select>
-
-    //foreach
-    //你可以将任何可迭代对象（如 List、Set 等）、Map 对象或者array数组对象作为集合参数传递给 foreach。
-    //当使用可迭代对象或者数组时，index 是当前迭代的序号，item 的值是本次迭代获取到的元素。
-    //当使用 Map 对象（或者 Map.Entry 对象的集合）时，index 是键，item 是值,collection是当前对象的类型,
-    //open="(",以什么开头 separator=","，以什么分割 close=")"，以什么结尾。
-    <select id="selectPostIn" resultType="domain.blog.Post">
-      SELECT *
-      FROM POST P
-      WHERE ID in
-      <foreach item="item" index="index" collection="list"
-          open="(" separator="," close=")">
-            #{item}
-      </foreach>
-    </select>
-
-
-    用于动态更新语句的类似解决方案叫做 set。set 元素可以用于动态包含需要更新的列，忽略其它不更新的列。比如：
-    <update id="updateAuthorIfNecessary">
-      update Author
-        <set>
-          <if test="username != null">username=#{username},</if>
-          <if test="password != null">password=#{password},</if>
-          <if test="email != null">email=#{email},</if>
-          <if test="bio != null">bio=#{bio}</if>
-        </set>
-      where id=#{id}
-    </update>
-    这个例子中，set 元素会动态地在行首插入 SET 关键字，并会删掉额外的逗号（这些逗号是在使用条件语句给列赋值时引入的）。
-
-
-    一对多和多对一就两张表，多对多会有中间表，也就是三张表
-
-
-
-
-    Author 的结果映射定义如下：
-    <resultMap id="authorResult" type="Author">
-      <id property="id" column="author_id"/>
-      <result property="username" column="author_username"/>
-      <result property="password" column="author_password"/>
-      <result property="email" column="author_email"/>
-      <result property="bio" column="author_bio"/>
-    </resultMap>
-    由于结果中的列名与结果映射中的列名不同。你需要指定 columnPrefix 以便重复使用该结果映射来映射 co-author 的结果。
-
-    <resultMap id="blogResult" type="Blog">
-      <id property="id" column="blog_id" />
-      <result property="title" column="blog_title"/>
-      <association property="author"
-        //映射规则
-        resultMap="authorResult" />
-      <association property="coAuthor"
-        resultMap="authorResult"
-        columnPrefix="co_" />
-    </resultMap>
-
-//当前类里面是一对多的
-//属性名：property="emps"  存储的集合类型：javaType="ArrayList" 集合里面存储的对象类型 ofType="Emp"
-//用哪个列去查找数据，条件：column="deptNo"  select：在哪用什么语句查找
-<collection property="emps" javaType="ArrayList" ofType="Emp" column="deptNo" select="com.com.sjd.dao.IEmpDao.selectEmpInfoMapper"></collection>
-
-//当前类里面是一对一的
-//属性名：property="dept"  存储的集合类型：javaType="ArrayList"
-//用哪个列去查找数据，条件：column="deptNo"  select：在哪用什么语句查找
-<association property="dept" column="deptno" select="com.com.sjd.dao.IDeptDao.selectDeptMapper">
-    //这里如果有属性名和列明不对应就可以这样指明
-    <id property="id" column="id"/>
-    <result property="username" column="username"/>
-    <result property="password" column="password"/>
-    <result property="email" column="email"/>
-    <result property="bio" column="bio"/>
-</association>
-
-
-
-多表联查，延迟查询
-    <setting name="lazyLoadingEnabled" value="true"/>
-    <setting name="aggressiveLazyLoading" value="true" />
-        //fetchType="lazy"
-    <association property="dept"  fetchType="lazy"  column="deptno" select="com.com.sjd.dao.IDeptDao.selectDeptMapper"></association>
-
-
-        //第二种方式多表联查，collection和association一样的方式查询
-    <association property="dept" javaType="Dept"  fetchType="lazy" >
-        <id property="deptno" column="deptno"/>
-        <result property="dname" column="dname"/>
-        <result property="ddesc" column="ddesc"/>
-    </association>
-
-    <!--id:方法的名称,resultType-->
-    <!--parameterType为map时，mybatis的sql语句中使用#{键名}的方式来完成占位以及赋值；为实体对象时，使用#{属性名}来完成占位以及赋值-->
-    <select id="selectEmpInfoMapper" resultMap="emp_id">
-        select * from emp left join dept on emp.deptno = dept.deptno
-    </select>
-
-
-缓存
-    相同查询条件的sql语句执行一遍后所得到的结果存在内存或某种缓存介质中，当下一次遇到相同的sql时就不用和数据库进行交互了，而是直接
-    从缓存中获取结果；
-    MyBatis 内置了一个强大的事务性查询缓存机制，它可以非常方便地配置和定制。 为了使它更加强大而且易于配置，
-    我们对 MyBatis 3 中的缓存实现进行了许多改进。
-    默认情况下，只启用了本地的会话缓存，它仅仅对一个会话中的数据进行缓存。 要启用全局的二级缓存，只需要在你的
-    SQL 映射文件中添加一行：
-    <cache/>
-
-    一级缓存:sqlsession执行相同一条sql时，会将数据缓存起来，等到下一次遇到同样的sql时，就不需要执行sql了，之江从缓存获取结果
-            这个功能默认是开启的；
-
-    二级缓存： <cache/> 在映射文件中加这行，开启二级缓存；
-            由同一个sqlsessionFactory创建的sqlsession，当其中一个session close或者commit时，会将数据缓存到二级缓存，
-            当另一个sqlsession遇到相同的sql时就直接从二级缓存获取数据；
-            Mybatis的二级缓存是和命名空间绑定的，所以通常情况下每一个Mapper映射文件都有自己的二级缓存，
-            不同的mapper的二级缓存互不影响，容易出现脏读；
-            映射语句文件中的所有 insert、update 和 delete 语句会刷新缓存。
 
 Mybatis Plus
+    使用步骤
+        1、引入jar包以及数据库驱动包
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>3.4.3.1</version>
+            </dependency>
+
+        2、编写实体类
+        3、编写Mapper接口并继承BaseMapper<T>
+            public interface UserMapper extends BaseMapper<User> {
+            }
+        4、主配置类上配置 MapperScan 注解，扫描mapper的接口
+        5、编写service接口
+            public interface IUserService extends IService<User> {
+            }
+        6、编写service实现类
+            @Component
+            public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements IUserService {
+
+            }
+        7、将UserServiceImpl自动注入到controller使用即可
+
+    常用注解
+        @TableId
+            属性type指定主键生成策略
+            IdType
+            值	        描述
+            AUTO	数据库ID自增，数据库生成主键id后再赋值给javaBean的id属性中
+            NONE	无状态,该类型为未设置主键类型,默认则使用IdType.ASSIGN_ID策略，注解里等于跟随全局
+            INPUT	insert前自行set主键值，它是需要我们先生成一个主键id，然后赋值给javaBean的id属性，然后插入数据库；
+            ASSIGN_ID	分配ID(主键类型为Number(Long和Integer)或String)(since 3.3.0),使用接口IdentifierGenerator
+                        的方法nextId(默认实现类为DefaultIdentifierGenerator雪花算法)，它会自动生成一个id并且不需要我们
+                        显式插入数据库
+            ASSIGN_UUID	分配UUID,主键类型为String(since 3.3.0),使用接口IdentifierGenerator的方法nextUUID(默认default方法)
+                        ，它会自动生成一个id并且不需要我们显式插入数据库
+
+             关于主键自增的情况
+                1、首先不需要在插入表前设置主键的值，因为主键时数据库自动生成的
+                2、type = IdType.AUTO 这个设置是在插入表之后，从表里获取当前插入的数据的主键，然后返回到实体对象里
+                3、主键类型为其他的情况时，是在插入某条记录前，先生成主键，然后不需要显式设置主键值，插入数据时会自动
+                    将之前生成好的主键插入表中，你只需要关心你要插入的其他列的数据值
+        @TableLogic
+             没有@TableLogic注解调用deleteById/removeById,直接删除数据。
+                SQL:delete from table where id = 1
+            有注解走Update方法
+                SQL：Update table set isDelete = 1 where id = 1
+             @TableLogic注解参数
+            　　　　value = "" 未删除的值,这个是你自己指定的，默认值为0
+            　　　　delval = "" 删除后的值，这个也是你自己指定的，默认值为1
+            　　　　@TableLogic(value="逻辑删除前的值",delval="逻辑删除后你希望变成的值")
+             当使用了@TableLogic注解，调用update方法是并不会将该字段放入修改字段中，而是在条件字段中。
+             即使你给dataStatus赋值也不会修改。
+
+         @KeySequence
+                主要是针对oracle的主键生成中使用序列生成主键的情况，此时需要将id的生成类型设置为IdType.INPUT,并且将
+                mybatis-plus自带的IKeyGenerator的某一个实现类注册到容器中(依据你的数据库类型决定)，这里自带了很多数据库类型
+                的主键生成器； 譬如DB2KeyGenerator、PostgreKeyGenerator、H2KeyGenerator，当然还有我们常用
+                的OracleKeyGenerator
+            value：是定序列的名称
+            clazz：id的类型
+
+
+    通用curd
+
+        乐观锁
+            执行更新操作时会比对version
+            乐观锁实现方式：
+                1、注册组件
+                    @Bean
+                    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+                        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+                        interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
+                        return interceptor;
+                    }
+                2.在实体类的字段上加上@Version注解
+                    @Version
+                    private Integer version;
+
+                1、取出记录时，获取当前version
+                2、更新时，带上这个version
+                3、执行更新时， set version = newVersion where version = oldVersion
+                4、如果version不对，就更新失败
+            说明:
+                支持的数据类型只有:int,Integer,long,Long,Date,Timestamp,LocalDateTime
+                整数类型下 newVersion = oldVersion + 1
+                newVersion 会回写到 entity 中
+                仅支持 updateById(id) 与 update(entity, wrapper) 方法
+                在 update(entity, wrapper) 方法下, wrapper 不能复用!!!
+
+
+        分页
+            //参数1：当前页  参数2：页面数据数量
+            Page<User> page = new Page<User>(1,4);
+            userMapper.selectPage(page, null);
+            page.getRecords().forEach(System.out::println);
+            直接使用page对象即可
+
+        条件查询器Wrapper
+            AbstractWrapper
+                QueryWrapper(LambdaQueryWrapper) 和 UpdateWrapper(LambdaUpdateWrapper) 的父类
+                用于生成 sql 的 where 条件, entity 属性也用于生成 sql 的 where 条件
+                注意: entity 生成的 where 条件与 使用各个 api 生成的 where 条件没有任何关联行为,
+
+            注意：
+                1、不要在controller里面写wrapper然后传给service层，应是在service层写wrapper
+                2、以下条件构造器出现的第一个入参boolean condition表示该条件是否加入最后生成的sql中，默认是true
+             更新操作时，根据主键id为条件来参与更新，并且只更新实体类中有值的属性，null值的属性不参与变更；
+            不调用or则默认为使用and连接；
+
+
+        自动填充
+            创建时间，修改时间，这些都是自动化完成的，不需要手动更新
+            所有的数据库表：gmt_create、gmt_modified
+            方式：
+                1、在表中新增手段create_time,update_time
+                2、在实体类上添加属性注解
+                    @TableField(fill=FieldFill.INSERT)
+                    private Date createTime;
+                    @TableField(fill=FieldFill.INSERT_UPDATE)
+                    private Date updateTime;
+                3、编写处理器来处理这个注解，这样就会再插入以及更新的时候自动插入事件或者更新时间
+                    @Component
+                    public class MyMetaObjectHandler implements MetaObjectHandler {
+                        @Override
+                        public void insertFill(MetaObject metaObject) {
+                            this.setFieldValByName("createTime",new Date(),metaObject);
+                            this.setFieldValByName("updateTime",new Date(),metaObject);
+                        }
+                        @Override
+                        public void updateFill(MetaObject metaObject) {
+                            this.setFieldValByName("updateTime",new Date(),metaObject);
+                        }
+                    }
+
+
+    常用配置
+        说明：
+            mybatis的原生的配置信息是在在MybatisPlusProperties的configuration属性中，这个属性的类型也是Configuration类型
+            可以在这个类里面找到我们平常需要配置的mybatis相关的属性配置；
+            MyBatis-Plus有关的全局策略配置MybatisPlusProperties的GlobalConfig属性中；
+            MybatisPlusProperties剩下的属性中配置信息，可以进去看看，还是很简单的
+
+        1、自定义id生成器，这个id生成器是用于id生成类型为ASSIGN_ID或者ASSIGN_UUID，用来重写他们的id生成策略
+            1、先自定义一个id生成器实现IdentifierGenerator
+            public class MyIdentifierGenerator implements IdentifierGenerator {
+                @Override
+                public Long nextId(Object entity) {
+
+                    return System.currentTimeMillis();
+                }
+
+                @Override
+                public String nextUUID(Object entity) {
+                    return null;
+                }
+            }
+            2、注册到spring容器中
+
+
+
+    代码生成器使用步骤
+        1、引入jar包
+        <dependency>
+              <groupId>com.baomidou</groupId>
+              <artifactId>mybatis-plus-generator</artifactId>
+              <version>3.4.1</version>
+          </dependency>
+          //这个是生成sql的xml模板的
+          <dependency>
+              <groupId>org.apache.velocity</groupId>
+              <artifactId>velocity-engine-core</artifactId>
+              <version>2.3</version>
+          </dependency>
+
+        2、然后具体的配置看mybatisPlus项目里面的配置
+            public class CodeGenerator {
+                public static String scanner(String tip) {
+                    Scanner scanner = new Scanner(System.in);
+                    StringBuilder help = new StringBuilder();
+                    help.append("请输入" + tip + "：");
+                    System.out.println(help.toString());
+                    if (scanner.hasNext()) {
+                        String ipt = scanner.next();
+                        if (StringUtils.isNotBlank(ipt)) {
+                            return ipt;
+                        }
+                    }
+                    throw new MybatisPlusException("请输入正确的" + tip + "！");
+                }
+
+                public static void main(String[] args) {
+                    // 代码生成器
+                    AutoGenerator mpg = new AutoGenerator();
+
+                    // 全局配置
+                    GlobalConfig gc = new GlobalConfig();
+                    //获取用户的目录,D:\sjd\workspace3\mybatisPlus
+                    String projectPath = System.getProperty("user.dir");
+                    //输出目录
+                    gc.setOutputDir(projectPath + "/src/main/java");
+                    //作者
+                    gc.setAuthor("happiness");
+                    //生成完目录以及文件后是否需要打开文件夹
+                    gc.setOpen(false);
+                    ///是否需要覆盖之前生成的文件
+                    gc.setFileOverride(true);
+                    //id生成策略
+                    gc.setIdType(IdType.AUTO);
+                    //实体属性 Swagger2 注解
+                    // gc.setSwagger2(true);
+                    mpg.setGlobalConfig(gc);
+
+                    // 数据源配置
+                    DataSourceConfig dsc = new DataSourceConfig();
+                    dsc.setUrl("jdbc:mysql://localhost:3306/test?useUnicode=true&useSSL=false&characterEncoding=utf8");
+                    // dsc.setSchemaName("public");
+                    dsc.setDriverName("com.mysql.jdbc.Driver");
+                    dsc.setUsername("root");
+                    dsc.setPassword("582709");
+                    dsc.setDbType(DbType.MYSQL);
+                    mpg.setDataSource(dsc);
+
+                    // 包配置
+                    PackageConfig pc = new PackageConfig();
+                    //设置包名的路径
+                    pc.setParent("com.sjd.happiness");
+                    //设置模块名,一个一个的小模块，相当于又是一个包
+                    pc.setModuleName(scanner("模块名"));
+                    //设置实体类存放的包名
+                    pc.setEntity("entity");
+                    pc.setMapper("dao");
+                    pc.setService("service");
+                    //在service包下再创建一个impl包
+                    pc.setServiceImpl("service.impl");
+                    pc.setController("controller");
+                    mpg.setPackageInfo(pc);
+
+
+
+                    // 自定义配置
+                    InjectionConfig cfg = new InjectionConfig() {
+                        @Override
+                        public void initMap() {
+                        }
+                    };
+                    // 如果模板引擎是 freemarker，相应的jar包需要修改
+                    //String templatePath = "/templates/mapper.xml.ftl";
+                    // 如果模板引擎是 velocity
+                     String templatePath = "/templates/mapper.xml.vm";
+                    // 自定义输出配置
+                    List<FileOutConfig> focList = new ArrayList<>();
+                    // 自定义配置会被优先输出
+                    focList.add(new FileOutConfig(templatePath) {
+                        @Override
+                        //xml文件
+                        public String outputFile(com.baomidou.mybatisplus.generator.config.po.TableInfo tableInfo) {
+                            // 自定义输出文件名 ，如果你 Entity 设置了前后缀、此处注意 xml 的名称会跟着发生变化！！
+                            return projectPath + "/src/main/resources/mapper/" + pc.getModuleName()
+                                    + "/" + tableInfo.getEntityName() + "Mapper" + StringPool.DOT_XML;
+                        }
+                    });
+                    cfg.setFileOutConfigList(focList);
+                    mpg.setCfg(cfg);
+
+                    // 配置模板
+                    TemplateConfig templateConfig = new TemplateConfig();
+                    templateConfig.setXml(null);
+                    mpg.setTemplate(templateConfig);
+
+                    // 策略配置
+                    StrategyConfig strategy = new StrategyConfig();
+                    strategy.setNaming(NamingStrategy.underline_to_camel);
+                    strategy.setColumnNaming(NamingStrategy.underline_to_camel);
+                    //这个父类需要预先创建好
+                    strategy.setSuperEntityClass("com.sjd.happiness.entity.BaseEntity");
+                    //写在父类中的公共字段
+                    strategy.setSuperEntityColumns("createTime","updateTime");
+                    //逻辑删除
+                   // strategy.setLogicDeleteFieldName();
+                    //自动lombok
+                    strategy.setEntityLombokModel(true);
+                    strategy.setRestControllerStyle(true);
+                    // 公共父类
+                    //strategy.setSuperControllerClass("你自己的父类控制器,没有就不用设置!");
+                    //你要映射的表名
+                    strategy.setInclude(scanner("表名，多个英文逗号分割").split(","));
+                    //自动填充
+                    TableFill createTime = new TableFill("create_time", FieldFill.INSERT);
+                    TableFill updateTime = new TableFill("update_time", FieldFill.INSERT_UPDATE);
+                    ArrayList<TableFill> tableFills = new ArrayList<>();
+                    tableFills.add(createTime);
+                    tableFills.add(updateTime);
+                    strategy.setTableFillList(tableFills);
+                    //配置乐观锁
+                    //strategy.setVersionFieldName("");
+
+                    strategy.setControllerMappingHyphenStyle(true);
+                    //strategy.setTablePrefix(pc.getModuleName() + "_");
+                    mpg.setStrategy(strategy);
+                    mpg.setTemplateEngine(new VelocityTemplateEngine());
+                    //执行
+                    mpg.execute();
+                }
+            }
+
     mapper接口的名字第二个字母必须要小写，否则会出现bean找不到的情况；
 
-    缺省情况下，mybatis_plus会认为你的类名就是表名;
-    mybatis-plus只时知道表名对应的实体类名，列名对应的属性名，但是不知道主键id是谁，所以需要在实体类中指明
-
-    关于主键自增的情况
-        1、首先不需要在插入表前设置主键的值，因为主键时数据库自动生成的
-        2、type = IdType.AUTO 这个设置是在插入表之后，从表里获取当前插入的数据的主键，然后返回到实体对象里
-        3、主键类型为其他的情况时，是在插入某条记录前，先生成主键，然后不需要显式设置主键值，插入数据时会自动
-            将之前生成好的主键插入表中，你只需要关心你要插入的其他列的数据值
-
-
-    更新操作时，根据主键id为条件来参与更新，并且只更新实体类中有值的属性，null值的属性不参与变更；
-
-    条件构造器
-        不调用or则默认为使用and连接
+  Mybatis 通过使用内置的日志工厂提供日志功能。内置日志工厂将会把日志工作委托给下面的实现之一：
+          SLF4J
+          Apache Commons Logging
+          Log4j 2
+          Log4j
+          JDK logging
+          MyBatis 内置日志工厂会基于运行时检测信息选择日志委托实现。它会（按上面罗列的顺序）使用第一个查找到的实现。
+          当没有找到这些实现时，将会禁用日志功能。
+          <configuration>
+            <settings>
+              <setting name="logImpl" value="LOG4J"/>
+            </settings>
+          </configuration>
+          可选的值有：SLF4J、LOG4J、LOG4J2、JDK_LOGGING、COMMONS_LOGGING、STDOUT_LOGGING、NO_LOGGING

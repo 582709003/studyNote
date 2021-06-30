@@ -1,5 +1,5 @@
 spring security 本质是一个过滤器链
-重点的sane过滤器
+重点的三个过滤器
     1、FilterSecurityInterceptor：一个方法级的权限过滤器，基本位于过滤器的最低端
     2、ExceptionTranslationFilter:是个异常过滤器，用来处理再认证授权过程中抛出的异常
     3、usernamePasswordAuthenticationFilter:对login的post请求做拦截，校验表单中的用户名和密码
@@ -43,92 +43,388 @@ spring-oauth的。
 
 springsecurity源码
    1、SecurityFilterAutoConfiguration
-        注册了springSecurityFilterChain的过滤器
+        这个配置类注册了DelegatingFilterProxyRegistrationBean，这个组件刚好是实现了ServletContextInitializer，
+        所在在servlet容器启动完毕后会自动调用他们的onstarteUp方法，所以自动注册了一个DelegatingFilterProxy过滤器，
+        当这个过滤器注册完后tomcat会自动调用它的init方法，init方法里调用了initFilterBean(),
+        这个方法首先判断delegate是否为空，如果为空就去spring容器中查找一个过滤器类型并且名称为
+        springSecurityFilterChain的组件，刚好这就是我们之前创建好的FilterChainProxy，这样
+        FilterChainProxy就注册到servlet容器中了
    2、UserDetailsServiceAutoConfiguration
-        注册了一个基于内存的用户具体信息管理器InMemoryUserDetailsManager，其实就是UserDetailService
-   3、SpringBootWebSecurityConfiguration
-        假如容器中没有一个WebSecurityConfigurerAdapter类型，那就注册一个默认的WebSecurityConfigurerAdapter类型
-        DefaultConfigurerAdapter
-   4、AuthenticationConfiguration
-        1、导入了ObjectPostProcessorConfiguration配置类，而这个类主要是向容器中注册一个ObjectPostProcessor类型的
-            AutowireBeanFactoryObjectPostProcessor
-        2、注册了authenticationManagerBuilder
-        3、注册了enableGlobalAuthenticationAutowiredConfigurer
-        4、注册了initializeUserDetailsBeanManagerConfigurer
-        5、注册了initializeAuthenticationProviderBeanManagerConfigurer
-        6、给属性globalAuthConfigurers赋值，而值就是容器中之前注册过的enableGlobalAuthenticationAutowiredConfigurer
-        7、给属性applicationContext赋值
-        8、给属性objectPostProcessor赋值，这个类就是给对象初始化的
-   5、WebSecurityConfiguration
-        1、容器中注册了AutowiredWebSecurityConfigurersIgnoreParents组件
-        2、查找容器中所有WebSecurityConfigurer类型的组件,并将这些组件放到了WebSecurity对象的configurers属性中,
-            并把所有WebSecurityConfigurer类型的组件放到WebSecurity对象的webSecurityConfigurers属性中
-        3、容器中注册了DelegatingApplicationListener组件
-        4、容器中注册了Filter类型组件beanname为springSecurityFilterChain，这个
-        5、容器中注册了webSecurityExpressionHandler组件
+        容器中注册了一个基于内存的用户具体信息管理器InMemoryUserDetailsManager，其实就是UserDetailService
+   3、SecurityAutoConfiguration
+        像容器中导入了三个配置类SpringBootWebSecurityConfiguration、WebSecurityEnablerConfiguration、
+        SecurityDataConfiguration
+       1、SpringBootWebSecurityConfiguration
+            假如容器中没有一个WebSecurityConfigurerAdapter类型的组件，那就注册一个默认的WebSecurityConfigurerAdapter类型
+            DefaultConfigurerAdapter
+       2、WebSecurityEnablerConfiguration
+            使用了@EnableWebSecurity注解，这个注解像容器中导入了WebSecurityConfiguration、SpringWebMvcImportSelector、
+            AuthenticationConfiguration
+            1、AuthenticationConfiguration
+                1、导入了ObjectPostProcessorConfiguration配置类，而这个类主要是向容器中注册一个ObjectPostProcessor类型的
+                    AutowireBeanFactoryObjectPostProcessor
+                2、注册了authenticationManagerBuilder
+                3、注册了enableGlobalAuthenticationAutowiredConfigurer
+                4、注册了initializeUserDetailsBeanManagerConfigurer
+                5、注册了initializeAuthenticationProviderBeanManagerConfigurer
+                6、给属性globalAuthConfigurers赋值，而值就是容器中之前注册过的enableGlobalAuthenticationAutowiredConfigurer
+                7、给属性applicationContext赋值
+                8、给属性objectPostProcessor赋值，这个类就是给对象初始化的
+           2、WebSecurityConfiguration
+                1、容器中注册了AutowiredWebSecurityConfigurersIgnoreParents组件
+                2、查找容器中所有WebSecurityConfigurer类型的组件,并将这些组件放到了WebSecurity对象的configurers属性中,
+                    并把所有WebSecurityConfigurer类型的组件放到WebSecurity对象的webSecurityConfigurers属性中
+                3、容器中注册了DelegatingApplicationListener组件
+                4、容器中注册了Filter类型组件beanname为springSecurityFilterChain，这个
+                5、容器中注册了webSecurityExpressionHandler组件
 
 
 
-        1、setFilterChainProxySecurityConfigurer方法讲解
-            先从容器中获取WebSecurityConfigurer类型的组件，这时只能获得默认的DefaultConfigurerAdapter，或者自定义的继承了
-            WebSecurityConfigurerAdapter的配置类；将这个WebSecurityConfigurer类型的组件存放在这个配置类的
-            webSecurityConfigurers属性中；
-            然后创建一个webSecurity对象，将从容器中获取WebSecurityConfigurer类型的组件添加到webSecurity对象的configurers
-            属性中；
-        2、springSecurityFilterChain讲解
-            1、先判断webSecurityConfigurers是不是空，如果不是空就开始使用之前创建的webSecurity对象来
-                创建springSecurityFilterChain过滤器链
-                webSecurity.build()
-            2、webSecurity.build()-->doBuild
-                1、首先调用httpSecurity.beforeInit方法，这时空实现，子类可以扩展
-                2、接着调用httpSecurity.init方法，使用webSecurityConfigurer来初始化websecurity
-                    首先拿到websecurity对象里的configurers属性里的所有WebSecurityConfigurer
-                    遍历他们并且调用他们的init方法，用来做真正的初始化websecurity
-                    这里我们是WebSecurityConfigurerAdapter的init方法
-                    1、首先调用final HttpSecurity http = getHttp()
-                        1、这个方法里将objectPostProcessor, authenticationBuilder,sharedObjects封装到了HttpSecurity里
-                        http = new HttpSecurity(objectPostProcessor, authenticationBuilder,sharedObjects);
-                        2、在这个方法里可以配置不同的SecurityConfigurer，然后将这些SecurityConfigurer赋值
-                            到httpSecurity的configurers属性中
-                            譬如:
-                                http
-                                    //这里为httpsecurity的configurers添加了CsrfConfigurer
-                                    .csrf()
-                                    .and()
-                                    //这里为httpsecurity的configurers添加了ExceptionHandlingConfigurer
-                                    .exceptionHandling()
+                1、setFilterChainProxySecurityConfigurer方法讲解
+                    先从容器中获取WebSecurityConfigurer类型的组件，这时只能获得默认的DefaultConfigurerAdapter，或者自定义的继承了
+                    WebSecurityConfigurerAdapter的配置类；将这个WebSecurityConfigurer类型的组件存放在这个配置类的
+                    webSecurityConfigurers属性中；
+                    然后创建一个webSecurity对象，将从容器中获取WebSecurityConfigurer类型的组件添加到webSecurity对象的configurers
+                    属性中；
+                2、springSecurityFilterChain讲解
+                    1、先判断webSecurityConfigurers是不是空，如果不是空就开始使用之前创建的webSecurity对象来
+                        创建springSecurityFilterChain过滤器链
+                        webSecurity.build()
+                    2、webSecurity.build()-->doBuild
+                        1、首先调用httpSecurity.beforeInit方法，这时空实现，子类可以扩展
+                        2、接着调用httpSecurity.init方法，使用webSecurityConfigurer来初始化websecurity
+                            首先拿到websecurity对象里的configurers属性里的所有WebSecurityConfigurer
+                            遍历他们并且调用他们的init方法，用来做真正的初始化websecurity
+                            这里我们是WebSecurityConfigurerAdapter的init方法
+                            1、首先调用final HttpSecurity http = getHttp()
+                                1、这个方法里将objectPostProcessor, authenticationBuilder,sharedObjects封装到了HttpSecurity里
+                                http = new HttpSecurity(objectPostProcessor, authenticationBuilder,sharedObjects);
+                                2、在这个方法里可以配置不同的SecurityConfigurer，然后将这些SecurityConfigurer赋值
+                                    到httpSecurity的configurers属性中
+                                    譬如:
+                                        http
+                                            //这里为httpsecurity的configurers添加了CsrfConfigurer
+                                            .csrf()
+                                            .and()
+                                            //这里为httpsecurity的configurers添加了ExceptionHandlingConfigurer
+                                            .exceptionHandling()
 
-                    2、将http设置到webSecurity的securityFilterChainBuilders属性里
-                3、接着调用httpSecurity.beforeConfigure方法，这也是个空实现，子类可以扩展
-                4、接着调用httpSecurity.configure()方法
-                    1、拿到httpSecurity里所有之前配置好的SecurityConfigurer，从configurers属性中获取
-                    2、遍历他们然后挨个调用这些配置器的configure方法，用来配置httpSecurity这个对象
-                        1、首先创建每个SecurityConfigurer对应的过滤器，然后为过滤器设置一些初始化的属性值
-                            然后加到httpSecurity对象的filters属性中
-                5、接着调用httpSecurity.performBuild方法
-                    protected DefaultSecurityFilterChain performBuild() throws Exception {
-                        Collections.sort(filters, comparator);
-                        return new DefaultSecurityFilterChain(requestMatcher, filters);
+                            2、将http设置到webSecurity的securityFilterChainBuilders属性里
+                        3、接着调用httpSecurity.beforeConfigure方法，这也是个空实现，子类可以扩展
+                        4、接着调用httpSecurity.configure()方法
+                            1、拿到httpSecurity里所有之前配置好的SecurityConfigurer，从configurers属性中获取
+                            2、遍历他们然后挨个调用这些配置器的configure方法，用来配置httpSecurity这个对象
+                                1、首先创建每个SecurityConfigurer对应的过滤器，然后为过滤器设置一些初始化的属性值
+                                    然后加到httpSecurity对象的filters属性中
+                        5、接着调用httpSecurity.performBuild方法
+                            protected DefaultSecurityFilterChain performBuild() throws Exception {
+                                Collections.sort(filters, comparator);
+                                return new DefaultSecurityFilterChain(requestMatcher, filters);
+                            }
+                            这个方法将所有的过滤器以及请求匹配器封装到DefaultSecurityFilterChain对象中并返回
+                    3、最终将生成的securityFilterChains封装成FilterChainProxy，并注册到容器中,beanname为springSecurityFilterChain
+
+                    FilterChainProxy如何注册到servlet容器中？
+                        外部容器启动版
+                            1、springsecurity场景启动器提供了一个AbstractSecurityWebApplicationInitializer类，这个类
+                                实现了WebApplicationInitializer，所以tomcat启动时就会执行这个类的onStarteUp方法
+                                这个方法里有一个insertSpringSecurityFilterChain(servletContext)方法
+                                而这个方法里创建了一个DelegatingFilterProxy过滤器对象，并注册到了tomcat里，
+                                注册之后就会自动这个对象调用过滤器的init方法，init方法里调用了initFilterBean()
+                                这个方法首先判断delegate是否为空，如果为空就去spring容器中查找一个过滤器类型并且名称为
+                                springSecurityFilterChain的组件，刚好这就是我们之前创建好的FilterChainProxy，这样
+                                FilterChainProxy就注册到servlet容器中了
+
+                        内置tomcat启动
+                            1、配置类SecurityFilterAutoConfiguration中注册了组件DelegatingFilterProxyRegistrationBean
+                            2、这个组件刚好是实现了ServletContextInitializer，所在在servlet容器启动完毕后会自动调用他们的
+                                onstarteUp方法，所以自动注册了一个DelegatingFilterProxy过滤器，当这个过滤器注册完后tomcat
+                                会自动调用它的init方法，init方法里调用了initFilterBean(),
+                              这个方法首先判断delegate是否为空，如果为空就去spring容器中查找一个过滤器类型并且名称为
+                              springSecurityFilterChain的组件，刚好这就是我们之前创建好的FilterChainProxy，这样
+                              FilterChainProxy就注册到servlet容器中了
+
+           3、SpringWebMvcImportSelector
+                导入了WebMvcSecurityConfiguration配置类，像容器中添加了RequestDataValueProcessor组件
+
+
+   4、关于HttpSecurity的创建以及初始化
+        这个方法是在创建webSecurity的时候先遍历所有WebSecurityConfigurerAdapter类型组件然后调用他们的init方法时调用的
+            protected final HttpSecurity getHttp() throws Exception {
+            		if (http != null) {
+            			return http;
+            		}
+                    //使用objectPostProcessor对象然后调用DefaultAuthenticationEventPublisher的初始化方法
+            		DefaultAuthenticationEventPublisher eventPublisher = objectPostProcessor
+            				.postProcess(new DefaultAuthenticationEventPublisher());
+            		localConfigureAuthenticationBldr.authenticationEventPublisher(eventPublisher);
+                    //创建AuthenticationManager，详情见下介绍
+            		AuthenticationManager authenticationManager = authenticationManager();
+
+            		authenticationBuilder.parentAuthenticationManager(authenticationManager);
+            		Map<Class<? extends Object>, Object> sharedObjects = createSharedObjects();
+
+            		http = new HttpSecurity(objectPostProcessor, authenticationBuilder,
+            				sharedObjects);
+            		if (!disableDefaults) {
+            			// @formatter:off
+            			http
+            				.csrf().and()
+            				.addFilter(new WebAsyncManagerIntegrationFilter())
+            				.exceptionHandling().and()
+            				.headers().and()
+            				.sessionManagement().and()
+            				.securityContext().and()
+            				.requestCache().and()
+            				.anonymous().and()
+            				.servletApi().and()
+            				.apply(new DefaultLoginPageConfigurer<>()).and()
+            				.logout();
+            			// @formatter:on
+            			ClassLoader classLoader = this.context.getClassLoader();
+            			List<AbstractHttpConfigurer> defaultHttpConfigurers =
+            					SpringFactoriesLoader.loadFactories(AbstractHttpConfigurer.class, classLoader);
+
+            			for(AbstractHttpConfigurer configurer : defaultHttpConfigurers) {
+            				http.apply(configurer);
+            			}
+            		}
+            		configure(http);
+            		return http;
+            	}
+
+
+    创建认证管理器的过程
+        protected AuthenticationManager authenticationManager() throws Exception {
+            if (!authenticationManagerInitialized) {
+                    //这个localConfigureAuthenticationBldr已经注册到了容器中，直接拿；
+                    //可以通过这个对象来配置你希望的认证方式，如下
+                    //@Override
+                    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+                        // 添加admin账号
+                        auth.inMemoryAuthentication().withUser("admin").password("123456").
+                        authorities("showOrder","addOrder","updateOrder","deleteOrder");
+                        // 添加userAdd账号
+                        auth.inMemoryAuthentication().withUser("userAdd").password("123456").authorities("showOrder","addOrder");
+                        // 如果想实现动态账号与数据库关联 在该地方改为查询数据库
                     }
-                    这个方法将所有的过滤器以及请求匹配器封装到DefaultSecurityFilterChain对象中并返回
-            3、最终将生成的securityFilterChains封装成FilterChainProxy，并注册到容器中,beanname为springSecurityFilterChain
+                    //这样就可以AuthenticationManagerBuilder auth这个对象里面添加你希望的configurer,譬如这里就会添加一个
+                    //InMemoryUserDetailsManagerConfigurer到auth对象的configurers属性中
+                configure(localConfigureAuthenticationBldr);
 
-            FilterChainProxy如何注册到servlet容器中？
-                外部容器启动版
-                    1、springsecurity场景启动器提供了一个AbstractSecurityWebApplicationInitializer类，这个类
-                        实现了WebApplicationInitializer，所以tomcat启动时就会执行这个类的onStarteUp方法
-                        这个方法里有一个insertSpringSecurityFilterChain(servletContext)方法
-                        而这个方法里创建了一个DelegatingFilterProxy过滤器对象，并注册到了tomcat里，
-                        注册之后就会自动这个对象调用过滤器的init方法，init方法里调用了initFilterBean()
-                        这个方法首先判断delegate是否为空，如果为空就去spring容器中查找一个过滤器类型并且名称为
-                        springSecurityFilterChain的组件，刚好这就是我们之前创建好的FilterChainProxy，这样
-                        FilterChainProxy就注册到servlet容器中了
+                if (disableLocalConfigureAuthenticationBldr) {
+                    authenticationManager = authenticationConfiguration
+                            .getAuthenticationManager();
+                }
+                else {
+                        /*使用刚刚的那个localConfigureAuthenticationBldr对象进行创建authenticationManager
+                        doBuild-->init-->configure
+                        public void configure(B builder) throws Exception {
+                                //InMemoryUserDetailsManagerConfigurer创建一个DaoAuthenticationProvider，
+                                //并将其传入到localConfigureAuthenticationBldr对象里
+                                //localConfigureAuthenticationBldr对象里，以便后期执行
+                            provider = postProcess(provider);
+                            builder.authenticationProvider(provider);
+                        }
+                            接着执行localConfigureAuthenticationBldr对象的performBuild方法，进行真正的创建认证管理器
+                            protected ProviderManager performBuild() throws Exception {
+                                if (!isConfigured()) {
+                                    logger.debug("No authenticationProviders and no parentAuthenticationManager defined. Returning null.");
+                                    return null;
+                                }
 
-                内置tomcat启动
-                    1、配置类SecurityFilterAutoConfiguration中注册了组件DelegatingFilterProxyRegistrationBean
-                    2、这个组件刚好是实现了ServletContextInitializer，所在在servlet容器启动完毕后会自动调用他们的
-                        onstarteUp方法，所以自动注册了一个DelegatingFilterProxy过滤器，当这个过滤器注册完后tomcat
-                        会自动调用它的init方法，init方法里调用了initFilterBean(),
-                      这个方法首先判断delegate是否为空，如果为空就去spring容器中查找一个过滤器类型并且名称为
-                      springSecurityFilterChain的组件，刚好这就是我们之前创建好的FilterChainProxy，这样
-                      FilterChainProxy就注册到servlet容器中了
+                                //将localConfigureAuthenticationBldr对象里的所有authenticationProviders
+                                //封装到ProviderManager对象里，这个就是我们的认证管理器
+                                ProviderManager providerManager = new ProviderManager(authenticationProviders,
+                                        parentAuthenticationManager);
+
+                                if (eraseCredentials != null) {
+                                    providerManager.setEraseCredentialsAfterAuthentication(eraseCredentials);
+                                }
+                                if (eventPublisher != null) {
+                                    providerManager.setAuthenticationEventPublisher(eventPublisher);
+                                }
+                                //这个providerManager才是真正起到认证功能的类，不同的配置器里创建的providerManager不一样，
+                                //所以他们的认证方式也不一样
+                                providerManager = postProcess(providerManager);
+                                return providerManager;
+                            }*/
+                        authenticationManager = localConfigureAuthenticationBldr.build();
+
+                }
+                authenticationManagerInitialized = true;
+            }
+            return authenticationManager;
+        }
+
+
+
+
+        build方法都是遍历对象内部属性configurers，然后执行init--beforeConfigure-configure-performBuild方法进行创建
+        springSecurity里面目前查看到三个地方使用同样的模式
+        1、WebSecurity.build-->doBuild
+            doBuild方法里又调用beforeInit->init->beforeConfigure->configure->performBuild
+            获取到属性configurers的值，依次使用这些组件来配置websecurity,然后创建FilterChainProxy对象
+
+        2、securityFilterChainBuilder.build,也就是httpSecurity的build，逻辑也如上，获取到属性configurers的值，
+            依次使用这些组件来配置httpScurity,然后创建DefaultSecurityFilterChain对象
+
+        3、localConfigureAuthenticationBldr.build(),也就是AuthenticationManagerBuilder的build，
+            逻辑也如上，获取到属性configurers的值(是)，依次使用这些组件来配置AuthenticationManagerBuilder,
+            然后创建ProviderManager对象，ProviderManager对象里的AuthenticationProvider才是真正起到认证作用的
+
+            AuthenticationManager的实现ProviderManager管理了众多的AuthenticationProvider。
+            每一个AuthenticationProvider都只支持特定类型的Authentication，如果不支持将会跳过。
+
+
+    springSecurity内部哪些是认证过滤器，哪些是授权过滤器？
+        认证过滤器可以通过在FilterComparator里面找名字中带有Authentication的，这些一般都是认证过滤器？
+        授权过滤器只有FilterSecurityInterceptor
+        授权过滤器AbstractSecurityInterceptor
+            默认的过滤器是FilterSecurityInterceptor,继承了AbstractSecurityInterceptor实现了Filter接口
+            我们一般直接继承这个过滤器或者继承他的父类，自定义一个AuthorizeSecurityInterceptor。
+            目的是为了注入自定义的授权管理器AccessDecisionManager、和权限元数据FilterInvocationSecurityMetadataSource,
+            FilterSecurityInterceptor中的doFilter()会调用super.beforeInvocation(fi)方法，内部调用授权管理器做授权,
+            自定义的AuthorizeSecurityMetadataSource实现了FilterInvocationSecurityMetadataSource的getAttributes()方法，
+            可以根据url获取对应的角色列表,
+            自定义的AuthorizeAccessDecisionManager实现了AccessDecisionManager，实现了decide()方法来判断当前用户是否有此
+            url的权限
+
+    注意：认证过滤器只有在认证的时候才会经过他们的认证逻辑，其他情况就直接doFilter了，最后来到授权过滤器，授权过滤器
+         首先会看你有没有认证过，然后再判断你有没有权限访问资源
+
+
+
+    可以看看xboot-fast项目，这个里面授权认证还是挺好的；
+    认证的话就不需要开启http.formLogin()或者httpBasic等其他认证配置了，这样就不会添加认证过滤器，
+    我们可以使用自定义认证过滤器，使用jwt来保持登录状态；
+
+
+    ExceptionTranslationFilter
+        这个过滤器只会在dofilter后面执行，主要是catch dofilter中抛出的异常，然后执行异常处理逻辑，
+        譬如FilterSecurityInterceptor这个授权过滤器在发现请求中没有Authentication这个认证凭证，就会抛出
+        AuthenticationException异常，然后就会被ExceptionTranslationFilter扑捉到，然后执行
+        handleSpringSecurityException(request, response, chain, ase);
+        进而执行
+        protected void sendStartAuthentication(HttpServletRequest request,
+        			HttpServletResponse response, FilterChain chain,
+        			AuthenticationException reason) throws ServletException, IOException {
+        		SecurityContextHolder.getContext().setAuthentication(null);
+        		requestCache.saveRequest(request, response);
+        		//主要就是他在执行异常处理的关键步骤
+        		//AuthenticationEntryPoint类的主要作用是 在未认证的情况下就直接访问需要授权的资源时，这类情况的处理逻辑
+        		authenticationEntryPoint.commence(request, response, reason);
+        	}
+
+
+   授权配置
+        1、url匹配方式
+            antMatchers()
+                参数是不定向参数，每个参数是一个ant表达式，用于匹配url规则
+                规则如下
+                    1、?:匹配一个字符
+                    2、*：匹配0个或多个字符
+                    3、**:匹配0个或多个目录
+                譬如
+                    .antMatchers("api/**").permitAll();
+                    .antMatchers("**/*.js");
+                还可以匹配请求方式
+                    antMatchers(HttpMethod method, String... antPatterns)
+
+            regexMatchers
+                正则表达式匹配
+
+            mvcMatchers
+
+        2、访问资源的控制方式
+            1、6种内置的控制访问的方法
+                denyAll
+                anonymous
+                authenticated
+                fullyAuthenticated
+                rememberMe
+            2、当然我们也可以自定义什么样的权限可以访问什么资源，例如下面的
+                基于权限判断
+                    1、hasRole
+                    2、hasAnyRole
+                    3、hasAuthority
+                    4、hasAnyAuthority
+                    5、hasIpAddress
+
+            配置样例
+                @Override
+                protected void configure(HttpSecurity http) throws Exception {
+                    // 认证配置
+                    http.formLogin()
+                            //配置了这个以后如果没有在授权的路径中将其屏蔽，那么会跳转到这个配置的登录页面，
+                            // 周而复始导致报重定向次数过多错误
+                            .loginPage("")
+                            //登陆页面提交的接口地址，无需再controller层写此接口，这个是由security认证的
+                            .loginProcessingUrl("/login")
+                            //登录成功后挑战页面,这里其实security提供了一个默认的成功处理器SavedRequestAwareAuthenticationSuccessHandler
+                            .successForwardUrl("")
+                            //失败后security提供了一个默认的失败处理器SimpleUrlAuthenticationFailureHandler
+                            .failureForwardUrl("")
+                            //我们也可以指定一个自定义的失败或者成功认证后的处理器
+                            //.failureHandler()
+                            .and()
+
+
+                            //配置授权
+                            .authorizeRequests()
+                            //匹配此路径的不拦截进行授权
+                            //ant形式的匹配请求路径
+                            .antMatchers("").permitAll()
+                            //政策表达式匹配请求路径
+                            .regexMatchers("").permitAll()
+                            .antMatchers("")
+                            .hasAnyAuthority()
+                            //其他所有的请求都需要拦截进行认证手否有相关 权限
+                            .anyRequest()
+                            .authenticated()
+                            .and()
+                            //设置权限拒绝处理器
+                            .exceptionHandling().accessDeniedHandler(accessDeniedHandler)
+                    .and()
+                            //关掉的原因是每次请求都必须带有一个csrf的请求参数，没有的话就不让请求，所以关掉
+                    .csrf().disable();
+                }
+
+jwt简介
+    1、优点
+        1、jwt基于json，非常方便解析
+        2、可在令牌中自定义非常丰富的内容，以扩展
+        3、通过非对称加密算法以及数字签名技术，jwt防止篡改，安全性高
+        4、资源服务使用jwt可不依赖认证服务即可完成授权
+    2、缺点
+        jwt令牌较长，占存储空间较大
+
+    3、jwt组成
+        1、一个jwt字符串实际是由三部分组成：头部、载荷、签名
+            1、头部
+                用于描述jwt的最基本信息，例如其类型以及签名算法，这也可以被表示成一个json对象
+                {
+                  "alg":"HS256",
+                  "typ":"JWT"
+                }
+
+            2、负荷
+                就是存放有效信息的地方，它包含三个部分
+            3、签名
+                它也由三部分组成
+
+            注意：当为jwt设置过期时间后，然后解析生成的jwt时，如果过期了，解析时会报错
+                没有通过redis保存jwt token时，需要通过解析jwt token成功后说明这个jwttoken确实是你发放的，说明token是合法有效的；
+                通过 redis保存jwt token时，从redis能够获取到相关数据就说明这个jwt token是有效的，无需通过解析来证明这是合法有效的
+                通过jwt 来保证登陆状态时，需要将token存放在请求header中带到 服务端比较保险，因为这样无法通过cookie获取到，
+
+
+        2、springboot整合jwt步骤
+            1、引入jar包
+                 <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt</artifactId>
+                    <version>0.9.1</version>
+                 </dependency>
+
+

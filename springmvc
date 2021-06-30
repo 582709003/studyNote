@@ -618,7 +618,8 @@ Spring整合springmvc
 
     注意
         1.Spring容器导入的properties配置文件，只能在Spring容器中用而在SpringMVC容器中不能读取到。 需要在SpringMVC的配置
-        文件中重新进行导入properties文件，并且同样在父容器Spring中不能被使用，导入后使用@Value("${key}")在java类中进行读取。
+        文件中重新进行导入properties文件，并且同样在父容器Spring中不能被使用，导入后使用@Value("${key}")在java类中进行读取
+        必须要有setter方法。
 
     1、启动tomcat服务器时，需要加载spring的配置文件
         启动tomcat时会创建servletContext对象，这个对象有一个监听器叫做ContextLoaderListener，这个监听器

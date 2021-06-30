@@ -69,7 +69,7 @@ bean的生命周期内一些方法
          类上加@Component注解
 
     4、@PostConstruct 和 @PreDestroy 作用在被@component扫描到的类的方法上，作用在这个bean的生命周期；
-        @PostConstruct 是在这个bean对象创建完成并赋值之后，来执行初始化方法；是在populateBean(beanName, mbd, instanceWrapper);
+        @PostConstruct 是在这个bean对象创建完成并属性赋值之后，来执行初始化方法；是在populateBean(beanName, mbd, instanceWrapper);
         方法中执行的
         @PreDestroy 在bean被摧毁destroy之前，执行销毁方法；这两个方法在生命周期内都只执行一次； 类上加@Component注解
 

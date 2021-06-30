@@ -1352,7 +1352,8 @@ springboot数据源的操作步骤
                 //默认的自动配置是判断容器中没有 DataSource类型才会配置
                   HikariCP数据源，那我们这边配置了之后，那默认的配置的数据源就失效了
                 @Bean
-                ***@ConfigurationProperties("spring.datasource")//这样就可以把配置文件中的属性值和返回的这个对象的属性进行绑定
+                ***@ConfigurationProperties("spring.datasource")//这样就可以把配置文件中的属性值和返回的这个对象的
+                属性进行绑定，其实是找setter,set后面的名字才是我们应该在配置文件中写的
                 public DataSource dataSource() throws SQLException {
                     DruidDataSource druidDataSource = new DruidDataSource();
                     //druidDataSource.setUrl("");
