@@ -19,29 +19,33 @@ Tomca的两大组件：Connecter和Container
     Connecter组件
         一个Connecter将在某个指定的端口上侦听客户请求，接收浏览器的发过来的 tcp 连接请求，创建一个 Request 和 Response
         对象分别用于和请求端交换数据，然后会产生一个线程来处理这个请求并把产生的 Request 和 Response 对象传给处理
-        Engine(Container中的一部分)，从Engine出获得响应并返回客户。
+        Engine(Container中的一部分)，从Engine中获得响应并返回客户。
         Tomcat中有两个经典的Connector，一个直接侦听来自Browser的HTTP请求，另外一个来自其他的WebServer请求。
-        Cotote HTTP/1.1 Connector在端口8080处侦听来自客户Browser的HTTP请求，Coyote JK2 Connector在端口8009处侦听其
-        他Web Server的Servlet/JSP请求。
+            也就是Connecter主要监听协议和端口
+                Cotote HTTP/1.1 Connector在端口8080处侦听来自客户Browser的HTTP请求；
+                Coyote JK2 Connector在端口8009处侦听其他Web Server的Servlet/JSP请求。
         Connector最底层使用的是Socket来进行连接的，Request和Response是按照HTTP协议来封装的，
         所以Connector同时需要实现TCP/IP协议和HTTP协议。
         Connector 最重要的功能就是接收连接请求然后分配线程让 Container 来处理这个请求，所以这必然是多线程的，多线程的处理
         是 Connector 设计的核心。
 
-Container组件
-    Container的体系结构如下：
-        Container
-            --Engine 用来管理多个主机，一个Service最多只能有一个Engine；
-                --Host 对应着主机
-                    --Context (对应着应用，可以有多个应用)
-                        --Wrapper(Servlet)
+    Container组件
+        Container的体系结构如下：
+            Container
+                --Engine 用来管理多个主机，并指定默认主机，一个Service最多只能有一个Engine；
+                    --Host 对应具体的主机域名
+                        --Context (对应着应用，可以有多个Context这样的应用)
+                            --Wrapper(Servlet)
 
 Tomcat Server处理一个HTTP请求的过程
-    1、用户点击网页内容，请求被发送到本机端口8080，被在那里监听的Coyote HTTP/1.1 Connector获得。
-    2、Connector把该请求交给它所在的Service的Engine来处理，并等待Engine的回应。
-    3、Engine获得请求localhost/test/index.jsp，匹配所有的虚拟主机Host。
-    4、Engine匹配到名为localhost的Host（即使匹配不到也把请求交给该Host处理，因为该Host被定义为该Engine的默认主机），名为localhost的Host获得请求/test/index.jsp，匹配它所拥有的所有的Context。Host匹配到路径为/test的Context（如果匹配不到就把该请求交给路径名为“ ”的Context去处理）。
-    5、path=“/test”的Context获得请求/index.jsp，在它的mapping table中寻找出对应的Servlet。Context匹配到URL PATTERN为*.jsp的Servlet,对应于JspServlet类。
+    1、用户点击网页内容，请求被发送到本机端口8080，被在那里监听8080端口的的Coyote HTTP/1.1 Connector获得。
+    2、Connector把该请求封装成request，并且生成一个response，交给它所在的Service的Engine来处理，并等待Engine的回应。
+    3、Engine获得请求localhost/test/index.jsp，遍历匹配所有的虚拟主机Host。
+    4、Engine匹配到名为localhost的Host（即使匹配不到也把请求交给该Host处理，因为该Host被定义为该Engine的默认主机），
+        名为localhost的Host获得请求/test/index.jsp，匹配它所拥有的所有的Context应用。Host匹配到路径为/test的Context
+        （如果匹配不到就把该请求交给路径名为“ ”的Context去处理）。
+    5、path=“/test”的Context获得请求/index.jsp，在它的mapping table中寻找出对应的Servlet。
+        Context匹配到URL PATTERN为*.jsp的Servlet,对应于JspServlet类。
     6、构造HttpServletRequest对象和HttpServletResponse对象，作为参数调用JspServlet的doGet（）或doPost（）.执行业务逻辑、数据存储等程序。
     7、Context把执行完之后的HttpServletResponse对象返回给Host。
     8、Host把HttpServletResponse对象返回给Engine。
@@ -66,10 +70,11 @@ Tomcat Server处理一个HTTP请求的过程
                       pathname="conf/tomcat-users.xml" />
           </GlobalNamingResources>
 
-           <!--server服务器提供service服务，像这样的service可以有多个，如果浏览器想使用这个服务，那么就要使用连接器Connector，所以浏览器输入这个端口号 -->
+           <!--server服务器提供service服务，像这样的service可以有多个，如果浏览器想使用这个服务，
+           那么就要使用连接器Connector，所以浏览器输入这个端口号 -->
           <Service name="Catalina">
 
-        	<!--连接器，是一个对象，协议是http协议，浏览器输入这个8080的意思就是通过连接这个连接器来连上tomcat -->
+        	<!--连接器，是一个对象，协议是http协议，浏览器输入这个8080端口的意思就是通过连接这个连接器来连上tomcat -->
             <Connector port="8080" protocol="HTTP/1.1"
                        connectionTimeout="20000"
                        redirectPort="8443" />
@@ -95,9 +100,19 @@ Tomcat Server处理一个HTTP请求的过程
               <Host name="localhost"  appBase="webapps"
                     unpackWARs="true" autoDeploy="true">
 
-        			<!--docBase="d:/course/myWeb" 虚拟目录，docBase表示本地项目WebRoot绝对路径，作用就像webapps这个应用目录，里面放着应用；
-        			    path="/xxx" 应用路径，URI， -->
-        			<!--<context path="/xxx" docBase="d:/course/myWeb" />	   -->
+                    <Context>元素
+                    它由Context接口定义.是使用最频繁的元素.每个<Context元素代表了运行在虚拟主机上的单个Web应用.
+                    一个<Host>可以包含多个<Context>元素.每个web应用有唯一的一个相对应的Context代表web应用自身
+                    .servlet容器为第一个web应用创建一个
+                    <!-- Context，对应于一个Web App
+                                 path : 该Context的路径名是""，故该Context是该Host的默认Context
+                                 docBase : 该Context的根目录是webapps/mycontext/
+                                 -->
+        			<!--docBase="d:/course/myWeb" 虚拟目录，docBase表示本地项目的WebRoot绝对路径，
+        			        作用就像webapps这个应用目录，里面放着应用；path="/xxx" 应用路径，URI， -->
+        			<context path="/xxx" docBase="d:/course/myWeb" />
+        			    或者该Context的根目录，譬如webapps/mycontext/
+        			<context path="/xxx" docBase="" />
 
                 <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
                        prefix="localhost_access_log" suffix=".txt"

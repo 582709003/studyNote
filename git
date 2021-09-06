@@ -1,7 +1,6 @@
 分布式版本控制系统在管理项目时存放的不是版本与版本之间的差异，它存的是索引
 
 
-
 git gui here：是git的图形化界面
 
 git bash here:打开一个linux的命令窗口，在这个命令窗口里可以敲打linux的命令
@@ -9,7 +8,7 @@ git bash here:打开一个linux的命令窗口，在这个命令窗口里可以�
 注意git只是一个版本控制工具，它和github以及gitee是不一样的东西，github和gitee是远程仓库，git是中间控制工具，所以
 git其实配置时不需要密码，只需要配置name以及邮箱，这个其实就是为了给你的git起个名字，没什么作用；
 当你要连接远程仓库时，必然要输入远程仓库的账号密码，也就是你在github或者gitee上的账号密码，这样你才能提交，或者更新等，
-当你输入账号密码后在，这个信息会保存到凭证管理器里面，我的理解是，由于git会频繁的和远程仓库进行交互，但是如果每次交互都要
+当你输入账号密码后后，这个信息会保存到凭证管理器里面，我的理解是，由于git会频繁的和远程仓库进行交互，但是如果每次交互都要
 输入账号密码就会很麻烦，所以git开发在设计时就将登录信息保存到了凭证管理器里；
 但是当我们使用git去连接其他远程仓库时，譬如由原来的github转到了gitee上，此时凭证管理器里的git保留的登录信息还是以前的github的，这时
 就会报错，在git上使用命令是无法修改凭证管理器里的git信息的，所以只能手动去凭证管理器修改账号密码或者删除，删除之后你再去连接远程仓库
@@ -20,7 +19,7 @@ git连接远程仓库时就会一直沿用那个信息；
 
 
 git仓库分本地仓库和远程仓库
-一个项目或一个工程为工作区，工作区隐藏一个.git目录，这个目录不属于工作区，而是git的版本库，是git管理所有内容的地方
+    一个项目或一个工程为工作区，工作区隐藏一个.git目录，这个目录不属于工作区，而是git的版本库，是git管理所有内容的地方
     本地仓库：分为工作区和版本库，而版本库又分为暂存区和分支
 
 
@@ -58,9 +57,10 @@ git仓库分本地仓库和远程仓库
         add、commit命令操作才可以将内容提交到本地库
 
     status命令
+        查看本地当前分支的修改情况
         git status
     log命令
-        可以让我们查看提交的，显示从最近到最远的日志
+        可以让我们查看当前分支的提交记录，显示从最近到最远的日志
 
         日志展示方式
         1、git log
@@ -79,15 +79,17 @@ git仓库分本地仓库和远程仓库
        HEAD^ 表示上一个版本，即上一次的commit，也可以写成HEAD~1
        如果进行两次的commit，想要都撤回，可以使用HEAD~2
        --soft
-       不删除工作空间的改动代码 ，撤销commit，不撤销git add file
+       不删除工作空间的改动代码 ，不撤销git add file，撤销commit，
        --mixed
        意思是：不删除工作空间改动代码，撤销commit，并且撤销git add . 操作
        这个为默认参数,git reset --mixed HEAD^ 和 git reset HEAD^ 效果是一样的
        --hard
-       删除工作空间的改动代码，撤销commit且撤销add
+       删除工作空间的改动代码，撤销commit且撤销add，全部撤销
 
-        git checkout -- <file> 是一个危险的命令。 你对那个文件在本地的任何修改都会消失——Git 会用最近提交的版本覆盖掉它。
-         除非你确实清楚不想要对那个文件的本地修改了，否则请不要使用这个命令
+        git checkout -- <file> 是一个危险的命令。-- 后面有空格哦
+            git checkout -- readme.txt意思就是，把readme.txt文件在工作区的修改全部撤销，这里有两种情况
+                1、readme.txt自修改后还没有被放到暂存区，现在，撤销修改就是回到和版本库一样的状态；
+                2、readme.txt已经添加到暂存区后，又做了修改，现在撤销修改就是回到添加到暂存区后的状态
 
        另外一点，如果commit注释写错了，先要改一下注释，有其他方法也能实现，如：
        git commit --amend
@@ -95,7 +97,7 @@ git仓库分本地仓库和远程仓库
 
     删除文件/找回本地库删除的文件
         在工作区将文件删除后进行提交并commit，其实文件并不是物理删除，之后如果想把删除的文件找回
-        git reset --hard 历史版本
+        git reset --hard 历史版本id
         实际上就是将历史版本切换到刚才添加文件的哪个版本即可
 
     找回暂存区删除的文件
@@ -107,8 +109,9 @@ git仓库分本地仓库和远程仓库
         git diff 文件  将工作区和暂存区中的文件进行比较
         多个文件的比较直接使用git diff
 
+        git diff --staged  比对已暂存文件与最后一次提交的文件差异：
         git diff head 文件名  将暂存区和版本库里的现在指针指着的文件进行比较
-        git diff 历史版本 文件名
+        git diff 历史版本id 文件名
 
 分支
     在版本控制过程中，使用多条线同时推进多个任务。这里面说的多条线就是分支
@@ -120,17 +123,21 @@ git仓库分本地仓库和远程仓库
     查看分支
          git branch -v
     创建分支
-        git branch 新分支名
-        git 创建新分支时，会复制当前分支的所有内容以及当前分支之前的提交记录版本，切换分支时会实时显示当前分支的修改内容
+        方式一：git branch 新建的本地新分支名
+        方式二：git checkout -b 新建的本地新分支名  创建新分支并切换到新分支上
+        以上方式git创建新分支时，会复制当前所在分支的所有内容以及当前分支之前的提交记录版本，切换分支时会实时显示当前分支的修改内容
+        方式三：git checkout -b 新建的本地新分支名 origin(远程主机别名)/<remotebranch> 取远程分支在本地创建一个新分支
         git log --oneline  查看当前分支的提交记录
     切换分支
         git checkout 分支名
-        git checkout origin(远程主机别名)/<remotebranch>
+
     删除分支
         git branch -d (branchname)
     分支合并
         将a分支合并到主分支的话，那就先进入主分支，然后执行
         git merge a 进行合并
+        将远程分支合并到本地当前分支：
+        git merge origin/mybranch
         如果命令窗口显示(master|merging)代表处于合并状态中
 
     合并冲突
@@ -146,7 +153,7 @@ git仓库分本地仓库和远程仓库
         查看别名：git remote -v
         在本地为远程库地址创建别名：git remote add origin(自定义远程名) 具体远程仓库地址
     4、推送操作
-            git push origin(远程库的别名) master(你要推送的分支，选择一个分支即可)
+            git push origin(远程库的别名) master(你要推送到的远程分支，选择一个分支即可)
         命令格式如下：
             git push <远程主机名> <本地分支名>:<远程分支名>
         如果本地分支名与远程分支名相同，则可以省略冒号：
@@ -161,12 +168,13 @@ git仓库分本地仓库和远程仓库
     6、远程库修改的拉取
         pull操作=fetch+merge
         git fetch <远程主机名> <远程分支名>：将远程库库特定分支的版本内容更新到本地版本库，但是不更新到工作区
-        查看远程分支的内容是否正确 git checkout origin(远程主机别名)/<remotebranch>
+            查看远程分支的内容是否正确
+            切换到远程分支来查看刚通过git fetch命令来回的代码 (origin(远程主机别名)/<remotebranch> 这一堆其
+            实就是远程分支的名称)：git checkout origin(远程主机别名)/<remotebranch>
         进行合并
-        git merge origin(远程主机别名)/<remotebranch>
-
+            git merge origin(远程主机别名)/<remotebranch>
         或者我们直接通过pull操作
-        git pull <远程主机名> <远程分支名>:<本地分支名>
+            git pull <远程主机名> <远程分支名>:<本地分支名>
 
     7、协同开发合作时冲突的解决方法
         在冲突的情况下先拉取下来，然后解决冲突，然后再提交
@@ -188,17 +196,17 @@ a、b团队进行合作，fork操作
         git log --oneline --graph  带有简易图形的日志
 
 git整合idea
-    1、在idea中的设置里找到git，将git.exe路径配置到path to git executeable
+    1、在idea中的设置里找到git，将本地安装的git.exe路径配置到path to git executeable
     2、在设置中找到gitHub，把github服务器网址，账户密码配置好
 
     配置git仓库的几种方式
-        假如你是创建项目的，需要将项目与远程仓库关联
+        假如你是创建项目的，需要将项目推到远程仓库关联
             方式一
                 1、首先初始化项目的本地仓库，在vcs--import into version controll--create git respority
                 2、同步到远程仓库，在vcs--import into version controll--share project on github
             方式二
                 1、首先初始化项目的本地仓库，在vcs--import into version controll--create git respority
-                2、创建远程仓库 git remotes .....
+                2、在github上创建远程仓库，然后为这个远程仓库设置别名 git remotes .....
                 3、git push将本地库推到远程库
 
         假如你是拉取项目的

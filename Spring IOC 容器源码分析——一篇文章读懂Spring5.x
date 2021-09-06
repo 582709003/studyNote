@@ -10,17 +10,23 @@ BeanFactoryPostprocessor
 BeanDefinitionRegistryPostProcessor extends BeanFactoryPostProcessor
     postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)方法执行时机：
         是在所有bean定义信息将要被加载到beanfactory，bean实例还未创建,这允许在下一个后处理阶段开始之前进一步添加
-        bean的注册信息；比BeanFactoryPostprocessor还要早执行；可以在此再注册新的bean
-        BeanDefinitionRegistry：bean的定义信息保存中心，以后beanfactory就是按照BeanDefinitionRegistry里面保存的
-        每一个bean的定义信息创建bean实例的；
+        bean的注册信息；比BeanFactoryPostprocessor还要早执行(但BeanFactoryPostprocessor也是在postProcessBeanDefinitionRegistry里执行)；
+        可以在此再注册新的beanBeanDefinitionRegistry：bean的定义信息保存中心，以后beanfactory就是按照
+        BeanDefinitionRegistry里面保存的每一个bean的定义信息创建bean实例的；
      执行过程
             1、ioc创建容器
             2、refresh,执行invokeBeanFactoryPostProcessors方法
                 1、从容器中获取所有的BeanDefinitionRegistryPostProcessor组件
                 2、依次触发postProcessBeanDefinitionRegistry方法
+                3、执行完之后在执行BeanFactoryPostprocessor方法
 
 ApplicationListener原理
     作用：监听容器中发布的事件，事件驱动模型开发
+
+多播器
+    多播器里添加了容器中所有ApplicationListener，然后发布事件时，通过事件找到对应的ApplicationListener，然后执行
+    ApplicationListener的onApplicationEvent方法
+
 
 spring容器的创建过程，配置文件版
     1、构建applicationContext对象
@@ -83,6 +89,8 @@ spring容器的创建过程，配置文件版
     				// 那么在容器初始化以后，Spring 会负责调用里面的 postProcessBeanFactory 方法。】
     				// 这里是提供给子类的扩展点，到这里的时候，所有的 Bean 都加载、注册完成了，但是都还没有初始化
     				// 具体的子类可以在这步的时候添加一些特殊的 BeanFactoryPostProcessor 的实现类或做点什么事
+
+    				beanFactory初始化完成后可以对它再做一些自定义的事情
     				postProcessBeanFactory(beanFactory);
 
     				// 调用 BeanFactoryPostProcessor 各个实现类的 postProcessBeanFactory(factory)方法
@@ -159,21 +167,26 @@ spring容器的创建过程，配置文件版
 
             3、prepareBeanFactory(beanFactory)
                 1、为beanfactory设置类加载器，支持表达式解析器
-                2、添加部分postprosessor，如ApplicationContextAwareProcessor
-                3、设置忽略的自动装配的接口EnvironmentAware、EmbeddedValueResolverAware......
+                2、添加部分postprosessor，如ApplicationContextAwareProcessor，
+                 这个组件不是通过bean的定义信息创建对象的，而是直接创建然后放到ioc容器的beanPostProcessors域里
+                3、设置忽略的自动装配的接口EnvironmentAware、EmbeddedValueResolverAware、ResourceLoaderAware
+                    ApplicationEventPublisherAware、MessageSourceAware、ApplicationContextAware
                     禁止这些接口类型自动装配，如果要装配，需要实现这些接口，重写方法即可
-                4、注册可以解析的自动装配，我们能直接在任何组件中自动注入BeanFactory、ResourceLoader、ApplicationEventPublisher、ApplicationContext
+                4、注册可以解析的自动装配，我们能直接在任何组件中自动注入BeanFactory、ResourceLoader、
+                    ApplicationEventPublisher、ApplicationContext
                     registerResolvableDependency方法作用
                     在Spring自动装配的时候如果一个接口有多个实现类，并且都已经放到IOC中去了，
                     那么自动装配的时候就会出异常，因为spring不知道把哪个实现类注入进去，
                     但是如果我们自定义一个类，然后实现BeanFactoryPostProcessor接口
                     在该阶段调用这个方法，如果哪个地方要自动注入这个类型的对象的话，那么就注入进去我们指定的对象
-                5、添加beanPostProsessor，如ApplicationListenerDetector
+                5、添加beanPostProsessor，如ApplicationListenerDetector、LoadTimeWeaverAwareProcessor，
+                    这些组件不是通过bean的定义信息创建对象的，而是直接创建然后放到ioc容器的beanPostProcessors域里
                 6、添加编译时的aspectj
-                7、给容器中注册组件environment、systemProperties、systemEnvironment
+                7、给容器中注册组件environment、systemProperties、systemEnvironment,这些组件不是通过bean的定义信息
+                    创建对象的，而是直接创建然后放到ioc容器的singletonObjects域里
 
             4、postProcessBeanFactory(beanFactory)
-                BeanFactory准测i工作完成之后进行的后置处理工作；这里是空实现，字类可以重写这个方法来在BeanFactory创建并预准备完成之后做
+                BeanFactory准测工作完成之后进行的后置处理工作；这里是空实现，字类可以重写这个方法来在BeanFactory创建并预准备完成之后做
                 进一步的设置
            ==========================以上是BeanFactory的创建以及预准备工作================================================
             5、invokeBeanFactoryPostProcessors(beanFactory)
@@ -184,7 +197,7 @@ spring容器的创建过程，配置文件版
                     2、根据优先级排序，先执行实现PriorityOrdered接口的BeanDefinitionRegistryPostProcessor的方法
                     3、再执行实现Ordered接口的BeanDefinitionRegistryPostProcessor的方法
                     4、最后执行没有实现任何优先级接口或者顺序接口的BeanDefinitionRegistryPostProcessor的方法
-                        这个接口允许我们进一步注册bean的定义信信息到容器中或者得到已经注册的bean定义信息并修改它
+                        这个接口允许我们再一次注册我们需要的bean的定义信信息到容器中或者得到已经注册的bean定义信息并修改它
                     5、再执行BeanFactoryPostProcessor的方法，下面的逻辑与BeanDefinitionRegistryPostProcessor类似
                 注意：注解版，是在这个地方通过ConfigurationClassPostProcessor这个后置处理器将我们自定义的需要注入容器
                     的bean的定义信息注册到容器中的；容器中的对象不是完全由注册信息注入的，也可能是容器自己添加的，并且这些添加
@@ -218,9 +231,9 @@ spring容器的创建过程，配置文件版
 
             10、registerListeners()
                 给容器中注册所有的ApplicationListener
-                1、从容器中拿到所有的ApplicationListener,bean的定义信息，然后创建好对象放入容器
+                1、从容器中拿到所有的ApplicationListener的bean的定义信息，然后创建好对象放入容器
                 2、将每个监听器添加到事件派发器中
-                3、派发之前步骤产生的事件
+                3、触发之前步骤产生的事件
                     for (ApplicationEvent earlyEvent : earlyEventsToProcess) {
                         getApplicationEventMulticaster().multicastEvent(earlyEvent);
                     }
@@ -240,7 +253,7 @@ spring容器的创建过程，配置文件版
                                     try {
                                         return createBean(beanName, mbd, args);
                                     }
-                                  }方法,在这个方法里先熊一级缓存获取，获取不到就创建
+                                  }方法,在这个方法里先从一级缓存获取，获取不到就创建
                                 getSingleton方法里面在创建bean之前先调用beforeSingletonCreation(beanName)方法将正在创建的bean的name放入
                                 singletonsCurrentlyInCreation，正在创建中的beanname；
                                 然后调用singletonObject = singletonFactory.getObject()方法正式创建，其实就是调用createBean方法;

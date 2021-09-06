@@ -1,15 +1,1124 @@
-springcloud版本关系
-    springcloud的版本采用了英国伦敦地铁站的名称来命名，并由地铁站名称字母A-Z依次类推的形式来发布迭代版本
-    springclod是一个由许多子项目组成的综合项目各子项目有不同的发布节奏。为了管理springcloud和各子项目版本号混淆，springcloud
-    版本采用了名称而非版本号的命名，这些版本的名字采用了伦敦地铁站的名字，根据字母表的顺序来对应版本时间顺序。例如Angel是第一个
-    版本，BrixTon是第二个版本。当springcloud的发布内容积累到临界点或者一个重大bug被解决后，就会发布一个“service releases”版本，
-    简称SRX版本，比如Greenwich.SR2就是springcloud发布的Greenwich版本的第二个SR版本
+可以看看luban_cloud以及cloud2021
+springcloud
+    1、springcloud版本关系
+        springcloud的版本采用了英国伦敦地铁站的名称来命名，并由地铁站名称字母A-Z依次类推的形式来发布迭代版本
+        springclod是一个由许多子项目组成的综合项目各子项目有不同的发布节奏。为了管理springcloud和各子项目版本号混淆，springcloud
+        版本采用了名称而非版本号的命名，这些版本的名字采用了伦敦地铁站的名字，根据字母表的顺序来对应版本时间顺序。例如Angel是第一个
+        版本，BrixTon是第二个版本。当springcloud的发布内容积累到临界点或者一个重大bug被解决后，就会发布一个“service releases”版本，
+        简称SRX版本，比如Greenwich.SR2就是springcloud发布的Greenwich版本的第二个SR版本
 
-    具体springboot和springcloud之间版本选型对应关系见如下网址
-    ***https://start.spring.io/actuator/info
+        选型可以看springcloud版本里面的介绍，这个是大概对应关系，但是具体选择看下面
+            https://spring.io/projects/spring-cloud#overview
+        具体springboot和springcloud之间版本选型对应关系见如下网址
+        ***https://start.spring.io/actuator/info
+        打开后将出来的json放到在线json解析网站，然后格式化，找到spring-cloud一栏，然后就能看见springcloud和springboot之间的
+        选型对应关系
 
-    具体选型可以看springcloud版本里面的reference介绍
+        springcloud中文文档
+            ***https://www.bookstack.cn/read/spring-cloud-docs/docs-index.md
 
-springcloud中文文档
-    ***https://www.bookstack.cn/read/spring-cloud-docs/docs-index.md
+ 以下内容代码在cloud2021
+    2、eureka基础知识
+        euraka包含两个组件
+            Eureka server：通过服务注册 服务；各个微服务节点通过配置启动后，会在eureka中进行注册，这样eurekaServer中的服务注册表中将会存储
+                            所有可用服务节点的信息，服务节点的信息可以在界面中直观看到。
+            Eureka client：通过注册中心进行访问；是一个java客户端，用于简化Eureka server的交互，客户端同时也具备一个内置的、使用
+                            轮询(round-robin)负载算法的负载均衡器。在应用启动后，将会向Eureka server发送心跳(默认周期30秒)。
+                            如果eureka server在多个心跳周期内没有接收到某个节点的心跳，Eureka server将会从服务注册表中将这个服务节点
+                            移除(默认90秒)
+
+                服务注册：将服务信息注册到注册中心
+                服务发现：从注册中心获取服务信息
+                实质：存key服务名 取value调用地址
+
+            eureka工作过程
+                1、先启动eureka注册中心
+                2、启动服务提供者payment支付服务
+                3、支付服务启动后会把自身信息(比如服务地址以别名形式注册进eureka)
+                4、消费者order服务在需要调用接口时，使用服务别名去注册中心获取实际的rpc远程调用地址
+                5、消费者获得调用地址后，底层实际是利用httpClient技术实现远程调用
+                6、消费者获得服务地址后会缓存在本地jvm中，默认每间隔30秒更新一次服务调用地址
+
+    3、eureka集群
+        1、原理
+            互相注册，相互守望
+
+    4、某一个服务集群
+        1、使用相同的 spring.application.name 微服务名，不同的端口号
+        2、访问服务时，只访问微服务名，大写，springcloud会经过负载均衡访问某个端口上的服务
+        3、    @Bean
+              @LoadBalanced //使用@LoadBalanced赋予RestTemplate负载均衡的能力
+              public RestTemplate restTemplate(){
+                  return new RestTemplate();
+              }
+          这样就可以负载均衡访问集群的微服务了
+
+    5、当前问题
+        1、服务注册列表上的status上出现了计算机的主机名 譬如 ZHSZ-Thinkpad:cloud-paymment-service:8002
+            修改：eureka.instance.instance-id=payment8002，  这样status就显示指定的名字 payment8002，只做显示用
+        2、鼠标掠过服务注册列表上的status上时没有ip显示
+            修改:eureka.instance.prefer-ip-address=true  #访问路径可以显示ip地址
+
+    6、服务发现discovery
+        对于注册进eureka里面的微服务，可以通过服务发现来获得该服务的信息,
+        1、主配置类@EnableDiscoveryClient
+            此注解用于向使用zookeeper或者consul作为注册中心时注册服务
+        2、 @RequestMapping("/discovery")
+            public void discovery(){
+                List<String> services = discoveryClient.getServices();
+                //获取所有微服务
+                services.forEach(x -> System.out.println(x));
+                //获取某个微服务下的instance实例
+                List<ServiceInstance> instances = discoveryClient.getInstances("CLOUD-PAYMMENT-SERVICE");
+                instances.forEach(x -> System.out.println(x.getInstanceId()));
+            }
+    7、eureka自我保护理论知识
+        一旦进入保护模式，eureka server将会尝试保护其服务注册表中的信息，不会再删除注册表中的数据，也就是不会注销注册表中
+        的任何微服务；一句话：某时刻某一个微服务不可用了，eureka不会立刻清理，依旧会对该服务的信息进行保存，属于CAP
+        里面的AP分支
+        为什么会产生eureka自我保护机制？
+            为了防止eureka客户端还在正常运行，但是与eureka server网络不通的情况下,eurekaServer不会立刻将eurekaClient
+            服务剔除
+        什么是自我保护模式？
+            默认情况下，如果eurekaServer再一定时间内，没有收到某个微服务实例的心跳，eurekaServer将会注销该实例(默认90秒)
+            。但是当网络分区故障发生(延时、卡顿、拥挤)时，微服务与eurekaServer之间无法正常通信，以上行为可能变得非常危险，
+            因为微服务本身时健康的，此时不应该注销这个微服务；eureka通过自我保护模式来解决这个问题--当eurekaServer短时间内
+            丢失过多的客户端时，(可能发生网络分区故障)，那么这个节点就会进入自我保护模式；
+
+            自我保护机制
+                自我保护机制的工作机制是：如果在15分钟内超过85%的客户端节点都没有正常的心跳，那么Eureka就认为客户端与注册中心出现
+                了网络故障，Eureka Server自动进入自我保护机制，此时会出现以下几种情况：
+                    Eureka Server不再从注册列表中移除因为长时间没收到心跳而应该过期的服务。
+                    Eureka Server仍然能够接受新服务的注册和查询请求，但是不会被同步到其它节点上，保证当前节点依然可用。
+                    当网络稳定时，当前Eureka Server新的注册信息会被同步到其它节点中。
+                因此Eureka Server可以很好的应对因网络故障导致部分节点失联的情况，而不会像ZK那样如果有一半不可用的情况会导致整个
+                集群不可用而变成瘫痪。
+
+        如何禁止自我保护机制
+            eurekaServer注册中心里配置
+                #关闭自我保护机制，这样的话只要发生超过指定时间没发心跳包就剔除
+                eureka.server.enable-self-preservation=false
+                #检查失效服务的间隔时间。
+                eureka.server.eviction-interval-timer-in-ms=2000
+
+            eurekaClient配置
+               #eureka客户端向微服务发送心跳的时间间隔，单位秒
+               eureka.instance.lease-renewal-interval-in-seconds=1
+               #eureka服务端在收到最后一次心跳后等待时间的上限，超时将会剔除微服务
+               eureka.instance.lease-expiration-duration-in-seconds=2
+
+    8、支付服务注册进zookeeper
+        1、引入cloud对zookeeper的支持
+                <dependency>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-starter-zookeeper-discovery</artifactId>
+                </dependency>
+                可能会有jar包不兼容服务器安装的zookeeper版本
+               我们可以这样做
+               <dependency>
+                   <groupId>org.springframework.cloud</groupId>
+                   <artifactId>spring-cloud-starter-zookeeper-discovery</artifactId>
+                   <exclusions>
+                       <exclusion>
+                           <groupId>org.apache.zookeeper</groupId>
+                           <artifactId>zookeeper</artifactId>
+                       </exclusion>
+                   </exclusions>
+               </dependency>
+
+               <dependency>
+                   <groupId>org.apache.zookeeper</groupId>
+                   <artifactId>zookeeper</artifactId>
+                   <version>3.6.0</version>
+               </dependency>
+        2、在微服务客户端的配置文件中添加注册中心的地址，也就是zookeeper的地址
+            spring.cloud.zookeeper.connect-string=192.168.195.1:2181
+        3、启动服务注册进zookeeper
+            然后zookeeper就会有注册进的服务
+             get /services/cloud-paymment-service/19f70857-b475-4d13-bc34-93cef0f43127
+             下面就是这个节点的信息
+             {
+             	"name": "cloud-paymment-service",
+             	"id": "19f70857-b475-4d13-bc34-93cef0f43127",
+             	"address": "localhost",
+             	"port": 8004,
+             	"sslPort": null,
+             	"payload": {
+             		"@class": "org.springframework.cloud.zookeeper.discovery.ZookeeperInstance",
+             		"id": "application-1",
+             		"name": "cloud-paymment-service",
+             		"metadata": {}
+             	},
+             	"registrationTimeUTC": 1626094099854,
+             	"serviceType": "DYNAMIC",
+             	"uriSpec": {
+             		"parts": [{
+             			"value": "scheme",
+             			"variable": true
+             		}, {
+             			"value": "://",
+             			"variable": false
+             		}, {
+             			"value": "address",
+             			"variable": true
+             		}, {
+             			"value": ":",
+             			"variable": false
+             		}, {
+             			"value": "port",
+             			"variable": true
+             		}]
+             	}
+             }
+             [zk: localhost: 2181(CONNECTED) 7] {
+             	"git": {
+             		"branch": "bc9bfc1e7a872f628baa142780fa999f308fef71",
+             		"commit": {
+             			"id": "bc9bfc1",
+             			"time": "2021-07-08T06:31:35Z"
+             		}
+             	},
+             	"build": {
+             		"version": "0.0.1-SNAPSHOT",
+             		"artifact": "start-site",
+             		"versions": {
+             			"spring-boot": "2.5.2",
+             			"initializr": "0.11.0-SNAPSHOT"
+             		},
+             		"name": "start.spring.io website",
+             		"time": "2021-07-08T06:47:57.255Z",
+             		"group": "io.spring.start"
+             	},
+             }
+
+        那么创建的这个/services/cloud-paymment-service/19f70857-b475-4d13-bc34-93cef0f43127微服务节点是临时还是持久节点？
+        答案：是临时节点
+
+ribbon介绍
+    1、简介
+        ribbon是基于NetFlix Ribbon实现的一套客户端 负载均衡的工具；简单的说，主要功能是提供客户端的软件负载均衡算法和
+        服务调用。ribbon客户端组件提供一系列完善的配置项，如链接超时，重试等。简单来说，就是在配置文件中列出Load Balancer
+        简称(LB)后面所有的机器，ribbon会自动的帮助你基于某种规则(如简单轮询，随机链接等)去连接这些机器。我们很容易的使用
+        ribbon实现自定义的负载均衡算法；
+
+        nginx和ribbon的区别
+            Nginx是服务器端的负载均衡，客户端所有请求都交给nginx，然后由nginx实现转发请求。即负载均衡是由服务端实现的
+            ribbon是本地负载均衡，在调用服务接口的时候，会在注册中心上获取注册信息服务列表之后缓存到jvm本地，从而在本地实现
+            rpc远程服务调用技术
+
+    2、ribbon在工作时分两步
+        第一步先选择EurekaServer，它优先选择在同一个区域内负载较少的server
+        第二步再根据用户指定的策略，再从server取到的服务注册列表中选择一个地址
+        其中ribbon提供了很多策略：比如轮询、随机和根据相应时间加权(ResponseTimeWeightedRule	)
+
+    3、 <dependency>
+          <groupId>org.springframework.cloud</groupId>
+          <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+      </dependency>
+      这个依赖里已经有了ribbon jar包，所以无需单独引入
+
+    4、一句话：负载均衡 + RestTemplate
+        @Bean
+        @LoadBalanced //使用@LoadBalanced赋予RestTemplate负载均衡的能力
+        public RestTemplate restTemplate(){
+            return new RestTemplate();
+        }
+
+        调用远程服务方法
+            restTemplate.getForObject：返回对象为响应体中数据转化的对象，基本可以理解为json
+            restTemplate.getForEntity：返回对象为ResponseEntity<Object>，包含了响应中的一些头信息，响应状态码，响应体等
+
+    5、自定义负载均衡规则
+        IRule
+    6、如何替换
+        1、自定义配置类，配置类里注册负载均衡策略，这种策略类不能放在componentscan扫描路径下，否则这个自定义的配置类就会被所有ribbon
+        客户端所共享，达不到特殊化定制的目的了，也就是不要放在@springbootApplication同包下
+            @Configuration
+            public class PowerRuleConfig {
+                @Bean
+                public IRule iRule(){
+                    return new RandomRule();
+                }
+            }
+        2、著配置类添加@RibbonClient(name="CLOUD-PAYMMENT-SERVICE",configuration = OrderRuleConfig.class)
+            这句话意思是说，访问某个服务的时候使用什么策略，也可以为不同服务配置不同负载均衡策略
+            @RibbonClients({@RibbonClient(name="SERVER-POWER",configuration = PowerRuleConfig.class),
+                            @RibbonClient(name="CLIENT-ORDER",configuration = OrderRuleConfig.class)})
+
+
+openFign是什么
+    1、Feign是一个声明式WebService客户端，只需创建一个接口并在接口上添加注解即可（内置ribbon，依赖中引入了ribbon）
+        对了，fegin是使用在消费端的
+
+    2、使用步骤
+        1、引入依赖
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-openfeign</artifactId>
+            </dependency>
+        2、@EnableFeignClients //开启feign
+        3、
+            @Component
+            @FeignClient(name="CLOUD-PAYMMENT-SERVICE") //请求指定的微服务
+            public interface PayMentFeignService {
+                @RequestMapping("/pay/payment/find")
+                public Payment find(@RequestBody Payment id);
+            }
+
+        4、controller
+            @Autowired
+            private PayMentFeignService payMentFeignService;
+
+            @RequestMapping("/find")
+            public Payment create(Integer id){
+                Payment payment = new Payment();
+                payment.setId(id);
+                Payment payment1 = payMentFeignService.find(payment);
+                return payment1;
+            }
+
+    3、openFegin超时控制
+        openfegin默认等待一秒钟，请求其他微服务超时后，当前微服务报错
+        我们可以设置超时时间，由于openfegin底层是ribbon，所以超时时间设置是由ribbon控制的
+            配置文件中配置
+            ribbon.ConnectTimeout=5000
+            ribbon.ReadTimeout=5000
+
+    4、openFeign提供了日志打印功能
+        可以通过配置来调整日志级别，从而了解Feign中http请求的细节，说白了就是对Feign接口的调用情况进行监控和输出；
+        NONE:默认的，不显示任何日志
+        BASIC：紧记录请求方法、url、响应状态码以及执行时间
+        HEADERS:除了BASIC中定义的信息之外，还有请求和响应的头信息
+        FULL:除了HEADERS中定义的信息之外，还有请求和响应体的正文以及元数据
+
+        配置方法
+           1、自定义配置类
+            @Configuration
+            public class FeignConfig {
+                @Bean
+                public Logger.Level feignLonLevel(){
+                    return  Logger.Level.FULL;
+                }
+            }
+
+            2、配置文件
+                #以debug日志级别监控PayMentFeignService接口，
+                logging.level.com.atguigu.springcloud.service.PayMentFeignService=debug
+
+            结果
+                [PayMentFeignService#timeOutest] <--- HTTP/1.1 200 (3512ms)
+                [PayMentFeignService#timeOutest] connection: keep-alive
+                [PayMentFeignService#timeOutest] content-length: 0
+                [PayMentFeignService#timeOutest] date: Tue, 13 Jul 2021 01:25:48 GMT
+                [PayMentFeignService#timeOutest] keep-alive: timeout=60
+                [PayMentFeignService#timeOutest] <--- END HTTP (0-byte body)
+
+hystrix断路器
+    1、分布式系统面临的问题
+        复杂分布式体系结构中的应用程序有数十个依赖关系，每个依赖关系在某些时候将不可避免的失败；
+        服务雪崩
+            多个微服务之间调用的时候，假设微服务A调用微服务B和微服务C，微服务B和微服务C又调用其他微服务，这就是所谓的“扇出”。
+            如果扇出的链路上某个微服务的调用响应时间过长或者不可用，对微服务A的调用就会占用越来越多的系统资源，进而引起系统雪崩。
+    2、hystrix是一个用于分布式系统的延迟和容错的开源库，在分布式系统里，许多依赖会不可避免的会调用失败，比如超时、异常等；
+        hystrix能够保证一个依赖在出现问题的情况下，不会发哦之整体服务的失败，避免级联故障，以提高分布式系统的弹性；
+
+        “断路器”本身是一种开关装置，当某个服务单元发生故障后，通过断路器的断路监控(类似熔断保险丝)，向调用方返回一个
+        符合预期的、可处理的备选响应(fallBack)，而不是长时间等待或者抛出调用方无法处理的异常，这样就保证了服务调用方的线程
+        不会被长时间、不必要的占用，从而避免了故障在分布式系统中蔓延，乃至雪崩
+
+    3、hystrix能做什么
+        1、服务降级(fallBack)   针对当前服务中的某个方法执行出问题时，服务进行降级
+            hystrix可以放在消费端，也可以放在客户端
+            服务器忙，请稍后重试，不让客户端等待病理科返回一个友好提示，fallBack
+            ***程序运行异常、超时、服务熔断触发服务降级、线程池打满 这些都会导致服务降级；
+            服务降级的场景 1、调用服务时，服务异常 2、调用服务时，服务超时 3、访问某个服务时出现多次出现调用问题，
+                            就直接调用服务降级的方法，而不去走服务
+                         4、超过限流的核心线程数后直接调用降级方法
+         Hystrix工作流程
+            首先我们先介绍下Hystrix的工作流程，当我们调用出现问题的时候，Hystrix会开启一个默认10s的时间窗口，然后在这个
+            窗口时间内，会统计调用次数是否达到了最小请求数，如果没有达到就会重制统计信息，
+            如果达到了，就会计算统计失败占所有请求的百分比，判断是否到达阈值，如果达到，就会跳闸，不再请求对应服务，
+            如果失败占所有请求的百分比未达到阈值，然后重置统计信息。
+            如果跳闸，则会开启一个活动窗口，默认是5s，每隔5s 会让一个请求通过，到达那个有问题的服务，看看是否还有问题，
+            如果没问题就重置断路器，如果有问题，继续每5s通过一个请求来验证。
+
+            使用步骤
+                1、@HystrixCommand(fallbackMethod = "fallbackMethod",
+                            //方法降级 (针对于方法级别的，controller，feign针对的是调用的微服务界别的)
+                                      commandKey = "power")
+                        fallbackMethod：服务降级方法，一旦调用服务方法失败并抛出错误信息后，会自动调用@HystrixCommand
+                                        标注好的fallbackMethod调用类中的指定方法
+                        commandProperties:
+
+                controller类上添加@DefaultProperties(defaultFallback = "")
+                //没有配置@HystrixCommand(fallbackMethod )的就使用全局的服务降级方法
+
+                2、设置自身服务被调用时的时间峰值，峰值内可以正常运行，超过了需要有兜底的方法处理，做服务降级
+                    commandProperties ={
+                                    @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "3000")
+                                }
+
+                 3、主配置类上添加激活注解
+                    @EnableCircuitBreaker
+
+
+                配置文件的配置
+                #配置hystrix超时监听，当你这个请求默认超过了就会超时
+                hystrix:
+                  command:
+                    default: #没有使用commandKey的@HystrixCommand注解
+                      execution:
+                        isolation:
+                          thread:
+                            timeoutInMilliseconds: 3000 #执行降级方法 命令执行超时时间，默认1000ms
+                      circuitBreaker:
+                        requestVolumeThreshold: 3 #十秒钟内失败3次 的话就直接调用降级方法
+                        sleepWindowInMilliSeconds: 5000 #默认5秒钟内和电器短路一样，5秒钟后会试探性的先关闭熔断机制，但是如果这时候再失败一次{之前是20次} 那么又会重新进行熔断）而是直接调用降级方法
+                        errorThresholdPercentage: 60     # 失败率达到多少后跳闸
+                    power: #映射到方法中使用@HystrixCommand注解属性为commandKey的属性值
+                      execution:
+                        isolation:
+                          thread:
+                            timeoutInMilliseconds: 3000 #熔断 命令执行超时时间，默认1000ms
+                  threadPool: #限流
+                    default:
+                      coreSize: 10
+                    power:
+                      coreSize: 5
+                      #缓冲区大小， 如果为-1，则不缓冲，直接进行降级 fallback
+                      maxQueueSize: 200
+                    circuitBreaker:
+                        requestVolumeThreshold: 10 #十秒钟内请求10次{默认是20次}
+                        sleepWindowInMilliSeconds: 10000 #默认5秒钟内和电器短路一样，5秒钟后会试探性的先关闭熔断机制，
+                                                    #但是如果这时候再失败一次 那么又会重新进行熔断）
+                                                    就会直接调用降级方法
+                        errorThresholdPercentage: 60 #失败率达到请求次数（10）的百分之60,打开断路器
+                #
+                feign:
+                  hystrix:
+                    #这里也可以指定commandKey，关闭或打开哪个微服务的hystrix
+                    enabled: true #D版本后默认关掉的
+
+
+                4、hystrix之通配服务降级
+                        服务降级的场景也是和上面一样
+                        1、调用服务时，服务异常 2、调用服务时，服务超时 3、访问某个服务时出现多次出现调用问题，
+                                                    就直接调用服务降级的方法，而不去走服务
+                                                 4、超过限流的核心线程数后直接调用降级方法
+                        feign降级方法  hystrix的fallbackMethod 方法优先级别高于 feign的fallback优先级别
+                    1、
+                        @Component  //一定要加！！！！！
+                        public class FeignFallBack implements FeignPowerService {
+                            @Override
+                            public String getPower() {
+                                return "FeignFallBack请求降级！";
+                            }
+                        }
+
+                    2、@FeignClient(name = "SERVER-POWER",fallback = FeignFallBack.class) //
+                      @Component
+                      public interface FeignPowerService {
+
+                          @RequestMapping("/getPower")
+                          public String getPower();
+                      }
+
+                注意：如果在调用的方法上有形参，那么fallback方法也同样需要形参；不然会报 找不到fallback方法异常
+
+        2、服务熔断(break)
+            就是保险丝，到达最大服务访问后，直接拒绝访问，拉闸限电，然后调用服务降级的方法返回友好提示；
+            服务降级-->进而熔断--> 恢复调用链路
+            熔断类型
+                1、熔断打开
+                    请求不再调用当前服务，内部设置时钟一般为MTTR(平均故障处理时间)，当熔断打开时长到了所设时钟则进入
+                    半熔断状态
+                2、熔断关闭
+                    不会对服务进行熔断
+                3、熔断半开
+                    部分请求根据规则调用当前服务，如果请求成功且符合规则则认为当前服务恢复正常，关闭熔断
+            hystrix:
+              command:
+                default: #没有使用commandKey的@HystrixCommand注解
+                  execution:
+                    isolation:
+                      thread:
+                        timeoutInMilliseconds: 3000 #执行降级方法 命令执行超时时间，默认1000ms
+                  circuitBreaker:
+                    requestVolumeThreshold: 10 #十秒钟内请求10次{默认是20次}
+                    sleepWindowInMilliSeconds: 10000 #默认5秒钟内和电器短路一样，5秒钟后会试探性的先关闭熔断机制，
+                                                    #但是如果这时候再失败一次 那么又会重新进行熔断）
+                                                    就会直接调用降级方法
+                    errorThresholdPercentage: 60 #失败率达到请求次数（10）的百分之60,打开断路器
+
+
+                    启用断路器 @HystrixProperty(name = "circuitBreaker.enabled", value = "true")
+                    设置请求次数 @HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "10")
+                    设置时间窗口期 @HystrixProperty(name = "circuitBreaker.sleepWindowInMilliseconds", value = "10000")
+                    设置失败率 @HystrixProperty(name = "circuitBreaker.errorThresholdPercentage", value = "60")
+                    如上设置的值，如果在10秒内，失败率达到请求次数（10）的百分之60，也就是6次就会 打开断路器；
+                    否则断路器依然关闭
+
+                    当断路器开启时，所有的请求都不会转发，而是直接调用fallback方法；在一段时间后（默认5秒），
+                    断路器处于半开状态，尝试将请求转发，如果得到正确的响应。则将断路器关闭，恢复正常调用；
+                    否则断路器状态再次打开，重新计时后再进入半开状态
+
+               ***更多的@HystrixCommand属性设置查看HystrixCommandProperties类
+
+
+        3、服务限流(flowLimit)
+            秒杀高并发等操作，严禁全部一窝风的过来，大家排队，一秒钟N个，有序进行；
+            后面看sential
+
+        4、接近实时的监控
+
+gateWay
+    1、简介
+        网关，是zuul的替代，基于spring5，springboot2
+    2、能干嘛
+        反向代理
+        鉴权
+        流量控制
+        熔断
+        日志监控
+        ......
+    3、有啥特性
+        基于spring5，springboot2进行构建
+        动态路由 ：能够匹配任何请求属性
+        可以对路由指定Predicate和Filter
+        集成了hystrix的断路器功能
+        集成了springcloud的服务发现功能
+        请求限流功能
+        支持路径重写
+
+    4、三大核心概念
+        1、Route(路由)
+
+        2、Predicate(断言)
+
+        3、Filter(过滤)
+
+        总结：web请求，通过一些匹配条件，定位到真正的服务节点，并在这个转发过程的前和后，进行一些精细化控制。
+         predicate就饿是我们的匹配条件，而filter可以理解为一个无所不能的拦截器，有了这两个元素，再加上目标url，就可以实现
+         一个具体的路由了
+
+    5、getWay的工作流程
+        客户端向spring cloud gateWay发出请求，然后在gateWay Handler Mapping中找到与请求相匹配的路由，将其发送到Gateway
+        web handler；
+        handler再通过指定的过滤器链来将请求发送到我们实际的服务，执行业务逻辑，然后再返回；
+        过滤器之间用虚线分开是因为过滤器可能会在发送代理请求之前(pre)或之后(post)执行业务逻辑。
+        Filter在pre类型的过滤器可以做参数校验、权限校验、流量监控、日志输出、协议转换等
+        在post类型的过滤器中可以做响应内容、响应头的修改、日志的输出、流量监控等有着非常重要的作用；
+
+        核心逻辑：路由转发+执行过滤器链
+
+        使用步骤
+            1、引入依赖
+
+                 <dependency>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-starter-gateway</artifactId>
+                </dependency>
+
+                以下依赖不需要引入
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-web</artifactId>
+                        </dependency>
+
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-actuator</artifactId>
+                        </dependency>
+
+            2、配置
+                spring:
+                    #网关路由配置
+                    cloud:
+                        gateway:
+                            routes:
+                              - id: payment_routh #路由的id，没有固定规则，但要求唯一，建议配合服务名
+                                uri: http://localhost:8001 #匹配后提供服务的路由地址
+                                predicates:
+                                    - Path=/pay/payment/find/** #断言，路劲相匹配的进行路由
+                            #以上配置就是说，如果想访问 http://localhost:8001/pay/payment/find/**  ，
+                            以后就可以不用暴漏这个地址，取而代之的是
+                            http://127.0.0.1:9527/pay/payment/find/1，这样就会通过网关访问目标资源
+
+                              - id: payment_routh2 #路由的id，没有固定规则，但要求唯一，建议配合服务名
+                                uri: http://localhost:8001 #匹配后提供服务的路由地址
+                                predicates:
+                                - Path=/pay/payment/delete/** #断言，路径相匹配的进行路由
+
+    6、gateway配置动态路由
+        spring:
+            #网关路由配置
+            cloud:
+                gateway:
+                    routes:
+                      - id: payment_routh #路由的id，没有固定规则，但要求唯一，建议配合服务名
+                        uri: lb://cloud-paymment-service #利用服务名进行路由,负载均衡
+                        predicates:
+                            - Path=/pay/payment/find/** #断言，路劲相匹配的进行路由
+                            #以上配置就是说，如果想访问 http://localhost:8001/pay/payment/find/**  ，
+                            以后就可以不用暴漏这个地址，取而代之的是
+                            http://127.0.0.1:9527/pay/payment/find/1，这样就会通过网关访问目标资源
+
+                      - id: payment_routh2 #路由的id，没有固定规则，但要求唯一，建议配合服务名
+                        uri: lb://cloud-paymment-service #利用服务名进行路由,负载均衡
+                        predicates:
+                        - Path=/pay/payment/delete/** #断言，路径相匹配的进行路由
+
+                    discovery:
+                        locator:
+                            enabled: true #开启从注册中心获取服务名并创建动态路由，利用服务名进行路由
+
+    7、常用predicate断言
+         predicates:
+            #以下是并且关系,满足以下所有才能访问
+            - Path=/pay/payment/find/** #断言，路劲相匹配的进行路由
+            - After=2020-02-21T15:51:37.485_08:00[Asia/Shanghai] #指定时间后才能访问
+            #- Before=.......
+            #- Between=......
+
+            Path	- Path=/gate/,/rule/	## 当请求的路径为gate、rule开头的时，转发到http://localhost:9023服务器上
+            Before	- Before=2017-01-20T17:42:47.789-07:00[America/Denver]	在某个时间之前的请求才会被转发到 http://localhost:9023服务器上
+            After	- After=2017-01-20T17:42:47.789-07:00[America/Denver]	在某个时间之后的请求才会被转发
+            Between	- Between=2017-01-20T17:42:47.789-07:00[America/Denver],2017-01-21T17:42:47.789-07:00[America/Denver]	在某个时间段之间的才会被转发
+            Cookie	- Cookie=chocolate, ch.p	名为chocolate的表单或者满足正则ch.p的表单才会被匹配到进行请求转发
+            Header	- Header=X-Request-Id, \d+	携带参数X-Request-Id或者满足\d+的请求头才会匹配
+            Host	- Host=www.hd123.com	当主机名为www.hd123.com的时候直接转发到http://localhost:9023服务器上
+            Method	- Method=GET	只有GET方法才会匹配转发请求，还可以限定POST、PUT等请求方式
+
+        注意：
+            1、各种 Predicates 同时存在于同一个路由时，请求必须同时满足所有的条件才被这个路由匹配。
+            2、一个请求满足多个路由的断言条件时，请求只会被首个成功匹配的路由转发
+
+    8、filter
+        路由过滤器可用于修改进入的http请求和返回的http响应，路由过滤器只能指定路由进行使用
+        spring cloud gateway内置了多种路由过滤器，他们都有GatewayFilter的工厂类来产生
+        先断言，断言成功后经过过滤器
+
+        内置的过滤器
+            过滤规则	            实例	             说明
+            PrefixPath	- PrefixPath=/app	在请求路径前加上app
+            RewritePath	- RewritePath=/test, /app/test	访问localhost:9022/test,请求会转发到localhost:8001/app/test
+            SetPath	SetPath=/app/{path}	通过模板设置路径，转发的规则时会在路径前增加app，{path}表示原请求路径
+            RedirectTo		重定向
+            RemoveRequestHeader		去掉某个请求头信息
+
+        注：当配置多个filter时，优先定义的会被调用，剩余的filter将不会生效
+
+        Gatway 网关的过滤器分为全局过滤器和局部过滤器
+        全局过滤器：
+            对所有路由生效
+        局部过滤器：
+            对指定路由生效
+        过滤器执行流程如下，order 越大，优先级越低
+        1、自定义全局过滤器
+        实现 GlobalFilter 和 Ordered，重写相关方法，加入到spring容器管理即可，无需配置，全局过滤器对所有的路由都有效
+        自定义全局GlobalFilter
+            1、实现接口
+               @Component
+               @Slf4j
+               public class GatewayFilter implements GlobalFilter, Ordered {
+                   @Override
+                   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+                       log.info("GatewayFilter=============" + new Date());
+                       String first = exchange.getRequest().getQueryParams().getFirst("uname");
+                       if(first == null){
+                           log.info("非法用户");
+                           exchange.getResponse().setStatusCode(HttpStatus.NOT_ACCEPTABLE);
+                           return exchange.getResponse().setComplete();
+
+                       }
+                       return chain.filter(exchange);
+                   }
+
+                   @Override
+                   public int getOrder() {
+                        //order 越大，优先级越低
+                       return 0;
+                   }
+               }
+           这样就可以了
+
+        2、自定义局部过滤器
+            步骤：
+
+            1 需要实现GatewayFilter, Ordered，实现相关的方法
+                @Slf4j
+                public class UserIdCheckGateWayFilter implements GatewayFilter, Ordered
+                {
+                    @Override
+                    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
+                    {
+                        String url = exchange.getRequest().getPath().pathWithinApplication().value();
+                        log.info("请求URL:" + url);
+                        log.info("method:" + exchange.getRequest().getMethod());
+                       /*   String secret = exchange.getRequest().getHeaders().getFirst("secret");
+                        if (StringUtils.isBlank(secret))
+                        {
+                            return chain.filter(exchange);
+                        }*/
+                         //获取param 请求参数
+                        String uname = exchange.getRequest().getQueryParams().getFirst("uname");
+                        //获取header
+                        String userId = exchange.getRequest().getHeaders().getFirst("user-id");
+                        log.info("userId：" + userId);
+
+                        if (StringUtils.isBlank(userId))
+                        {
+                            log.info("*****头部验证不通过，请在头部输入  user-id");
+                            //终止请求，直接回应
+                            exchange.getResponse().setStatusCode(HttpStatus.NOT_ACCEPTABLE);
+                            return exchange.getResponse().setComplete();
+                        }
+                        return chain.filter(exchange);
+                    }
+
+                    //   值越小，优先级越高
+                    @Override
+                    public int getOrder()
+                    {
+                        return HIGHEST_PRECEDENCE;
+                    }
+                }
+
+            2 加入到过滤器工厂，并且注册到spring容器中。
+                @Component
+                public class UserIdCheckGatewayFilterFactory extends AbstractGatewayFilterFactory<Object>
+                {
+                    @Override
+                    public GatewayFilter apply(Object config)
+                    {
+                        return new UserIdCheckGateWayFilter();
+                    }
+                }
+
+            3、在配置文件中进行配置，如果不配置则不启用此过滤器规则。
+                 - id: service_provider_demo_route_filter
+                  uri: lb://service-provider-demo
+                  predicates:
+                    - Path=/filter/**
+                  filters:
+                    - RewritePath=/filter/(?<segment>.*), /provider/$\{segment}
+                    - UserIdCheck  #这个就是UserIdCheckGateWayFilter过滤器，这里只需要写到GateWayFilter前面
+
+        2、
+            filters:
+              - StripPrefix=1
+              #使用hystrix进行熔断
+              - name: Hystrix
+                args:
+                  #commandKey
+                  name: fallbackCmdA
+                  #降级方法，请求路径
+                  fallbackUri: forward:/fallbackA
+
+            hystrix.command.fallbackCmdA.execution.isolation.thread.timeoutInMilliseconds: 5000
+
+            /**
+             * 默认降级处理
+             */
+            @RestController
+            public class DefaultHystrixController {
+
+                @RequestMapping("/fallbackA")
+                public Map<String,String> fallbackA(){
+                    System.out.println("降级操作...");
+                    Map<String,String> map = new HashMap<>();
+                    map.put("resultCode","fail");
+                    map.put("resultMessage","服务异常");
+                    map.put("resultObj","null");
+                    return map;
+                }
+            }
+
+config分布式配置中心
+    1、微服务架构存在的问题
+        微服务架构的系统存在多个微服务，而每个微服务都需要必要的配置信息才能运行，所以一套集中式的、
+        动态的配置管理设施是必不可少的。
+        springcloud提供了ConfigServer来解决这个问题，我们每一个微服务自己带着一个application.yml，上百个配置文件的
+        管理很难管理；
+    2、是什么
+        config为微服务提供集中化的外部配置支持，配置服务器为各个不同服务应用的所有环境提供了一个中心化的外部配置。
+    3、怎么玩
+        springCloud Config分为服务端和客户端两部分。
+        服务端也称为分布式配置中心，他是一个独立的微服务应用，用来连接配置服务器并为客户端提供配置信息，加解密信息等访问接口
+
+        客户端则是通过指定的配置中心来管理应用资源，以及与业务相关的配置内容，并在启动的时候从配置中心获取和加载配置信息；
+        配置服务器默认采用git来存储配置信息，这样有助于对环境配置进行版本管理，并且可以通过git客户端工具来方便的管理和访问
+        配置内容
+    4、能干嘛
+        集中管理配置文件
+        不同环境不同配置，动态化的配置更新，分环境部署如dev/test/prod
+        运行期间动态调整配置，不再需要每个服务部署的机器上编写配置文件，服务会向配置中心统一拉取配置自己的信息
+        当配置发生变动时，服务不需要重启即可感知到配置的变化并应用最新的配置
+        将配置信息以REST接口的形式暴露
+
+    5、配置服务端的配置步骤
+        1、application配置文件
+            spring:
+                application:
+                    name: cloud-config-centre
+                cloud:
+                    config:
+                        server:
+                            git:
+                                clone-on-start: true
+                                #github仓库的地址
+                                uri: https://github.com/513667225/my-spring-cloud-config.git
+                                #搜索目录
+                                search-paths: foo,bar*
+                        #读取分支
+                        label: master
+        2、主启动类
+            @EnableConfigServer //开启服务配置
+
+        3、引入依赖
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-config-server</artifactId>
+            </dependency>
+
+        4、测试
+            读取git上的配置信息
+            http://127.0.0.1:3344/master/eureka3000.yml  这样就可以读取到配置信息
+
+    6、git上的配置信息的读取规则
+        /{application}/{profile}[/{label}]
+        /{application}-{profile}.yml
+        /{label}/{application}-{profile}.yml
+        /{application}-{profile}.properties
+        /{label}/{application}-{profile}.properties
+
+        label:分支
+        application：配置文件名，不带环境的部分
+        profiles：环境(dev/test/prod)
+
+    7、Config客户端也就是我们的微服务配置与测试
+        1、引入依赖
+             <dependency>
+                 <groupId>org.springframework.cloud</groupId>
+                 <artifactId>spring-cloud-config-server</artifactId>
+             </dependency>
+
+        2、bootStrap.yml
+            application.yml:用户级的资源配置项
+            bootStrap.yml：系统级的，优先级更高
+            springCloud会创建一个"Bootstrap context",作为spring应用的"Application context"的父上下文。初始化的时候，
+            "Bootstrap context"负责从外部源加载配置属性并解析配置。这两个上下文共享一个从外部获取的"Environment"；
+            bootStrap属性有高优先级，默认情况下，他们不会被本地覆盖。
+            "Bootstrap context"和"Application context"有着不同的约定，所以新增bootStrap.yml文件，保证
+            "Bootstrap context"和"Application context"配置的分离；
+
+
+       3、bootStrap.yml配置文件
+           spring:
+             cloud:
+               config:
+                 uri: http://127.0.0.1:8080/ #配置中心的地址
+                 label: master #这个就是获取的节点 对应的是{label}
+                 name: test-config #这是我们要读取的配置文件名 对应获取规则的{application}
+                 profile: dev   #这个是要获取的环境 对应的便是{profile}
+
+       4、主启动类
+           @EnableEurekaClient
+
+    8、分布式配置客户端微服务的手动的动态刷新
+        git上的配置信息修改后Config Server获取到的信息时最新的，但是微服务获取到的还是老的，那如何动态刷新，避免服务重启呢？
+        1、pom文件引入actuator依赖以及
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-config</artifactId>
+            </dependency>
+        2、bootStrap配置文件添加
+            management:
+              endpoints:
+                web:
+                  exposure:
+                    include: '*' #f版本以前不需要加这个，因为spring Boot 2.0.x以
+                                 #后的Actuator 只暴露了info 和health 2个端点,这里我们把所有端点开放
+
+            spring:
+              cloud:
+                config:
+                  uri: http://127.0.0.1:8080/ #配置中心的地址
+                  name: test-config #这是我们要读取的配置文件名 对应获取规则的{application}
+                  profile: dev   #这个是要获取的环境 对应的便是{profile}
+                  label: master #这个就是获取的节点 对应的是{label}
+
+
+        3、在业务类上添加
+            @RefreshScope注解
+
+        4、发送一个post请求，ip是希望获取最新配置信息的微服务的ip以及端口号   http://localhost:3355/actuator/refresh
+            cmd打开后输入这一行命令
+            curl -X POST "http://localhost:3355/actuator/refresh"
+            这样客户端微服务也能获取到最新的配置信息了,但是只会更新当前服务的配置信息，如果需要更新所有的
+            微服务的配置信息需要一个个的请求
+
+Bus消息总线
+    1、bus是对上一讲的加深和扩充；分布式自动刷新配置功能
+        spring cloud bus配合spring cloud config使用可以实现配置的真正的动态刷新
+    2、是什么
+        Bus支持两种消息代理：RabbitMq和kafka
+    3、能干嘛
+        它整合了java的事件处理机制和消息中间件的功能
+    4、什么是总线
+        在微服务的架构中，通常会使用轻量级的消息代理来构建一个共用的消息主题，并让系统中所有的微服务实例都连接上来。由于该主题
+        中产生的消息会被所有实例监听和消费，所以称他为消息总线。在总线的各个实例上，都可以方便的广播一些需要让其他连接在该主题
+        上的实例都知道的消息
+    5、基本原理
+        ConfigClient实例都监听MQ中同一个topic(默认时springCloudBus)。当一个服务刷新数据的时候，他会把这个信息放入到
+        Topic中，这样其他监听同一个Topic的服务就能得到通知，然后取更新自身的配置
+    6、设计思想
+        利用消息总线触发一个服务端ConfigServer的/bus-refresh端点，从而刷新所有客户端的配置
+    7、配置中心服务端配置步骤
+        1、pom文件引入actuator依赖以及
+            <dependency>
+                 <groupId>org.springframework.cloud</groupId>
+                 <artifactId>spring-cloud-config-server</artifactId>
+             </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-boot-starter-bus-amqp</artifactId>
+            </dependency>
+
+        2、application配置文件添加
+            #rabbitmq相关配置
+            rabbitmq:
+                host: localhost
+                port: 5672
+                username: guest
+                password: guest
+
+            #rabbitmq相关配置，暴露bus刷新配置的端点
+            management:
+                endpoints:
+                    web:
+                        exposure:
+                            include: 'bus-refresh'
+
+        3、客户端微服务相关配置
+            pom文件引入actuator依赖以及
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-config</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-boot-starter-bus-amqp</artifactId>
+            </dependency>
+        2、bootstrap配置文件添加
+            management:
+              endpoints:
+                web:
+                  exposure:
+                    include: '*' #f版本以前不需要加这个，因为spring Boot 2.0.x以
+                                 #后的Actuator 只暴露了info 和health 2个端点,这里我们把所有端点开放
+            #rabbitmq相关配置
+            rabbitmq:
+                host: localhost
+                port: 5672
+                username: guest
+                password: guest
+
+            spring:
+              cloud:
+                config:
+                  uri: http://127.0.0.1:3344/ #配置中心的地址
+                  name: test-config #这是我们要读取的配置文件名 对应获取规则的{application}
+                  profile: dev   #这个是要获取的环境 对应的便是{profile}
+                  label: master #这个就是获取的节点 对应的是{label}
+
+
+        3、在业务类上添加
+            @RefreshScope注解
+
+        4、发送一个post请求，ip是configServer的ip以及端口号   http://localhost:3344/actuator/bus-refresh
+            cmd打开后输入这一行命令
+            curl -X POST "http://localhost:3355/actuator/bus-refresh"
+            这样所有客户端的微服务都能获取到最新的配置信息了
+
+
+    8、Bus动态刷新定点通知
+        指定修改的配置信息只在某些微服务上生效
+
+
+spring Cloud stream
+    1、解决的问题
+        现在有很多消息中间件，一个系统如果存在两种MQ技术
+        屏蔽底层消息中间件的差异，降低切换成本，统一消息的编程模型
+    2、是什么
+        是一个构建消息驱动微服务的框架
+        应用程序通过 inputs 或者 outputs 来与spring cloud Stream中的binder对象交互
+        通过我们配置来binding(绑定)，而spring cloud stream的binder对象负责与消息中间件交互。
+        所以，我们只需要搞清楚如何与spring cloud stream的binder交互就可以方便的使用消息驱动的方式；
+        通过使用spring integration来连接消息代理中间件以实现消息事件驱动
+        spring cloud stream为一些供应商的消息中间件产品提供了个性化的自动化配置实现，引用了发布-订阅、消费组、分区的
+        三个核心概念。
+        目前支持rabbitMq、kafka
+
+        通过向应用程序暴露统一的channel通道，使得应用程序不在考虑各种不同消息中间件 实现
+        通过定义绑定器Binder作为中间层，实现了应用程序与消息中间件细节之间的隔离
+
+    3、Binder
+        INPUT对应于消费者，OUTPUT对应于生产者
+
+        Stream中的消息通信方式遵循了发布-订阅模式，Topic主题进行广播，rabbitMq中就是Exchange
+
+    4、常用注解
+        @input：注解标识输入通道，通过该输入通道接收到的消息进入应用程序
+        @output：注解标识输出通道，发布的消息将通过该通道离开应用程序
+        @StreamListener：监听队列，用于消费者的队列的消息接收
+        @EnableBinding：指信道channel和exchange绑定在一起
+
+    5、使用步骤
+        消息驱动生产者
+            1、引入依赖
+                 <dependency>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
+                </dependency>
+
+            2、配置文件
+                spring:
+                    application:
+                        name: stream-rabbitmq-productor
+                    cloud:
+                        stream:
+                            binders: #绑定器，在此处配置要绑定的rabbitMq的服务信息
+                                myRabbit: #标识自定义的名称，用于binding的整合
+                                    type: rabbit
+                                    environment: #设置rabbitmq的相关的环境配置信息
+                                        spring:
+                                            rabbitmq:
+                                                host: localhost
+                                                port: 5672
+                                                username: guest
+                                                password: guest
+                            bindings: #服务的整合治理
+                                output: #这个名字是一个通道的名称
+                                    binder: myRabbit #设置要帮绑定的绑定器
+                                    destination: xxputExchange #表示要使用的exchange名称的定义
+                                    group: xxputQuean
+                                    content-type: application/json #设置消息类型，本次为json
+
+
+            4、然后发送消息的代码
+                @Component
+                public interface MyProcessor {
+
+                    String MESSAGE_INPUT = "input";
+
+                    String MESSAGE_OUTPUT = "output";
+
+                    @Input(MESSAGE_INPUT)
+                    SubscribableChannel input();
+
+                // 通过 @Input和 @Output注解定义输入通道和输出通道，另外，@Input 和 @Output
+                // 注解都还有一个 value 属性，该属性可以用来设置消息通道的名称，这里指定的消息通道名称分
+                // 别是 myInput 和 myOutput。如果直接使用两个注解而没有指定具体的 value 值，则会
+                // 默认使用方法名作为消息通道的名称。
+                // 当定义输出通道的时候，需要返回 MessageChannel 接口对象，该接口定义了向消息通道发送消息的方法；
+                // 定义输入通道时，需要返回 SubscribableChannel 接口对象，该接口集成自 MessageChannel 接口，
+                // 它定义了维护消息通道订阅者的方法。
+
+                //在完成了消息通道绑定的定义后，这些用于定义绑定消息通道的接口则可以被 @EnableBinding 注解的 value 参数指定，
+                //从而在应用启动的时候实现对定义消息通道的绑定，Spring Cloud Stream 会为其创建具体的实例，而开发者只需要通过注
+                //入的方式来获取这些实例并直接使用即可
+
+                    @Output(MESSAGE_OUTPUT)
+                    MessageChannel outPut();
+                }
+
+            5、controller
+                    @RestController
+                    public class TestController {
+
+                        @Autowired
+                        private MyProcessor myProcessor;
+
+                        @GetMapping(value = "sendLogMessage")
+                        public void sendLogMessage(String message){
+                            Person person = new Person();
+                            person.setName(message);
+                            Message<Person> stringMessage = org.springframework.messaging.support.MessageBuilder.withPayload(person).build();
+                            myProcessor.outPut().send(stringMessage);
+                        }
+
+                        public static class Person {
+                            private String name;
+                            public String getName() {
+                                return name;
+                            }
+                            public void setName(String name) {
+                                this.name = name;
+                            }
+                            @Override
+                            public String toString() {
+                                return this.name;
+                            }
+                        }
+                    }
+
+            6、主配置类添加
+                //@EnableBinding 注解用来指定一个或多个定义了 @Input 或 @Output 注解的接口，以此实现对消息通道（Channel）的绑定
+                @EnableBinding({MyProcessor.class})
+
+        消息启动消费者
+            1、@StreamListener，主要定义在方法上，作用是将被修饰的方法注册为消息中间件上数据流的事件监听器，注解中的属性值对应了
+            监听的消息通道名。上面我们将 receive 方法注册为 myInput 消息通道的监听处理器，当我们往这个消息通道发送信息的时候，
+            receiver 方法会执行。
+
+    6、重复消费
+        问题
+            如果一个订单同时被多个服务获取到，那么就会造成数据错误，那么是如何造成的呢？
+            原来每个消费端微服务绑定到rabbitMq上时默认都会创建一个唯一的分组，这样当订阅同一个主题时，不同的分组
+            都会收到同一个消息；
+            此时需要通过stream中的消息分组来解决
+            注意：在stream中处于同一个group中的索尔消费者是竞争关系，能够保证同一个消息只会被其中一个应用消费一次，不同组
+            是可以全面的消费的，也就是重复消费；
+             bindings: #服务的整合治理
+                output: #这个名字是一个通道的名称
+                    binder: myRabbit #设置要帮绑定的绑定器
+                    destination: xxputExchange #表示要使用的exchange名称的定义
+                    #具体分组 对应 MQ 是 队列名称 并且持久化队列
+                    group: xxputQuean #分组，用来解决重复消费的问题，订阅同一个主题的微服务组名要一样才能解决重复消费
+                    content-type: application/json #设置消息类型，本次为json
+
+sleuth
+    1、为什么需要这个技术，解决了什么问题？
+        微服务架构中，一个客户端发起的请求在后端系统中可能会经过多个不同的服务节点调用来协同产生最后的结果，每一个前段
+        请求都会形成一条复杂的分布式服务调用链路，链路中的任何一个环节出现高延迟或者错误都会引起整个请求的最后失败。
+
+    2、Sleuth提供了一套完整的服务跟踪解决的方案，并且支持了zipkin
+        简单来说就是sleuth负责收集数据，zipkin负责展示
+
+    3、zipkin搭建安装
+        1、springcloudF版之后就不需要自己构建zipkin server了，只需要调用jar包
+        2、下载zipkin jar
+               https://search.maven.org/remote_content?g=io.zipkin.java&a=zipkin-server&v=LATEST&c=exec
+        3、执行jar包
+            java -jar zipkin-server-2.12.9.jar
+            出现箭头标识就说明可以了
+        4、运行控制台
+            http://127.0.0.1:9411/zipkin 出现界面
+
+            表示一条请求链路，一条链路通过trace id唯一标识，span标识发起的请求信息，各span通过parent id关联起来
+
+        5、服务提供者和消费者一样的配置
+            1、pom引入依赖
+                //包含了sleuth+zipkin
+                <dependency>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-starter-zipkin</artifactId>
+                </dependency>
+
+            2、配置文件配置
+                #将监控到的数据发送到zipkin服务器
+                spring.zipkin.base-url=http://127.0.01:9411
+                #采样率值 介于0-1，1表示全部采集
+                spring.sleuth.sampler.probability=1
 

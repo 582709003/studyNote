@@ -1,3 +1,16 @@
+zoo.cfg配置文件的参数解读
+    # 客户端和服务端的心跳时间，毫秒
+    tickTime=2000
+    # leader和follower初始连接能容忍的最多心跳数，超过这个时间就认为主从通信失败
+    initLimit=10
+    # leader和follower通信时间如果超过syncLimit * tickTime，leader就认为follower死掉，将其从服务器列表中剔除
+    syncLimit=5
+    # 保存zookeeper中的数据
+    dataDir=D:\sjd\softDownload\apache-zookeeper-3.6.0-bin\apache-zookeeper-3.6.0-bin\data
+    dataLogDir=D:\sjd\softDownload\apache-zookeeper-3.6.0-bin\apache-zookeeper-3.6.0-bin\log
+    # 客户端连接端口
+    clientPort=2181
+
 zookeeper的数据模型
     zookeeper的数据节点可以视为数据结构(或者目录)，树中的各节点被视为znode(即zookeeper node)
     ，一个znode可以有多个子节点，zookeeper节点在结构上表现为树状，使用路径path来定位某个znode，
@@ -5,7 +18,7 @@ zookeeper的数据模型
     根节点，二级节点，三级节点以及四级节点；其中ns-1是itcast的父节点，itcast是ns-1的子节点；itcast
     是mysql的父节点，mysql是itcast的子节点，以此类推；
 
-    *** znode兼具文件he和目录两种特点，既像文件一样维护者数据、元信息、时间戳等数据结构，又像目录一样
+    *** znode兼具文件和目录两种特点，既像文件一样维护者数据、元信息、时间戳等数据结构，又像目录一样
     可以作为路径标识 的一部分；
 
     那么如何描述一个znode呢？一个znode大体上分为3部分
@@ -79,7 +92,7 @@ zookeeper的数据模型
             stat [-w] path
                使用此命令注册的监听器能够在节点状态发生改变的时候向客户端发出通知
 
-             ls [-s] [-w] path
+            ls [-s] [-w] path
                  使用此命令注册的监听器能够在节点的子节点的数量发生改变的时候向客户端发出通知
 
         zookeeper的acl权限控制
@@ -104,7 +117,7 @@ zookeeper的数据模型
                 world   只有一个用户:anyone，代表登录zookeeper的所有人(默认)
                 ip      对客户端使用的IP地址进行认证
                 auth    使用已添加认证的用户认证
-                gigest  使用用户名:密码方式认证     密码必须是以密文的形式提供的
+                digest  使用用户名:密码方式认证     密码必须是以密文的形式提供的
 
             授予的权限
                 create、delete、read、writer、admin也就是增删改查管理权限，这五种权限简写为cdrwa；
@@ -155,9 +168,10 @@ zookeeper的数据模型
     zookeeper javaApi
         客户端应该遵循以步骤，与zookeeper服务器进行清晰和干净的交互
             1、连接到zookeeper服务器，zookeeper服务器为客户端分配会话id
-            2、定期像服务器发送心跳，否则zookeeper服务器会将当前的会话id过期，客户端需要重新连接
+            2、客户端定期像服务器发送心跳，否则zookeeper服务器会将当前的会话id过期，客户端需要重新连接
             3、只要会话id处于活跃状态，就可以获取/设置节点
             4、所有任务完成之后，断开与zookeeper服务器的连接，如果客户端长时间不活动，则zookeeper服务器将自动断开客户端
+
         创建节点
            1、同步方式创建节点
               zookeeper.create("/create/node1","node1".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
@@ -227,19 +241,19 @@ zookeeper的数据模型
                           仍可接收到通知
 
             watcher通知状态(keeperState)
-                当事件类型为NONE时，可以捕获连接状态
+                当事件类型为NONE时，也就是数据节点还未发生变化，可以捕获连接状态
                 keeperState是客户端与服务器端连接状态发生变化时对应的通知类型，其路径是Watcher.Event.keeperState
                 是一个枚举类，枚举属性如下：
                  Disconnected：断开连接时
                                 (自己的理解，客户端连接成功后会有一个心跳包请求服务器，请求时还带着一个类似于cookey的东西，
                                  请求不到时，客户端触发监听机制，断开连接)
                 SyncConnected:正常连接时
-                AuthFailed：身份认证失败时   ：当更新的节点有用户权限限制时，此时如果当前连接没有添加此用户时
+                AuthFailed：身份认证失败时   ：当更新的节点有用户权限限制时，此时如果当前连接没有添加此用户时(添加认证用户后，就会以当前用户去请求zookeeper)
                                             ，此时再去设置此节点就会出现这个状态
                 ConnectedReadOnly,
                 SaslAuthenticated,
                 Expired：会话session失效时
-                        注意：ZooKeeper zookeeper = new ZooKeeper(connStr, 5000,watcher );
+                        注意：ZooKeeper zookeeper = new ZooKeeper(connStr, 5000,watcher);
                             这里有一个session超时时间，如果连接成功后，服务器会对当前连接创建一个会话，
                             此时如果连接断掉了，如果在超时时间内重连成功的话，之前的session正常使用；但是如果超过超时时间
                             重连成功的话之前的session就失效了(自己的理解：客户端带着一个类似于cookey的东西取服务器找session，session超时后，被删除
@@ -264,13 +278,13 @@ zookeeper的数据模型
                 1、zookeeper连接对象创建时第三个参数就是watcher对象，这时就是注册监视器，用来监视连接状态
                 2、使用getData,exists,getChildren等javaapi进行监听某个节点的变化
 
-                注册方式        created         childrenChanged         changed         deleted
-                zk.exists       可监控                                     可监控         可监控
-                zk.getData                                              可监控             可监控
-                zk.getChildren                  可监控
+                注册方式                      created         childrenChanged         changed         deleted
+                zk.exists(path,watcher)       可监控                                   可监控           可监控
+                zk.getData (path,watcher)                                             可监控            可监控
+                zk.getChildren(path,watcher)                        可监控
 
             watcher机制exists
-                1、是否使用zk连接对象中的监视器
+                1、参数2：是否使用zk连接对象中的监视器
                 exists(path,boolean)
 
                 2、自定义监视器
@@ -377,7 +391,7 @@ zookeeper的数据模型
         设计思路
             1、每个客户端往/locks下创建临时有序节点/locks/lock_，创建成功后/locks会有每个客户端对应的节点，
             如/locks/lock_000000001
-            2、每个客户端取得/locks下的子节点，并进行排序，判断排在最前面的是否为自己，如果自己咋锁节点在第一位，代表获取
+            2、每个客户端取得/locks下的子节点，并进行排序，判断排在最前面的是否为自己，如果自己在锁节点在第一位，代表获取
                 锁成功
             3、如果自己的锁节点不在第一位，则监听自己前一位的锁节点，例如，自己的锁节点lock_000000002,那么监听lock_000000001
             4、当前一位锁节点lock_000000001对应的客户端执行完成，释放了锁，将会触发监听客户端lock_000000002的逻辑
@@ -526,7 +540,7 @@ zookeeper集群搭建
     见视频吧，不太好写
 
 一致性协议:zab协议
-    zab协议的全称时zookeeper atomic broadcast(zookeeper 原子广播)，zookeeper时通过zab协议来保证分布式事务的最终一致性的
+    zab协议的全称时zookeeper atomic broadcast(zookeeper 原子广播)，zookeeper是通过zab协议来保证分布式事务的最终一致性的
     基于zab协议，zookeeper集群中的角色只要有以下三类
         角色                                                      描述
         领导者                                     领导者负责进行投票的发起和决议，更新系统状态
@@ -625,6 +639,18 @@ zookeeper集群搭建
         3、简化开发api
         4、遵顼fluent风格的api
         5、提供了分布式锁服务、共享计数器、缓存机制等机制
+
+            引入依赖
+                <dependency>
+                    <groupId>org.apache.curator</groupId>
+                    <artifactId>curator-framework</artifactId>
+                    <version>2.11.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.curator</groupId>
+                    <artifactId>curator-recipes</artifactId>
+                    <version>2.11.0</version>
+                </dependency>
 
     创建连接对象
         //创建连接对象（fluent风格）

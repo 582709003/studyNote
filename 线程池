@@ -1,3 +1,5 @@
+xboot-faset里有很好的使用
+
 什么是线程池
     可以以new Thread ().start();这种形式开启一个线程，当run方法运行结束后，线程对象
     会被GC回收；
@@ -12,8 +14,9 @@
     直接将任务作为一个对象提交给线程池，线程池直接将这些任务缓存在工作队列中，线程池的工作线程
     不断的从队列中取出任务并执行；
 
-    java提供了一套Executor(接口)框架，可以帮助开发人员有效的使用线程池
-    Executors 提供了一系列简便的方法，来帮助我们创建ThreadPool。
+    java提供了一个Executor(接口)框架，可以帮助开发人员有效的使用线程池；
+    Executors 创建不同类型的线程池的； 提供了一系列简便的方法，来帮助我们创建ThreadPool。
+    Executor  不同类型线程池的总接口，提供更多的对线程池的操作；其实就是线程池
     ExecutorService继承了Executor，提供了更多的线程池的操作。是对Executor的补充；
     通过Executors创建Executor和ExecutorService
     Executors工具类中创建线程池的方法的底层都使用了ThreadPoolExecutor线程池；
@@ -24,8 +27,8 @@
     抽象类AbstractExecutorService实现了ExecutorService接口，基本实现了ExecutorService中声明的所有方法。
     然后ThreadPoolExecutor继承了类AbstractExecutorService。
     在ThreadPoolExecutor类中有几个非常重要的方法：
-    execute()
-    submit()
+    execute()  仅仅执行任务
+    submit()   能获取结果的执行任务
     shutdown()
     shutdownNow()
 
@@ -51,33 +54,57 @@
             threadFactory：线程工厂，用于创建线程
             handler：拒绝策略，当任务太多来不及处理时，如何拒绝
 
-            说明：workQueue是指提交并未执行的工作队列
+            过程是这样的
+                当提交的线程任务超过了核心线程，那么多出来的线程任务就放到队列中，队列的大小需要制定，或者使用默认的大小，
+                然后如果任务队列也满了，那么就创建新的线程，但是创建的新线程不能超过线程池中线程最大数量的限定，如果线程数量
+                也已经到达最大限定了，那么就会执行拒绝策略
 
-            拒绝策略
-                当提交给线程池的任务量超过了实际承载能力时，如何处理？即线程池中的线程已经用完了，等待队列也满了，无法为
-                新提交的任务服务，可以通过拒绝策略来处理
+         workQueue阻塞队列
+            它用来存放等待执行的任务。workQueue的类型为BlockingQueue<Runnable>，通常可以取下面三种类型：
+           　　1）ArrayBlockingQueue：基于数组的先进先出队列，此队列创建时必须指定大小；
+           　　2）LinkedBlockingQueue：基于链表的先进先出队列，如果创建时没有指定此队列大小，则默认为Integer.MAX_VALUE；
+           　　3）synchronousQueue：这个队列比较特殊，它不会保存提交的任务，而是将直接新建一个线程来执行新来的任务。
 
-                RejectedExecutionHandler的四种拒绝策略
+        拒绝策略
+            当提交给线程池的任务量超过了实际承载能力时，如何处理？即线程池中的线程已经用完了，等待队列也满了，无法为
+            新提交的任务服务，可以通过拒绝策略来处理
+            RejectedExecutionHandler的四种拒绝策略
 
-                    AbortPolicy：抛出异常
+                AbortPolicy：抛出异常
 
-                    DiscardPolicy：直接丢弃这个无法处理的任务
+                DiscardPolicy：直接丢弃这个无法处理的任务
 
-                    DiscardOldestPolicy：将任务队列中最老的任务丢弃，尝试再次提交新任务
+                DiscardOldestPolicy：将任务队列中最老的任务丢弃，尝试再次提交新任务
 
-                    CallerRunsPolicy：只要线程池没关闭，会在调用者线程中运行当前被丢弃的任务
+                CallerRunsPolicy：只要线程池没关闭，会在调用者线程中运行当前被丢弃的任务
 
-            ThreadFactory
-                这是一个接口，只有一个方法
-                Thread newThread(Runnable r);
-                当线程池中需要创建线程时就会调用这个方法
-                我们可以重写这个方法构造自己的线程工厂
+        ThreadFactory
+            这是一个接口，只有一个方法
+            Thread newThread(Runnable r);
+            当线程池中需要创建线程时就会调用这个方法
+            我们可以重写这个方法构造自己的线程工厂
 
-            ThreadPoolExecutor提供了两个方法
+        ThreadPoolExecutor提供了两个方法
             protected void beforeExecute(Thread t, Runnable r)：任务执行前执行
             protected void afterExecute(Runnable r, Throwable t)：任务执行结束后，成功执行或者异常退出都会执行
             我们可以重写这个两个方法
 
+    shutdown()
+        则线程池处于SHUTDOWN状态，此时线程池不能够接受新的任务，它会等待所有任务执行完毕；
+    shutdownNow()方法
+        则线程池处于STOP状态，此时线程池不能接受新的任务，并且会去尝试终止正在执行的任务；
+
+    corePoolSize、maximumPoolSize、largestPoolSize三个变量。
+    　　corePoolSize在很多地方被翻译成核心池大小，其实我的理解这个就是线程池的大小。举个简单的例子：
+    　　假如有一个工厂，工厂里面有10个工人，每个工人同时只能做一件任务。
+    　　因此只要当10个工人中有工人是空闲的，来了任务就分配给空闲的工人做；
+    　　当10个工人都有任务在做时，如果还来了任务，就把任务进行排队等待；
+    　　如果说新任务数目增长的速度远远大于工人做任务的速度，那么此时工厂主管可能会想补救措施，比如重新招4个临时工人进来；
+    　　然后就将任务也分配给这4个临时工人做；
+    　　如果说着14个工人做任务的速度还是不够，此时工厂主管可能就要考虑不再接收新的任务或者抛弃前面的一些任务了。
+    　　当这14个工人当中有人空闲时，而新任务增长的速度又比较缓慢，工厂主管可能就考虑辞掉4个临时工了，只保持原来的10个工人，毕竟请额外的工人是要花钱的。
+    　　这个例子中的corePoolSize就是10，而maximumPoolSize就是14（10+4）。
+    　　也就是说corePoolSize就是线程池大小，maximumPoolSize在我看来是线程池的一种补救措施，即任务量突然过大时的一种补救措施
 
         线程池数量优化
             线程池数量过大过小都会无法发挥系统的最优性能，线程池大小不需要非常精确，只要避免极大或者极小的情况即可，一般来说

@@ -88,7 +88,7 @@ spring mvc
             params:用于指定限制请求参数的条件，它支持表达式，要求请求参数的key和value必须和配置的一模一样
                     params = {"username"}  :请求参数必须有username
                     params = {"!username"}  :请求参数不能有username
-                    params = {"username=heihei"}：请求参数必须是有username且值是heihei
+                    params = {"username=heihei"}：请求参数必须有username且值是heihei
                     params = {"money!100"}:表示请求参数中的money不能是100
 
             headers：用于指定限制请求消息头的条件，发送的请求中必须含有包含的请求头才能访问
@@ -277,11 +277,12 @@ spring mvc
 
 
 
-    4、浏览器form表单只支持get和post请求，而delete以及put等请求方式是不支持的，基于HiddenHttpMethodFilter,可以将你的请求方式修改为其他方式，
-        基于表单实现更改请求方式的过程
-            1、在web.xml中配置过滤器
-            2、请求方式必须使用post
-            3、表单中提供隐藏域，name固定的是_method，这里写你想要转换的请求方式
+    4、浏览器form表单只支持get和post请求，而delete以及put等请求方式是不支持的，基于HiddenHttpMethodFilter,
+        可以将你的请求方式修改为其他方式;
+            基于表单实现更改请求方式的过程
+                1、在web.xml中配置过滤器
+                2、请求方式必须使用post
+                3、表单中提供隐藏域，name固定的是_method，这里写你想要转换的请求方式
 
     5、文件上传
         spring提供一个文件解析器multipartResolver(有一个实现类CommonsMultipartResolver,这个实现类里可以配置很多属性值,
@@ -410,9 +411,10 @@ spring mvc
         实现拦截器步骤
         1、必须实现HandlerInterceptor接口
         2、配置自定义拦截器的路径
+        3、添加到容器中
 
     8、拦截器方法介绍
-        //执行控制器方法前执行，return true:执行下一个拦截器，如果没有就执行控制器方法
+        //执行控制器方法前执行，return true:  执行下一个拦截器，如果没有就执行控制器方法
                              return false：不放行，使用request、response进行响应
         default boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
             return true;
@@ -420,7 +422,7 @@ spring mvc
             //这边也可以通过request以及response跳转其他页面，或者响应；目标方法调用之后来到这
             default void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable ModelAndView modelAndView) throws Exception {
             }
-            //已经放行了preHandle的拦截器总会执行这个方法
+            // 已经放行了preHandle的拦截器总会执行这个方法
             default void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) throws Exception {
             }
 
@@ -533,8 +535,8 @@ spring如何整合javaweb容器从而通过启动servlet容器工作
 Spring整合springmvc
     整合的目的
         1、分工明确
-            springmvc的配置文件就是来配置和网站转发逻辑以及网站功能有关的(视图解析器、文件上传解析器....)
-            spring的配置文件用来配置和业务有关的(事务控制、数据源.....)
+            springmvc的配置文件就是来配置和网站转发逻辑以及网站功能有关的(视图解析器、文件上传解析器、参数解析器....)
+            spring的配置文件用来配置和业务有关的(AOP、事务控制、数据源.....)
         2、整合的方式
             1、在springmvc的配置文件中导入spring的配置文件，这种方式只会创建一个容器，两个配置文件共用
             2、在web.xml文件中配置ContextLoaderListener监听器，将spring的配置文件路径配置上去
@@ -575,7 +577,7 @@ Spring整合springmvc
 
             在上面的配置中：
             1、ContextLoaderListener会被优先初始化时，其会根据<context-param>元素中contextConfigLocation参数指定的配置文件路径，
-            在这里就是"/WEB-INF/spring/applicationContext.xml”，来创建WebApplicationContext实例。 并调用ServletContext的
+            在这里就是"/WEB-INF/spring/applicationContext.xml”，来创建rootWebApplicationContext实例。 并调用ServletContext的
             setAttribute方法，将其设置到ServletContext中，属性的key为”org.springframework.web.context.WebApplicationContext.ROOT”，
             最后的”ROOT"字样表明这是一个 Root WebApplicationContext。
             2、DispatcherServlet在初始化时，会根据<init-param>元素中contextConfigLocation参数指定的配置文件路径，
@@ -622,14 +624,15 @@ Spring整合springmvc
         必须要有setter方法。
 
     1、启动tomcat服务器时，需要加载spring的配置文件
-        启动tomcat时会创建servletContext对象，这个对象有一个监听器叫做ContextLoaderListener，这个监听器
+        启动tomcat时会创建servletContext对象，然后将servlet、filter、listener等组件注入到servlet容器中；
+        有一个监听器叫做ContextLoaderListener，他是在servlet组件全部注入完之后执行的初始化方法；这个监听器
         里加载了spring的配置文件，这个监听器对象是spring-web jar包提供的，我们只需要配置这个监听器即可(
         默认加载的是WEB-INF/下的，可以使用以下进行修改读取路径
         <context-param>
             <param-name>contextConfigLocation</param-name>
             <param-value>classpath:xxx.xml</param-value>
         </context-param>
-        spring的配置文件默认名称是applictionContext.xml)
+        spring的配置文件默认名称是applictionContext.xml)，然后创建了root WebApplicationContext
 
 
 
@@ -637,7 +640,7 @@ spring整合mybatis框架
     在spring的配置文件中配置mybatis
 
     整合过程，启动tomcat时在web.xml文件中加载springmvc配置文件，并且配置servletconxt监听器，这个监听器会去默认路径加载
-    默认名称的spring的配置文件，然后我们在spring的配置文件中配置mybatis的配置信息
+    默认名称的spring的配置文件，然后我们在spring的配置文件中配置mybatis的配置文件
 
 spring的申明是事务管理
     事务用到了Aop思想，事务其实就是通知，增强的部分，通知到切点，就是切面
@@ -691,9 +694,11 @@ springmvc初始化
           		//根据ServletContext.getAttribute来获取到WebApplicationContext（根容器），
           		而获取到的根容器是之前由ContextLoaderListener（ServletContextListener）的contextInitialized方法将根容器
           		保存在了ServletContext
-        		WebApplicationContext rootContext =
-        				WebApplicationContextUtils.getWebApplicationContext(getServletContext());
+                    WebApplicationContext rootContext =
+                            WebApplicationContextUtils.getWebApplicationContext(getServletContext());
+
         		WebApplicationContext wac = null;
+
           		//this.webApplicationContext为子容器（保存SpringMVC组件），如果我们使用的是配置类的方式即继承
           		AbstractAnnotationConfigDispatcherServletInitializer来指定创建父子容器，那么在Servlet容器启动的时侯
           		webApplicationContext就被创建了
@@ -711,7 +716,7 @@ springmvc初始化
                             //方法wac.addApplicationListener(new SourceFilteringListener(wac, new ContextRefreshListener()));
                             //添加了ContextRefreshListener监听器，当refresh方法启动ApplicationContext
                             //refresh->finishRefresh的时候会publishEvent(new ContextRefreshedEvent(this))触发
-                            //ContextRefreshListener();初始化handlerMapping等
+                            //ContextRefreshListener();执行initStrategies 初始化handlerMapping等
         					configureAndRefreshWebApplicationContext(cwac);
         				}
         			}
@@ -729,7 +734,7 @@ springmvc初始化
         		}
 
         		if (!this.refreshEventReceived) {
-                   //在DispatchServlet中实现，配置文件xml版中的刷新容器的方法
+                   //在DispatchServlet中实现此方法，执行initStrategies方法,从容器中获取一些组件装配到dispatchservlet中
         			onRefresh(wac);
         		}
         		//this.publishContext指定是否将web容器发布在ServletContext中，默认为ture
@@ -770,18 +775,26 @@ springmvc初始化
 
                long startTime = System.currentTimeMillis();
                Throwable failureCause = null;
+
                //获取之前LocaleContext（主要作用是封装请求的 Locale 信息，主要就是语言信息）默认不存在
                LocaleContext previousLocaleContext = LocaleContextHolder.getLocaleContext();
+
               //创建本次请求的localeContext
                LocaleContext localeContext = buildLocaleContext(request);
+
             	//获取之前RequestAttributes（封装request，response）默认不存在
                RequestAttributes previousAttributes = RequestContextHolder.getRequestAttributes();
+
               	//创建本次请求的requestAttributes
                ServletRequestAttributes requestAttributes = buildRequestAttributes(request, response, previousAttributes);
+
             	//与异步请求相关的处理
                WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+
                asyncManager.registerCallableInterceptor(FrameworkServlet.class.getName(), new RequestBindingInterceptor());
-            	//将localeContext、requestAttributes分别保存在LocaleContextHolder、RequestContextHolder中，两者都是使用ThreadLocal与当前线程绑定
+
+            	//将localeContext、requestAttributes分别保存在LocaleContextHolder、RequestContextHolder中，
+            	两者都是使用ThreadLocal与当前线程绑定
                initContextHolders(request, localeContext, requestAttributes);
 
                try {
@@ -831,16 +844,16 @@ springmvc初始化
                  2、在处理请求阶段，做了一些提前的准备工作
 
         3、DispatcherServlet
-        1）重写onRefresh,初始化SpringMvc工作组件,这些组件都封装到了DispatcherServlet
+        1）重写onRefresh,初始化SpringMvc工作需要的组件,这些组件都封装到了DispatcherServlet
         HttpServletBean.init()-->FrameworkServlet.initServletBean（）-->FrameworkServlet.initWebApplicationContext()
-        -->DispatcherServlet.onRefresh(ApplicationContext context)
+        -->DispatcherServlet.onRefresh(ApplicationContext context)-->DispatcherServlet.initStrategies
 
         @Override
         protected void onRefresh(ApplicationContext context) {
           //context就是在FrameworkServlet.initWebApplicationContext()中完成初始化工作的IOC容器
            initStrategies(context);
         }
-        //完成各组件的初始化，目的是为dispatchservlet添加web组件
+        //完成各组件的初始化，目的是为dispatchservlet添加处理web请求的web组件
         protected void initStrategies(ApplicationContext context) {
         　　//初始化文件上传的处理类
            initMultipartResolver(context);
@@ -858,6 +871,8 @@ springmvc初始化
     1、protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
       		if (this.handlerMappings != null) {
       			for (HandlerMapping mapping : this.handlerMappings) {
+                    //HandlerExecutionChain里面封装了能处理当前请求的handlerMethod(由哪个类以及这个类里的哪个方法组成)
+                        以及能拦截当前请求的拦截器，组成了拦截器链
       				HandlerExecutionChain handler = mapping.getHandler(request);
       				if (handler != null) {
       					return handler;
@@ -1162,8 +1177,8 @@ springmvc初始化
             1、所有请求过来dispatchServlet收到请求
             2、调用doDispatch()方法进行处理
                 1、getHandler(processedRequest)；根据当前请求找到能处理这个请求的目标处理类和方法
-                返回一个HandlerExecutionChain处理器的执行链，它是由处理器以及处理器对应的拦截器组成
-                    //handlerMappings保存了每一个处理器能处理哪些请求的映射信息，ioc容器启动的时候
+                返回一个HandlerExecutionChain处理器的执行链，它是由具体的处理器(就是具体哪个类下的哪个方法)以及处理器对应
+                的拦截器组成的，handlerMappings保存了每一个处理器能处理哪些请求的映射信息，ioc容器启动的时候
                     扫描每个controller都能处理哪些请求并保存在handlerMapping
                     protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
                     		if (this.handlerMappings != null) {
@@ -1274,7 +1289,8 @@ springmvc初始化
                     在SpringMvc中做数据校验有2中方式：一种是 Spring 自带的验证框架，另外一种是利用 JSR 实现。
                     JSR 是一个规范，提供了完整得一套 API，通过标注给对象属性添加约束。
                     Hibernate Validator 就是 对JSR
-                    规范所有注解的具体实现，以及一些附加的约束注解。用户还可以自定义约束注解。Hibernate Validator提供得注解如下
+                    规范所有注解的具体实现，以及一些附加的约束注解。用户还可以自定义约束注解。
+                    Hibernate Validator提供得注解如下
                     　注解	　　 作用目标	 　　检查规则
                      @Length(min=, max=)	 属性（String）	 检查字符串长度是否符合范围
                      @Max(value=)	 属性（以 numeric 或者 string 类型来表示一个数字）	 检查值是否小于或等于最大值

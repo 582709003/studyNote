@@ -22,7 +22,8 @@
                 createMap(t, value);
         }
 
-         //1、第一次设置值的时候，会为当前的线程设置一个ThreadLocalMap，初始容量为16，把当前ThreadLocal对象和要绑定的值带进去
+         //1、第一次设置值的时候，会为当前的线程里面创建一个ThreadLocalMap，初始容量为16的Ebtry数组，把当前
+            ThreadLocal对象和要绑定的值带进去；
          void createMap(Thread t, T firstValue) {
             t.threadLocals = new ThreadLocalMap(this, firstValue);
         }
@@ -40,7 +41,7 @@
                 setThreshold(INITIAL_CAPACITY);
             }
 
-        //3、当往ThreadLocal里面第二次设置值时，调用当前线程里面的ThreadLocalMap对象的set(ThreadLocal<?> key, Object value)方法；
+        //3、当往ThreadLocal里面第二次设置值时，获取当前线程里面的ThreadLocalMap对象并调用它的的set(ThreadLocal<?> key, Object value)方法；
             private void set(ThreadLocal<?> key, Object value) {
                     Entry[] tab = table;
                     int len = tab.length;

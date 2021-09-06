@@ -21,7 +21,10 @@
 
 自定义注解
     使用@Interface自定义注解时，自动继承了java.lang.annotation.Annotation接口
+    譬如
+            public @interface  SpringBootApplication{
 
+            }
     分析：
         1、@Interface用来声明一个注解，格式：public @Interface 注解名{定义内容}
         2、其中的每一个方法实际上是声明了一个配置参数 结构:参数类型 + 参数名();
@@ -31,4 +34,37 @@
         6、如果只有一个参数成员，一般参数名为value
         7、注解元素必须要有值，我们定义注解元素时，经常使用空字符串，0作为默认值
 
-        15161888071
+通过反射方式获取注解信息
+    public static Map<String, Object> getControllerMethodInfo(JoinPoint joinPoint) throws Exception{
+
+        Map<String, Object> map = new HashMap<String, Object>(16);
+        //获取目标类名
+        String targetName = joinPoint.getTarget().getClass().getName();
+        //获取方法名
+        String methodName = joinPoint.getSignature().getName();
+        //获取相关参数
+        Object[] arguments = joinPoint.getArgs();
+        //生成类对象
+        Class targetClass = Class.forName(targetName);
+        //获取该类中的方法
+        Method[] methods = targetClass.getMethods();
+
+        String description = "";
+        Integer type = null;
+
+        for(Method method : methods) {
+            if(!method.getName().equals(methodName)) {
+                continue;
+            }
+            Class[] clazzs = method.getParameterTypes();
+            if(clazzs.length != arguments.length) {
+                //比较方法中参数个数与从切点中获取的参数个数是否相同，原因是方法可以重载哦
+                continue;
+            }
+            description = method.getAnnotation(SystemLog.class).description();
+            type = method.getAnnotation(SystemLog.class).type().ordinal();
+            map.put("description", description);
+            map.put("type", type);
+        }
+        return map;
+    }

@@ -26,7 +26,7 @@ idea安装
 
 .idea文件和.iml文件是idea特有的文件
 
-idea没有工作空间的概念，但是又project(相当于workspace)和model(相当于eclipse的project)的概念，一般如果项目较为复杂的话，那就最好建多个模块；但是如果比较简单，
+idea没有工作空间的概念，但是有project(相当于workspace)和model(相当于eclipse的project)的概念，一般如果项目较为复杂的话，那就最好建多个模块；但是如果比较简单，
 那就建一个模块或者也可以直接在project下直接写代码，不用建model
 
 
@@ -50,7 +50,8 @@ idea主题效果可以去这边下载：http://www.riaway.com/
 
 文件的文档注释信息(对新建的文件才有效)：设置里 editor--file and code template
 
-方法的注释：设置里 editor--live templates 这个里面有很多模板，譬如fori等等
+方法的注释：设置里 editor--live templates 这个里面有很多模板，譬如fori等等,通过设置一个快捷键，并且为这个快捷键编写
+            代表的代码或者信息
 
 自动编译：设置里 build,execution,deployment--complier 勾选自动编译以及下面那个
 
@@ -59,17 +60,20 @@ idea主题效果可以去这边下载：http://www.riaway.com/
 
 项目文件的文件编码： editor--file encoding 全勾选utf-8
 
+支持注解生效：设置里，build,execution,deployment--complier--annotation processors  勾选enable annotation processing
+
+修改编译后的字节码文件版本：设置里 build,execution,deployment--complier--java complier  jdk1.8的选择8
+
+过滤文件：在设置里Editor---File Types里面可以将idea创建想真生成的一些默认文件譬如.iml,.idea等给忽略不显示在工程里
+
 如果导入的文件不是utf-8,可以在右下角选择编码方式，reload：暂时的以新编码方式显示  convert：以新编码方式修改文件并加载到编辑器
 
 选中一打开的文件，右击可选择move right/move down 可以将代码文件分屏
 
 可以通过右击文件选择local history 查看当前文件的修改记录  ***
 
-在设置里Editor---File Types里面可以将idea创建想真生成的一些默认文件譬如.iml,.idea等给忽略不显示
 
-支持注解：设置里，build,execution,deployment--complier--annotation processors  勾选enable annotation processing
 
-修改编译后的字节码文件版本：设置里 build,execution,deployment--complier--java complier  jdk1.8的选择8
 
 生成 javadoc 在tools菜单栏下选择generate javadoc  输入 Locale：输入语言类型：zh_CN
                                                     Other command line arguments：-encoding UTF-8 -charset UTF-8
@@ -77,6 +81,36 @@ idea导入项目时的操作
     open：使用open时，项目必须是.idea的，然后找到项目根目录，打开即可；
     new:project from existing sources类似于import project,可能项目不是.idea的，但是通过这边可以将项目转化为.idea格式的，maven项目导入pom文件即可
         module from existing sources 这个必须是.idea的，maven项目导入pom文件即可
+
+
+IDEA-Maven项目的jdk版本设置
+    1、在 Intellij IDEA 中，我们需要设置 Settings 中的 Java Compiler
+    2、 Project Structure 中的 Language Level中的 jdk 版本为自己目前使用的版本，否则会经常提示我们 jdk 版本不正确
+    导致的语法错误。在 Maven 项目中，jdk 的配置也有一些额外需要注意的地方。
+    3、但是在 Maven 项目中，Java Compiler 和 Language level 中的设置会自动变回到 pom.xml 文件中设置的 jdk 版本或
+    者默认的 jdk1.5 版本。所以我们需要在 pom.xml 文件中修改 jdk 版本的配置或者自己添加配置：
+    <!-- 这里一般有 maven 的默认配置，修改即可 -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+     </properties>
+    或者：
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    注意： 如果 properties 和 build 里面都有配置的话，那么 properties
+    会覆盖掉 build 里面的配置，即以 properties 里面的配置为准。
 
 菜单栏File下的settings里的设置是为了当前项目进行设置；而other setting是给所有新建的项目进行设置的；
 
@@ -142,7 +176,7 @@ LocalHistory 目录。目录地址在： C:\Users\ 当 前 登 录 的 系 统 �
 33 打开所有方法(expand all) alt+shift+x
 34 打开代码所在硬盘文件夹(show in explorer) ctrl+shift+x
 35 生成 try-catch 等(surround with) alt+shift+z    ***
-36 局部变量抽取为成员变量(introduce field) alt+shift+f
+36 局部变量抽取为成员变量(introduce field) alt+shift+f **
 37 查找/替换(当前) ctrl+f
 38 查找(全局) ctrl+h
 39 查找文件 double Shift
@@ -161,3 +195,116 @@ LocalHistory 目录。目录地址在： C:\Users\ 当 前 登 录 的 系 统 �
 
 idea创建项目
     java enterprise就是java ee项目(web项目)，项目创建完之后就是很经典一个结构，有web.xml文件...
+
+
+
+
+
+    官方学习笔记:https://www.jetbrains.com/help/idea/2018.2/meet-intellij-idea.html
+
+    官方下载地址：https://www.jetbrains.com/
+
+    如果卸载idea，workspace是不会被删除的
+
+
+
+    idea各种配置所保存的文件夹，如果你的配置坏了，可以删掉目录，idea会帮你生成一个全新的默认配置目录：C:\Users\Administrator\.IntelliJIdea2018.2\config
+
+    idea配置所保存的文件夹：C:\Users\Administrator\.IntelliJIdea2018.2\config
+
+    idea卸载过程：
+        删除以下路径的文件夹
+    	1：安装文件：idea安装包路径：D:\sjd\softDownload\IntelliJ IDEA 2018.2
+    	2：缓存和配置：idea自动生成路径：C:\Users\Administrator\.IntelliJIdea2018.
+    idea安装
+        安装包解压就可以用了
+    破解过程有两种
+        1、将破解包(D:\sjd\softDownload\idea破解包)放到idea安装包下的bin路径下，然后编辑idea64.exe.vmoptions文件
+        然后在文件最上面添加-javaagent:D:\sjd\softDownload\IntelliJ IDEA 2018.2\IntelliJ IDEA 2018.2\bin\JetbrainsIdesCrack-4.2-release-sha1-3323d5d0b82e716609808090d3dc7cb3198b8c4b.jar
+        然后重启
+        2、下载一个jetbrains-agent.jar包，然后放到合适的文件夹内，(一般都放在idea的安装位置路径下，可随意，不建议有中文路径)
+        点击idea菜单，找到 help--edit custom vm options，在最下面一行添加
+        -javaagent:jetbrains-agent.jar包的路径，然后重启
+        然后点击help-register-license server,再点击discover server,然后再点击active，然后再重启
+
+
+
+    .idea文件和.iml文件时idea特有的文件
+
+    idea没有工作空间的概念，但是又project和model的概念，一般如果项目较为复杂的话，那就最好建多个模板；但是如果比较简单，那就建一个模块或者也可以之间在project下直接写代码，不用建model
+
+
+    idea主题效果可以去这边下载：http://www.riaway.com/
+
+    设置鼠标滚轮修改字体大小：editor--general--change font size with ctrl+mouse  wheel
+
+    当鼠标停留时快速显示文档：editor--general--勾选show quick documentation on mouse over
+
+    自动导包：editor--general--auto import--勾选insert importson paste ALL--勾选下面两个选项
+
+    书写代码时如果首字母写的是小写的，idea依然给以提示设置：editor--general--code completion 去掉勾选
+
+    设置取消显示单行tabs的操作：editor--general--editortabs--去掉勾选show tabs in single row
+
+    设置字体大小：editor--general--font
+
+    如果导入的文件不是utf-8,可以在右下角选择编码方式，reload：暂时的以新编码方式显示  convert：
+    以新编码方式修改文件并加载到编辑器
+
+    选中一打开的文件，右击可选择move right/move down 可以将代码文件分屏wwwww
+
+    在设置里Editor---File Types里面可以将idea创建想真生成的一些默认文件譬如.iml,.idea等给忽略不显示
+
+    快捷键
+    1 执行(run) alt+r
+    2 提示补全类名 (Class Name Completion) alt+/
+    3 单行注释 ctrl + /
+    4 多行注释 ctrl + shift + /
+    5 向下复制一行 (Duplicate Lines) ctrl+alt+down
+    6 删除一行或选中行 (delete line) ctrl+d
+    7 向下移动行(move statement down) alt+down
+    8 向上移动行(move statement up) alt+up
+    9 向下开始新的一行(start new line) shift+enter
+    10 向上开始新的一行 (Start New Line before current) ctrl+shift+enter
+    11 如何查看源码 (class) ctrl + 选中指定的结构 或 ctrl + shift + t
+    12 万能解错/生成返回值变量 alt + enter
+    13 退回到前一个编辑的页面 (back) alt + left
+    14 进入到下一个编辑的页面(针对于上条) (forward) alt + right
+    15 查看继承关系(type hierarchy) F4
+
+    16 格式化代码(reformat code) ctrl+shift+F
+    17 提示方法参数类型(Parameter Info) ctrl+alt+/
+    18 复制代码 ctrl + c
+    19 撤销 ctrl + z
+    20 反撤销 ctrl + y
+    21 剪切 ctrl + x
+    22 粘贴 ctrl + v
+    23 保存 ctrl + s
+    24 全选 ctrl + a
+    25 选中数行，整体往后移动 tab
+    26 选中数行，整体往前移动 shift + tab
+    27 查看类的结构：类似于 eclipse 的 outline ctrl+o
+    28 重构：修改变量名与方法名(rename) alt+shift+r
+    29 大写转小写/小写转大写(toggle case) ctrl+shift+y IntelliJ IDEA 的安装、配置与使用
+    30 生成构造器/get/set/toString alt +insert   ***
+
+    31 查看文档说明(quick documentation) F2
+    32 收起所有的方法(collapse all) alt + shift + c
+    33 打开所有方法(expand all) alt+shift+xS
+    34 打开代码所在硬盘文件夹(show in explorer) ctrl+shift+x
+    35 生成 try-catch 等(surround with) alt+shift+z    ***
+    36 局部变量抽取为成员变量(introduce field) alt+shift+f
+    37 查找/替换(当前) ctrl+f
+    38 查找(全局) ctrl+h
+    39 查找文件 double Shift
+    40 查看类的继承结构图(Show UML Diagram) ctrl + shift + u
+    41 查看方法的多层重写结构(method hierarchy) ctrl+alt+h
+    42 添加到收藏(add to favorites) ctrl+alt+f   ***
+    43 抽取方法(Extract Method) alt+shift+m   ***
+    44 打开最近修改的文件(Recently Files) ctrl+E  ***
+    45 关闭当前打开的代码栏(close) ctrl + w
+    46 关闭打开的所有代码栏(close all) ctrl + shift + w
+    47 快速搜索类中的错误(next highlighted error) shift + q
+    48 选择要粘贴的内容(Show in Explorer) ctrl+shift+v
+    49 查找方法在哪里被调用(Call Hierarchy) ctrl+shift+h
+

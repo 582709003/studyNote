@@ -1,6 +1,6 @@
 为什么使用lambda表达式
     Lambda是一个匿名函数，我们可以把Lambda表达式理解为是一段可以传递的代码
-    (将代码像数据一样可以传递)，可以写出更简洁灵活的代码;
+    (将代码像参数一样传递)，可以写出更简洁灵活的代码;
 
 lambda表达式的基础语法(其实lambda是函数式接口中的抽象方法中的实现体)
     1、java8引入了一个新的操作符"->"，该操作符称为箭头操作符或lambda操作符
@@ -35,7 +35,7 @@ lambda表达式的基础语法(其实lambda是函数式接口中的抽象方法�
         总结：左右遇一(左：参数，右：语句)括号省，左侧推断类型省
 
 lambda表达式需要"函数式接口"的支持
-    函数式接口：1、@FunctionalInterface该注解只能标记在"有且仅有一个抽象方法"的接口上。
+    函数式接口：1、@FunctionalInterface该注解只能标记在"有且仅有一个抽象方法，但可以包含其他静态或默认方法或object方法"的接口上。
               2、JDK8接口中的静态方法和默认方法，都不算是抽象方法。
               3、接口默认继承java.lang.Object，所以如果接口显示声明覆盖了Object中方法，那么也不算抽象方法。
               4、该注解不是必须的，如果一个接口符合"函数式接口"定义，那么加不加该注解都没有影响。加上该注解能够更好地让
@@ -52,7 +52,7 @@ java8内置的四大核心的函数式接口
 
     还有一些内置接口，看截图
 
-方法引用：若lambda体中的内容有方法已经实现了，我们可以使用"方法引用"
+方法引用：若lambda体中的内容有方法已经有其他类实现了，我们可以使用"方法引用"
         （可以将方法引用理解为 lambda表达式的另外一种表现形式）
 
      主要有三种表达形式
@@ -135,6 +135,7 @@ java8内置的四大核心的函数式接口
                 List<String> list2 = Arrays.asList("aaa","bbb","ccc","ddd","eee");
                 Predicate<String> p = x -> !x.equals("kkk");
                 //filter
+                //将list2中所有元素执行p的方法
                 Stream<String> stringStream = list2.stream().filter(p);
                 //limit
                 Stream<String> stringStream = list2.stream().limit(4);
@@ -144,7 +145,8 @@ java8内置的四大核心的函数式接口
         数目等于3后就不会继续迭代，停止迭代
 
         映射
-            map-接收Lambda，将元素转换成其他形式或提取信息，接收一个函数作为参数，该函数会被应用到每个元素上，并将其映射成一个新的元素。
+            map-接收Lambda，将元素转换成其他形式或提取信息，接收一个函数作为参数，该函数会被应用到每个元素上，
+            并将其映射成一个新的元素。
                 例子： List<String> list2 = Arrays.asList("aaa","bbb","ccc","ddd","eee");
                     Stream<String> stringStream = list2.stream().map((x) -> x.toUpperCase());
                     stringStream.forEach(System.out::println);

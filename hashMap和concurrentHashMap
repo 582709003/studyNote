@@ -37,6 +37,9 @@ hashMap的并发问题
                         if ((e = p.next) == null) {
                             p.next = newNode(hash, key, value, null);
                             if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                            //如果新增节点之后，所在的链表的元素个数大于等于8，则会调用treeifyBin试图把链表转换为红黑树。
+                            //在转换结构时，它会先查看tab的长度，若tab的长度小于MIN_TREEIFY_CAPACITY，默认值为64，
+                            //放弃转红黑树，转而将数组长度扩大到原来的两倍，然后触发resize，重新调整节点位置
                                 treeifyBin(tab, hash);
                             break;
                         }
@@ -56,17 +59,52 @@ hashMap的并发问题
                 }
             }
             ++modCount;
-            //如果超过容量阈值，就扩增数组容量
+            //如果hashmap中的所有kv超过容量阈值，就扩增数组容量
             if (++size > threshold)
                 resize();
             afterNodeInsertion(evict);
             return null;
         }
 
+     table 扩容
+            什么时候会触发扩容？
+            - 如果新增节点之后，所在的链表的元素个数大于等于8，则会调用treeifyBin试图把链表转换为红黑树。在转换结构时，
+              它会先查看tab的长度，若tab的长度小于MIN_TREEIFY_CAPACITY，默认值为64，放弃转红黑树，转而将数组长度扩大到原来
+              的两倍，然后触发transfer，重新调整节点位置。但是当tab.length >= 64, HashMap才会转红黑树。
+            - 新增节点后，size统计tab中的所有节点个数是否大于阈值（threshold），大于的话会触发resize，重新调整节点位置。
+
+    约定
+        约定前面的数组结构的每一个格格称为桶
+        约定桶后面存放的每一个数据称为bin
+        bin这个术语来自于JDK 1.8的HashMap注释。
+
+    size
+        size表示HashMap中存放KV的数量（为链表和树中的KV的总和）。
+    capacity
+        capacity译为容量。capacity就是指HashMap中桶的数量。默认值为16。一般第一次扩容时会扩容到64，之后好像是2倍。
+        总之，容量都是2的幂。
+    loadFactor
+        loadFactor译为装载因子。装载因子用来衡量HashMap满的程度。loadFactor的默认值为0.75f。
+        计算HashMap的实时装载因子的方法为：size/capacity，而不是占用桶的数量去除以capacity。
+    threshold
+            threshold表示当HashMap的size(HashMap中存放KV的数量)大于threshold时会执行resize操作。
+            threshold=capacity*loadFactor
 
 
 concurrentHashMap
-    final V putVal(K key, V value, boolean onlyIfAbsent) {
+    利用 ==CAS + synchronized== 来保证并发更新的安全
+    底层使用==数组+链表+红黑树==来实现
+    1、实例初始化
+      实例化ConcurrentHashMap时倘若声明了table的容量，在初始化时会根据参数调整table大小，
+      ==确保table的大小总是2的幂次方==。默认的table大小为16.
+      table的初始化操作是在第一次put操作进行，并且初始化只会执行一次。
+    2、put操作
+        假设table已经初始化完成，put操作采用==CAS+synchronized==实现并发插入或更新操作：
+        - 当前bucket为空时，使用CAS操作，将Node放入对应的bucket中。
+        - 出现hash冲突，则采用synchronized关键字。倘若当前hash对应的节点是链表的头节点，遍历链表，若找到对应的node节点，
+        则修改node节点的val，否则在链表末尾添加node节点；倘若当前节点是红黑树的根节点，在树结构上遍历元素，更新或增加节点。
+
+        final V putVal(K key, V value, boolean onlyIfAbsent) {
             if (key == null || value == null) throw new NullPointerException();
             //找到key的hash值
             int hash = spread(key.hashCode());
@@ -142,3 +180,23 @@ concurrentHashMap
             addCount(1L, binCount);
             return null;
     }
+
+     table 扩容
+        什么时候会触发扩容？
+        - 如果新增节点之后，所在的链表的元素的个数大于等于8，则会调用treeifyBin试图把链表转换为红黑树。在转换结构时，
+          它会先查看tab的长度，若tab的长度小于MIN_TREEIFY_CAPACITY，默认值为64，放弃转红黑树，转而将数组长度扩大到原来
+          的两倍，然后触发transfer，重新调整节点位置。但是当tab.length >= 64, ConcurrentHashMap才会转红黑树。
+        - 新增节点后，addCount统计tab中的所有节点个数是否大于阈值（sizeCtl），大于的话会触发transfer，重新调整节点位置。
+
+      ConcurrentHashMap能完全替代HashTable吗？
+         hash table虽然性能上不如ConcurrentHashMap，但并不能完全被取代，两者的迭代器的一致性不同的，hash table的迭代器
+         是强一致性的，而concurrenthashmap是弱一致的。 ConcurrentHashMap的get，clear，iterator 都是弱一致性的。
+         下面是大白话的解释：
+         - Hashtable的任何操作都会把整个表锁住，是阻塞的。好处是总能获取最实时的更新，比如说线程A调用putAll写入大量数据，
+         期间线程B调用get，线程B就会被阻塞，直到线程A完成putAll，因此线程B肯定能获取到线程A写入的完整数据。坏处是所有调用
+         都要排队，效率较低。
+         - ConcurrentHashMap 是设计为非阻塞的。在更新时会局部锁住某部分数据，但不会把整个表都锁住。同步读取操作则是完全非
+         阻塞的。好处是在保证合理的同步前提下，效率很高。坏处 是严格来说读取操作不能保证反映最近的更新。例如线程A调用putAll
+         写入大量数据，期间线程B调用get，则只能get到目前为止已经顺利插入的部分 数据。
+         选择哪一个，是在性能与数据一致性之间权衡。ConcurrentHashMap适用于追求性能的场景，大多数线程都只做insert/delete
+         操作，对读取数据的一致性要求较低。

@@ -25,6 +25,56 @@
 
         }
     方式二：jdk5.0,可以使用enmu关键字定义枚举类
+        enum Day {
+            MONDAY, TUESDAY, WEDNESDAY,
+            THURSDAY, FRIDAY, SATURDAY, SUNDAY
+        }
+
+        反编译后
+        //反编译Day.class
+        final class Day extends Enum
+        {
+            //编译器为我们添加的静态的values()方法
+            public static Day[] values()
+            {
+                return (Day[])$VALUES.clone();
+            }
+            //编译器为我们添加的静态的valueOf()方法，注意间接调用了Enum也类的valueOf方法
+            public static Day valueOf(String s)
+            {
+                return (Day)Enum.valueOf(com/zejian/enumdemo/Day, s);
+            }
+            //私有构造函数
+            private Day(String s, int i)
+            {
+                super(s, i);
+            }
+             //前面定义的7种枚举实例
+            public static final Day MONDAY;
+            public static final Day TUESDAY;
+            public static final Day WEDNESDAY;
+            public static final Day THURSDAY;
+            public static final Day FRIDAY;
+            public static final Day SATURDAY;
+            public static final Day SUNDAY;
+            private static final Day $VALUES[];
+
+            static
+            {
+                //实例化枚举实例
+                MONDAY = new Day("MONDAY", 0);
+                TUESDAY = new Day("TUESDAY", 1);
+                WEDNESDAY = new Day("WEDNESDAY", 2);
+                THURSDAY = new Day("THURSDAY", 3);
+                FRIDAY = new Day("FRIDAY", 4);
+                SATURDAY = new Day("SATURDAY", 5);
+                SUNDAY = new Day("SUNDAY", 6);
+                $VALUES = (new Day[] {
+                    MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
+                });
+            }
+        }
+
         //使用enum关键字定义枚举类，说明：定义的枚举类默认继承于java.lang.Enmu类
         public enum Season2 {
             //1.0提供当前枚举类的多个对象；public static final省略，多个对象之间用逗号分隔
@@ -48,7 +98,30 @@
 
         }
 
+可以向enum类添加方法与自定义构造函数
+在enum类中确实可以像定义常规类一样声明变量或者成员方法。但是我们必须注意到，如果打算在enum类中定义方法，务必在声明完枚
+举实例后使用分号分开，倘若在枚举实例前定义任何方法，编译器都将会报错，同时即使自定义了构造函数，我们也永远无法手动调用构造函
+数创建枚举实例，毕竟这事只能由编译器执行。
+    public enum SexEnum{
+        MAN(1, "男"),
+        WOMAN(2, "女");
 
+        private Integer value;
+        private String desc;
+
+        SexEnum(Integer value, String desc) {
+            this.value = value;
+            this.desc = desc;
+        }
+
+        public Integer getValue() {
+            return this.value;
+        }
+
+        public String toString() {
+            return this.desc;
+        }
+    }
 
 三、Enum类中的常用方法(直接用)
     values()方法：返回枚举类型的对象数组，该方法可以很方便的遍历所有的枚举值
@@ -56,7 +129,7 @@
                             如果不是，会有运行时异常:illegalArgmentException
     toString()方法：返回当前枚举类对象常量的名称
     name()方法：返回此枚举常量的名称
-    ordinal()：返回此枚举在枚举声明中的位置
+    ordinal()：返回此枚举在枚举声明中的位置（它在枚举声明中的位置，其中初始常量序数为零）
     compareTo():比较枚举的大小，使根据ordinal值进行比较的
 
 四、使用enum关键字定义的枚举类实现接口的情况
@@ -87,25 +160,17 @@
                 }
             };
 
-    OPERATION(0, "操作"),
-    LOGIN(1, "登录");
-
-    private int value;
-    private String desc;
-
-    LogType(int value, String desc) {
-        this.value = value;
-        this.desc = desc;
-    }
-
-    @Override
-    //获取值
-    public Integer getValue() {
-        return this.value;
-    }
-
-    @Override
-    //获取描述
-    public String toString() {
-        return this.desc;
+枚举与switch
+     public static void printName(Color color){
+        switch (color){
+            case BLUE: //无需使用Color进行引用
+                System.out.println("蓝色");
+                break;
+            case RED:
+                System.out.println("红色");
+                break;
+            case GREEN:
+                System.out.println("绿色");
+                break;
+        }
     }

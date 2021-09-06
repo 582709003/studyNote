@@ -1,0 +1,89 @@
+CORS跨域请求及实现机制
+    一、什么是CORS
+        CORS是一个W3C标准，全称是"跨域资源共享"（Cross-origin resource sharing）。它允许浏览器向跨域服务器，
+        发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。只要服务器实现了CORS接口，就可以跨源通信。
+    二、什么是跨域
+        如果两个URL的协议、域名和端口相同，则表示他们同源。相反，只要协议，域名，端口有任何一个的不同，就被当作是跨域。
+    三、CORS的两种请求
+        CORS有两种请求，简单请求和非简单请求。这两种请求都是针对的跨域请求，没有跨域的请求就是正常请求
+        只要同时满足以下两大条件，就属于简单请求。
+            (1) 请求方法是以下三种方法之一：
+                HEAD
+                GET
+                POST
+            (2)HTTP请求头信息不超出以下几种字段：
+                Accept
+                Accept-Language
+                Content-Language
+                Last-Event-ID
+                Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/form-data、text/plain
+            凡是不同时满足上面两个条件，就属于非简单请求。
+            浏览器对这两种请求的处理，是不一样的。
+
+    CORS的简单请求
+        对于简单请求，浏览器直接发出CORS请求。具体来说，就是在头信息之中，增加一个Origin字段。
+        下面是一个例子，浏览器发现这次跨源AJAX请求是简单请求，就自动在头信息之中，添加一个Origin字段。
+        GET /cors HTTP/1.1
+        Origin: http://m.xin.com   是从哪个域跨站请求我来的
+        Host: api.alice.com
+        Accept-Language: en-US
+        Connection: keep-alive
+        User-Agent: Mozilla/5.0...
+        Origin字段用来说明，本次请求来自哪个源（协议 + 域名 + 端口）。被请求服务器根据这个值，决定是否同意这次请求。
+        如果Origin指定的源，不在许可范围内，服务器会返回一个正常的HTTP回应。浏览器发现，这个回应的头信息没有包含
+        Access-Control-Allow-Origin字段（详见下文），就知道出错了，从而抛出一个错误，被XMLHttpRequest的onerror回调函数
+        捕获。注意，这种错误无法通过状态码识别，因为HTTP回应的状态码有可能是200。
+        如果Origin指定的域名在许可范围内，服务器返回的响应，会多出几个头信息字段。
+        1）Access-Control-Allow-Origin
+            该字段是必须的。它的值要么是请求时Origin字段的值，要么是一个*，表示接受任意域名的请求。
+       （2）Access-Control-Allow-Credentials
+            该字段可选。它的值是一个布尔值，表示是否允许发送Cookie。默认情况下，Cookie不包括在CORS请求之中。设为true，
+            即表示服务器明确许可，Cookie可以包含在请求中，一起发给服务器。这个值也只能设为true，如果服务器不要浏览器发送
+            Cookie，删除该字段即可。
+       （3）Access-Control-Expose-Headers
+            该字段可选。CORS请求时，XMLHttpRequest对象的getResponseHeader()方法只能拿到6个基本字段：Cache-Control、
+            Content-Language、Content-Type、Expires、Last-Modified、Pragma。如果想拿到其他字段，就必须在
+            Access-Control-Expose-Headers里面指定。上面的例子指定，getResponseHeader('FooBar')可以返回FooBar字段的值。
+
+        Access-Control-Allow-Origin: http://api.bob.com
+        Access-Control-Allow-Credentials: true
+        Access-Control-Expose-Headers: FooBar
+        Content-Type: text/html; charset=utf-8
+
+    CORS非简单请求-预检请求
+        非简单请求是那种对服务器有特殊要求的请求，比如请求方法是PUT或DELETE，或者Content-Type字段的类型是application/json。
+        非简单请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为"预检"请求（preflight）。
+        浏览器先询问服务器，当前网页所在的域名是否在服务器的许可名单之中，以及可以使用哪些HTTP动词和头信息字段。如果在
+        的话就在响应头中设置
+            Access-Control-Allow-Origin: http://api.bob.com
+            Access-Control-Allow-Credentials: true
+            Access-Control-Expose-Headers: FooBar
+            Content-Type: text/html; charset=utf-8
+        ，浏览器看到响应头后才会发出正式的XMLHttpRequest请求；如果不在，这些响应头就不设置，
+        浏览器看不到这些响应头就知道没通过，然后浏览器就报错
+
+
+    总结
+        1、非跨站请求那就直接请求资源
+        2、跨站简单请求
+            服务器看请求头是否有它允许的网站，请求方法以及头信息，有的话就在响应头设置以下
+                Access-Control-Allow-Origin: http://api.bob.com
+                Access-Control-Allow-Credentials: true
+                Access-Control-Expose-Headers: FooBar
+                Content-Type: text/html; charset=utf-8
+            如果没有的话就直接返回响应体，浏览器看没有它需要的响应信息，就报错
+
+        3、预检请求
+                与简单请求相比，除了Origin以外，多了两个头：
+                Access-Control-Request-Method：接下来会用到的请求方式，比如PUT
+                Access-Control-Request-Headers：会额外用到的头信息
+                服务器看请求头是否有它允许的网站，请求方法以及头信息，有的话就在响应头设置以下
+                    Access-Control-Allow-Origin: http://api.bob.com
+                    Access-Control-Allow-Credentials: true
+                    Access-Control-Expose-Headers: FooBar
+                    Content-Type: text/html; charset=utf-8
+                    AccessControlAllowMethods
+                    AccessControlAllowHeader
+                    AccessControlMaxAge
+                如果没有的话就直接返回响应体，浏览器看没有它需要的响应信息，就报错
+        浏览器包不报错主要看响应头中有没有他想要的头信息，没有就报错，有就正常请求

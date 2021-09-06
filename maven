@@ -5,6 +5,7 @@
 之所以会有jar包冲突，不同版本的jar包有不一样的方法或者方法体，可能项目里依赖的方法在新版本的jar包里被取消导致异常
 
 基于开发工具开发时，tomcat里部署项目的时候，访问项目的根路径（其实就是上下文路径）其实不一定和项目名称一样，你可以随便起名字
+                可以在server.xml文件的context元素中修改
 
 maven 安装路径最好是无中文无空格路径下
 
@@ -115,7 +116,7 @@ maven工程关系
                 （建议尽量去从公共或定制的 Maven 仓库中引用依赖）
 
     2、maven继承
-        首先必须得是父子工程关系，子工程需要指定父工程pom文件路径，子工程的jar才会引入
+        首先必须得是父子工程关系，子工程需要指定父工程pom文件路径，父工程的jar才会引入
         例：<relativePath>../pom.xml</relativePath>，子工程有<parent>标签
 
         <dependencies>:这个是依赖管理标签，jar会被当前项目引入，子项目继承当前项目时，会自动引入该依赖，无需显式引用
@@ -137,12 +138,12 @@ maven工程关系
     4、报告：测试程序执行的结果
     5、打包：动态web工程打包war包，Java工程打jar包
     6、安装：将打包得到的文件复制到仓库中的指定位置
-    7、部署：将动态web工程工程的war包复制到servlet容器的指定目录下，使其可以运行
+    7、部署：将动态web工程的war包复制到servlet容器的指定目录下，使其可以运行
     顺序不能打乱，maven核心程序中定义了抽象的生命周期，生命周期中各个阶段的具体任务是由插件来完成的
 
 插件和目标
     maven的生命周期有三个独立的阶段
-        clean：再进行真正的构建 之前进行一些清理工作
+        clean：在进行真正的构建之前进行一些清理工作
             包含三个阶段
             1、pre-clean:执行一些需要在clean之前完成的工作
             2、clean：移除上一次构建生成的文件
@@ -226,7 +227,7 @@ idea创建maven工程
     并将mvn package生成的软件包重命名为*.original。
     spring-boot-maven-plugin插件是将springboot的应用程序打包成fat jar的插件。首先我们说一下啥叫fat jar。fat jar 我们暂且
     叫他胖jar吧。我们一般的jar，里面放的是.class文件以及resources目录下的东西，但是fat jar 它可以把jar作为内容包含进去。
-    也就是说，spring boot 借助spring-boot-maven-plugin将所有应用启动运行所需要的jar都包含进来，从逻辑上将具备了独立运
+    也就是说，spring boot 借助spring-boot-maven-plugin将所有应用启动运行所需要的jar都包含进来，从逻辑上讲这个jar包具备了独立运
     行的条件
 
 IDEA-Maven项目的jdk版本设置

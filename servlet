@@ -7,7 +7,7 @@
     3、servlet接口实现类
         1、servlet接口来自于servlet规范下的一个接口，这个接口存在于我们当前的http服务器提供的jar包中
         2、Tomcat服务器下lib文件下有一个servlet-api.jar存放了servlet接口
-        3、在servlet规范中，在http服务器能调用的动态资源文件必须是一个servlet接口的实现类
+        3、在servlet规范中，在http服务器里能调用的动态资源文件必须是一个servlet接口的实现类
             class student{
                 //因为没有实现servlet，所以tomcat无权调用这个动态资源文件
             }
@@ -128,7 +128,7 @@
 
 servletContext
     介绍
-        servlet上下文也就是servlet环境，所有servlete共享一个环境，一个应用对应一个servletContext;
+        servlet上下文也就是servlet环境，所有servlet共享一个环境，一个应用对应一个servletContext;
     servletContext常用方法
         String getInitParameter(String var1)：
             servlet都可以共享的初始化参数
@@ -208,9 +208,9 @@ servlet_urlpattern匹配原则
                      URI用于让http服务器对被访问的资源文件进行定位
                2)可以读取保存在http请求协议包中请求头/请求体中的请求参数信息
                 问题：以get方式返送中文参数内容，服务端获取的是正常的内容，但是以post方式发送中文参数内容后台出现乱码
-                 原因：浏览器以get方式发送请求，请求参数保存在请求头中的，当http请求协议包到达http服务器之后，
+                 原因：浏览器以get方式发送请求，请求参数保存在请求头中的，默认是以utf-8变啊，当http请求协议包到达http服务器之后，
                         第一件事就是解码，请求头中的二进制的内容是由tomcat负责解码，tomcat9.0默认使用utf-8解码，可以解释
-                        一切国家的文字；
+                        一切国家的文字；如果出现乱码，要去server.xml中修改编码格式
                       浏览器以post方式发送请求，请求参数保存在请求体中的，当http请求协议包到达http服务器之后，第一件事就是解码，
                        请求体中的二进制的内容是由当前请求对象request负责解码，request默认使用iso8859-1解码，此时如果请求参数中有中文，
                        将无法解码只能得到乱码
@@ -594,8 +594,8 @@ servlet3.0容器和springmvc整合
     1、spring-web jar包；里有一个 META-INF/services/javax.servlet.ServletContainerInitializer
         web容器启动的时候会扫描每个jar包下的这个文件夹的文件
     2、加载文件中指定的类SpringServletContainerInitializer
-    3、spring的应用一启动就会加载感兴趣的这个WebApplicationInitializer接口下的所有类型的组件，
-        并且为这些组件创建对象（非接口和抽象类）
+    3、spring的应用一启动就会加载感兴趣的这个WebApplicationInitializer接口下的所有子类，子接口，
+        并且为这些子类创建对象（非接口和抽象类）
         这个接口下的子类型
         1、AbstractContextLoaderInitializer
             1、创建根容器

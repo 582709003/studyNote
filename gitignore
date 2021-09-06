@@ -1,53 +1,57 @@
-*.idea
-*.iml
-target
-*.class
-*.jar
-*.war
+文件 .gitignore 的格式规范如下：
+    所有空行或者以 # 开头的行都会被 Git 忽略。
+    可以使用标准的 glob 模式匹配，它会递归地应用在整个工作区中。
+    匹配模式可以以（/）开头防止递归。/a 当前目录下的a文件
+    匹配模式可以以（/）结尾指定目录。a/ 任何目录下的a文件夹
+    要忽略指定模式以外的文件或目录，可以在模式前加上叹号（!）取反。
 
+glob模式
+    是指 shell 所使用的简化了的正则表达式。
+    星号（*）匹配零个或多个任意字符；
+    [abc] 匹配任何一个列在方括号中的字符 （这个例子要么匹配一个 a，要么匹配一个 b，要么匹配一个 c）；
+    问号（?）只匹配一个任意字符；
+    如果在方括号中使用短划线分隔两个字符， 表示所有在这两个字符范围内的都可以匹配（比如 [0-9] 表示匹配所有 0 到 9 的数字）。
+    使用两个星号（**）表示匹配任意中间目录，比如 a/**/z 可以匹配 a/z 、 a/b/z 或 a/b/c/z 等。
 
+.gitignore 文件的例子：
+    # 忽略所有的 .a 文件
+    *.a
+    # 但跟踪所有的 lib.a，即便你在前面忽略了 .a 文件
+    !lib.a
+    # 只忽略当前目录下的 TODO 文件，而不忽略 subdir/TODO
+    /TODO
+    # 忽略任何目录下名为 build 的文件夹
+    build/
+    # 忽略 doc/notes.txt，但不忽略 doc/server/arch.txt
+    doc/*.txt
+    # 忽略 doc/ 目录及其所有子目录下的 .pdf 文件
+    doc/**/*.pdf
+
+注意
+    1、在最简单的情况下，一个仓库可能只根目录下有一个 .gitignore 文件，它递归地应用到整个仓库中。 然而，子目录下也可以有额外的
+     .gitignore 文件。子目录中的 .gitignore 文件中的规则只作用于它所在的目录中
+    2、被过滤掉的文件就不会出现在git仓库中（gitlab或github）了，当然本地库中还有，只是push的时候不会上传。
 
 #               表示此为注释,将被Git忽略
 *.a             表示忽略所有 .a 结尾的文件
 !lib.a          表示但lib.a除外
 /TODO           表示仅仅忽略项目根目录下的 TODO 文件，不包括 subdir/TODO
-build/          表示忽略 build/目录下的所有文件，过滤整个build文件夹；
-doc/*.txt       表示会忽略doc/notes.txt但不包括 doc/server/arch.txt
-
-bin/:           表示忽略当前路径下的bin文件夹，该文件夹下的所有内容都会被忽略，不忽略 bin 文件
+build/          表示忽略 任何目录下的build目录它里面的所有文件，过滤整个build文件夹；
+doc/*.txt       表示会忽略任何目录下的doc文件夹下的.txt结尾的文件但不包括 doc/server/arch.txt
 /bin:           表示忽略根目录下的bin文件
-/*.c:           表示忽略cat.c，不忽略 build/cat.c
+/*.c:           表示忽略当前文件夹下的cat.c，不忽略 build/cat.c
 debug/*.obj:    表示忽略debug/io.obj，不忽略 debug/common/io.obj和tools/debug/io.obj
 **/foo:         表示忽略/foo,a/foo,a/b/foo等
 a/**/b:         表示忽略a/b, a/x/b,a/x/y/b等
 !/bin/run.sh    表示不忽略bin目录下的run.sh文件
 *.log:          表示忽略所有 .log 文件
 config.php:     表示忽略当前路径的 config.php 文件
-
-/mtk/           表示过滤整个文件夹
+/mtk/           表示过滤当前目录下的mtk文件夹
 *.zip           表示过滤所有.zip文件
 /mtk/do.c       表示过滤某个具体文件
 
-被过滤掉的文件就不会出现在git仓库中（gitlab或github）了，当然本地库中还有，只是push的时候不会上传。
-需要注意的是，gitignore还可以指定要将哪些文件添加到版本管理中，如下：
-!*.zip
-!/mtk/one.txt
-
-唯一的区别就是规则开头多了一个感叹号，Git会将满足这类规则的文件添加到版本管理中。
-为什么要有两种规则呢？
-想象一个场景：假如我们只需要管理/mtk/目录中的one.txt文件，这个目录中的其他文件都不需要管理，那么.gitignore规则应写为：：
-/mtk/*
-!/mtk/one.txt
-
 假设我们只有过滤规则，而没有添加规则，那么我们就需要把/mtk/目录下除了one.txt以外的所有文件都写出来！
 注意上面的/mtk/*不能写为/mtk/，否则父目录被前面的规则排除掉了，one.txt文件虽然加了!过滤规则，也不会生效！
-
-还有一些规则如下：
-fd1/*
-说明：忽略目录 fd1 下的全部内容；注意，不管是根目录下的 /fd1/ 目录，还是某个子目录 /child/fd1/ 目录，都会被忽略；
-
-/fd1/*
-说明：忽略根目录下的 /fd1/ 目录的全部内容；
 
 /*
 !.gitignore
@@ -55,4 +59,6 @@ fd1/*
 /fw/*
 !/fw/bin/
 !/fw/sf/
-说明：忽略全部内容，但是不忽略 .gitignore 文件、根目录下的 /fw/bin/ 和 /fw/sf/ 目录；注意要先对bin/的父目录使用!规则，使其不被排除。
+说明：忽略全部内容，但是不忽略 .gitignore 文件、根目录下的 /fw/bin/ 和 /fw/sf/ 目录；注意要先对bin/的父目录使用!规则，
+    使其不被排除。
+    确保.gitignore文件和.git文件夹在同级目录才能生效

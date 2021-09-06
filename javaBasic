@@ -37,6 +37,7 @@ jdk、jre、jvm三者关系
     jdk是程序开发包，程序员需要使用里面的各种包工具进行开发，如果仅仅是为了开发但是你不需要测试就只安装jdk即可，
     但是程序员是不可能不运行程序的，所以一般下载安装jdk时会默认下载安装jre；
     jre：这个是运行时环境，类加载器就是jre提供的，一般会在下载jdk时自动下载这个jre，但如果不要jdk可以单独安装；
+        它会加载jvm运行需要的jar包以及java核心类库，所以它提供了jvm运行环境，如果jvm都运行不起来，那何谈java运行
     jvm：这个就是安装jre最大的用处，jvm不可以单独下载安装，jvm是jre的一个功能；
     在安装jdk时会问你要不要再安装jre，你也可以选择不安装，因为你的jdk目录下已经有了一个jre；否则会在jdk同级目录下安装一个jre
 
@@ -192,7 +193,7 @@ public class和class的区别
 
         java语言使用的时utf-8编码，所以标识符可以使用中文
 
-    空格符和制表符是不同得分asicll码
+    空格符和制表符是不同得asicll码
 
     \是转义字符，放在特殊字符之前会将特殊字符转变为普通字符
 
@@ -219,6 +220,11 @@ public class和class的区别
             byte<short<int<long<float<double
             byte<char<int<long<float<double
             注意：任何浮点型都比整数型容量大；char和short可表示的种类数量相同，但是char可以取更大的正整数
+             int a = 'a';
+            System.out.println(a);   97
+            char b = 97;
+            System.out.println(b);   a
+
         3、大容量转小容量时需要强制类型转换，可能会损失精度
         4、byte、short、char混合运算时，先将参与运算的值各自先转换成int类型再做运算，结果也就是最大容量类型
         5、多种数据类型混合运算时，先将参与运算的值先转换成最大容量的那种类型再进行运算，结果也就是这个最大容量类型。
@@ -572,12 +578,12 @@ Object类
 
         数组的扩容
             数组满了需要扩容；扩容是：
-                先新建一个大容量的数据，然后将一个小容量数组中的数据一个个拷贝到大数组当中
+                先新建一个大容量的数组，然后将一个小容量数组中的数据一个个拷贝到大数组当中
                 数组扩容效率较低
 
             扩容方法：
                 System.arraycopy(Object src（源数组）,  int  srcPos（源数组希望拷贝的起始下标）,
-                                                        Object dest（目标数组）, int destPos（希望拷贝到目标数组的哪个小标）,
+                                                        Object dest（目标数组）, int destPos（希望拷贝到目标数组的哪个下标）,
                                                         int length（拷贝多长）)
 
       二维数组：
@@ -632,15 +638,15 @@ String字符串：
         垃圾回收器是不会回收常量的内存的
 
         注意： System.out.println()参数类型不属于基本数据类型以及string类型以及char数组类型时，输出的值会是参数对象
-            的tostring方法的返回值
+            的tostring方法的返回值，
 
             String.valueOf()方法：参数类型时基本数据类型，底层调用的是各基本数据类型的包装类的valueOf方法，再往下调用的
             就是各包装类的toString方法
 
 String.compareTo()方法：
-    按照字典顺序比较，前小后打的原则
+    按照字典顺序比较，前小后大的原则
     "a".compareTo("a") =0
-    "a".compareTo("b") <0 因为a在前，b在后，前小后大
+    "a".compareTo("b") <0 因为a在前，b在后，排在前的值小，排在后的值大
 
 StringBuffer()是线程安全的，StringBuilder()是线程不安全的
 
@@ -662,7 +668,6 @@ StringBuffer里的方法由synchronized关键字修饰，而StringBuilder没有�
     java为八种基本数据类型提供了包装类
     因为八种基本数据类型不够用
 
-
      Integer ins = new Integer(4);
      4这个基本数据类型进行构造方法的包装达到了：基本数据类型向引用数据类型的转换
      基本数据类型向引用数据类型的转换称为装箱
@@ -676,7 +681,7 @@ StringBuffer里的方法由synchronized关键字修饰，而StringBuilder没有�
 
     java为了提高执行效率，将-128到127之间所有的包装对象提前创建好，放到一个方法区的整数型常量池，目的是只要用这个区间的数
     据就不需要再new了，直接从常量池中获取
-    Integer a1 = 128;
+    Integer a1 = 128; 这个其实是new的
     Integer b1 = 128;
     System.out.println(a1 == b1); false
 
@@ -751,10 +756,22 @@ finally后面的代码，理论上如果try没有return，catch抛出异常或�
                 尽可能少的扩容ArrayList集合，因为扩容效率较低，建议在使用ArrayList集合的时候与估计元素的个数，
                 给定一个初始容量
                 集合的检索效率高，因为底层是数组，数组的类型，个数都是知道的，所以计算内存地址很高效，随机增删元素的效率较低，但是往末尾添加元素的效率较高
-                a >> b 将a转化为对二进制位然后去掉末尾b位数，然后再转化为十进制
 
+            带符号的移位操作
+                a >> b 将a转化为对二进制位然后去掉末尾b位数，空位用符号位补充，如果是正数用0补充，负数用1补充。
+                        然后再转化为十进制
                 a << b就表示把a转为二进制后左移b位（在后面添b个0）。例如100的二进制为1100100，而00000001 10010000转成十进制是400，
                 那么100 shl 2 = 400。可以看出，a shl b的值实际上就是a乘以2的b次方，因为在二进制数后添一个0就相当于该数乘以2。
+
+                这种运算是基于a的补码上进行的，将获得的二进制在转为十进制，如果是负数，还得将经过运算得到的补码转化为原码
+                然后再转化为十进制
+            无符号的移位操作interrupt
+                无符号的移位只有右移，没有左移，使用“>>>”进行移位，都补充0
+                6>>>2
+                    ? ? 00000000 00000000 00000000 00000110 +6在计算机中表示方法
+                    0000000000 00000000 00000000 00000110 右移两位，正数补0，结果为1
+                -6>>>2
+
 
                 Collection c2 = new HashSet<>();
                 ((ArrayList) c2).add(0);
@@ -774,9 +791,9 @@ finally后面的代码，理论上如果try没有return，catch抛出异常或�
                                         缺点：查询效率较低，每一次查找元素时都需要从头节点往下遍历
 
                         双向链表数据结构：基本单元还是节点Node，每一个节点Node有三个属性
-                                        第一：存储的数据
-                                        第二：上一个节点的内存地址
-                                        第三：下一个节点的内存地址
+                                            第一：存储的数据
+                                            第二：上一个节点的内存地址
+                                            第三：下一个节点的内存地址
 
 
         Vector:(底层是数组)
@@ -796,14 +813,21 @@ finally后面的代码，理论上如果try没有return，catch抛出异常或�
 
 
     Set：
-        Set集合存储元素的特点：无序不可重复。Set集合中元素不可重复且元素灭有下标
+        Set集合存储元素的特点：无序不可重复。Set集合中元素不可重复且元素没有下标
 
-        HashSet：实际上new hashSet的时候底层是new 了一个hashMap，向hashSet里存储元素的实际上是存储到hashMap集合的key部分
-                hashMap的数据结构是哈希表
+        HashSet：实际上new hashSet的时候底层是new 了一个hashMap，向hashSet里存储元素的实际上是将对象
+                的引用地址存储到hashMap集合的key部分,而值就是new 了一个 object对象，大家使用同一个object；查出对象的时候通过遍
+                历查找；
 
         TreeSet(实现了SortedSet):底层实际上是TreeMap(自平衡二叉树数据结构)，new TreeSet的时候，实际上是new了一个
-            TreeMap集合，往TreeSet存储元素的时候实际上是往TreeMap集合的key部分里添加元素，TreeMap集合底层采用了二叉树结构；
+            TreeMap，往TreeSet存储元素的时候实际上是往TreeMap的key部分里添加元素，TreeMap集合底层采用了二叉树结构；
             treeset无序不可重复，但因为实现了SortedSet所以可以按照元素大小顺序自动排序;
+            原理：
+                往TreeSet存放值时，会首先new一个TreeMap，这个类里面有比较器以及一个Entry根节点，
+                然后将值存放到TreeMap时，首先会判断这个值和根节点Entry里面的key做比较，如果比他小就再和左边的比较，比他大就
+                和右边的比较，一样大的话就直接覆盖Entry里面的值，重复此操作，一直找到最后一个节点，然后将key，value以及这个节点的
+                父节点封装成一个Entry，这里的value就是一个成员变量，统一是个object对象
+
         自平衡二叉树数据结构：
             1：自平衡二叉树，遵循左小右大原则存放
             2：遍历二叉树有三种方式：
@@ -882,11 +906,11 @@ finally后面的代码，理论上如果try没有return，catch抛出异常或�
 
 
 
-        hashTble：集合底层也是哈希表数据结构，初始化容量11，默认扩容因子0.75，扩容是原容量*2 +1 ；是线程安全的，所有方法都
+        hashTble：集合底层也是哈希表数据结构，初始化容量11，默认扩容因子0.75，扩容是原容量*2 +1 ；是线程安全的，添加值的方法都
         带有synchronized关键字，效率较低，现在使用较少，有一个子类：Propertites（key和value必须是String，线程安全的，
         称为属性类）；
         hashTble的key和value不允许null值；
-        SortedMap继承Map，TreeMap实现SortedMap，TreeMap集合的key可以实现自动按照大小顺序排序，底层存储结构是二叉树
+        SortedMap继承Map，TreeMap实现SortedMap，TreeMap的key可以实现自动按照大小顺序排序，底层存储结构是二叉树
         Map集合的key其实就是Set的集合下
 
 
@@ -958,6 +982,7 @@ finally后面的代码，理论上如果try没有return，catch抛出异常或�
         3、让当前的(当前的哦)线程进入休眠，阻塞状态，放弃占有的cpu时间片
 
     终止睡眠线程：
+        当前线程.interrupt
         重点：run()方法中的异常不能throws，只能try catch，因为父类中没有抛出异常
         Thread t2 = new Thread(new Mythread2());
         t2.start();

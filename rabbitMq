@@ -62,7 +62,7 @@ MQ产类
         客户端到rabbitmq服务的连接
 
     channels
-        通道：数据是从通道里来传输的；自我理解：生产者和消费者都得要创建一个通道，只有两个通道对接了才能传输数据
+        通道：数据是从通道里来传输的；自我理解：生产者和消费者都得要创建一个通道，消息传递的介质
 
     exchanges
         交换机(路由)
@@ -77,17 +77,18 @@ MQ产类
 通过通道将消息放入交换机(或者不放在交换机中)；
 消费者在消费消息时也需要连接rabbirmq的服务器以及虚拟主机，并从通道获取消息；
 
-第一种模型(直连)
+第一种模型(直连),简单队列
     p：生产者，发送消息的程序
     c：消费者，消息的接受者，会一直等待消息的到来
-    queue：消息队列，类似一个邮箱，可以缓存消息，生产者香气中投递消息，消费者从中取出消息
+    channel :用于发送消息以及接收消息
+    queue：消息队列，类似一个邮箱，可以缓存消息，生产者向其中投递消息，消费者从中取出消息
 
     //通道里声明一个队列；声明一个队列,如果声明的队列不存在的情况下会自动创建
      chhannel.queueDeclare(String name, boolean durable, boolean exclusive, boolean autoDelete,aregument);
     参数介绍
         参数1：队列名称
         参数2：用来定义队列的特性是否要持久化，true持久化队列，rabbitmq关闭服务之后会持久化到硬盘，
-              重启后又会自动创建；false不会持久化，重启后就没有了这个队列；
+              重启后又会自动创建；false不会持久化，存储在内存中，重启后就没有了这个队列；默认false
               注意：此时只会持久化队列而不会持久化队列里的消息
         参数3：是否独占队列，表示当前的队列只能当前的连接可用，其他的连接不可使用此队列
         参数4：是否在消费完成后自动删除队列，true:是，false：否
@@ -112,7 +113,7 @@ MQ产类
         消费者消费方法
             channel.basicConsume(queue,autoAck,Consumer);
             参数1：队列名称
-            参数2：消息自动确认，默认true：消费者自动像通道反馈消息已经被消费了
+            参数2：消息自动确认，默认true：消费者自动像通道反馈 消息已经被消费了
                     这时通道不关心你的消费业务有没有处理完，消费者这边只要拿到了消息，然后消费者就会像通道反馈消息已经被消费了，
                     即使你的消费者down机了，此时通道立即将队列里的相关消息删除；此时可能会丢失消息
                     false：关闭消息自动确认机制
@@ -145,4 +146,179 @@ MQ产类
             channel.queueBind(queuename,exchange,routinKey);
 
 
+rabbitJava
+1、消息应答
+    rabbitMq一旦向消费者传递了一条消息，便立即将该消息标记为删除，在这种情况下，如果有个消费者挂掉了，我们将丢失正在处理的消息
+    以及后续将发送给消费者的消息，因为它无法接收；
+    于是为了保证消息不丢失，rabbitmq引入消息应答机制：在非这在接收到消息并且处理该消息之后，再告诉rabbitmq他已经处理消息了，
+    rabbitmq可以将它删除了；
+    消息应答方法
+        1、channel.basicAck(用于肯定确认);
+            rabbitmq已经知道该消息并已经成功处理了，可以将其丢弃了
+        2、channel.basicNack(用于否定确认);
+        3、channel.basicReject(用于否定确认)，相比于上面的少一个批量处理的参数multiple
+            不处理该消息了，直接拒绝，可以将其丢弃
+        参数multiple的解释
+            true：批量应答channel上未应答的消息
+            false
+2、消息自动重新入队
+    如果消费者因为某些原因失去连接，导致消息未发送Ack确认，rabbitmq将了解到消息未完全处理，并将对此消息进行重新入对，如果此时
+    有其他消费者可以处理，他将很快重新发给另一个消费者，这样，即使某个消费者偶尔死亡，也可以确保消息不会丢失
 
+3、消息手动应答代码
+   消息在手动应答时是不会丢失的,放回队列重新被消费
+    public static void main(String[] args) throws IOException {
+            Channel channel = RabbitUtils.getChannel();
+     //       参数介绍
+    //            参数1：消费哪个队列的名称
+    //            参数2：消费完成之后自动应答 true，false，手动应答
+    //            参数3：消费者未成功消费的回调
+    //            参数4：消费者取消消费的回调
+            DeliverCallback deliverCallback = (consumerTag, message) -> {
+                System.out.println(new String(message.getBody()));
+                //第一个参数消息的唯一标识，第二个参数：是否批量处理
+                channel.basicAck(message.getEnvelope().getDeliveryTag(),false);
+            };
+            CancelCallback cancelCallback = consumerTag -> {
+                System.out.println("消费消息被中断Worker01");
+            };
+            //取消自动应答
+            channel.basicConsume(QUEUE_NAME,false,deliverCallback,cancelCallback);
+            System.out.println("消息接收完毕Worker01");
+        }
+
+4、队列持久化
+    默认情况下，rabbitmq退出或者由于某种原因崩溃时，它忽视队列和消息，除非告知它不要这样做；
+    确保消息不会丢失需要做两件事，将队列和消息都标记为持节化
+     参数介绍
+        参数1：队列名称
+        参数2：用来定义队列的特性是否要持久化，true持久化队列，rabbitmq关闭服务之后会持久化到硬盘，
+                重启后又会自动创建；false不会持久化，存储在内存中，重启后就没有了这个队列；默认false
+                注意：此时只会持久化队列而不会持久化队列里的消息
+        参数3：是否独占队列，表示当前的队列只能当前的连接可用，其他的连接不可使用此队列
+        参数4：是否在所有消费者消费完成后自动删除队列，true:是，false：否
+        channel.queueDeclare(QUEUE_NAME,false,false,false,null);
+
+5、消息持久化
+    1、发送到哪个交换机
+    //                    2、路由key的值
+                          3、设置为true时，如果交换机无法根据自身的类型和routingKey找到一个符合条件的队列时，那么
+                             rabbitmq会调用basic.return方法把消息返回给生产者,会调用回调函数；false时会直接丢弃消息
+    //                    4、其他参数   例如MessageProperties.PERSISTENT_TEXT_PLAIN代表消息持久化(要求保存到磁盘上)
+    //                                 但是这样也不能完全保证消息就能肯定持久化，后面介绍保证持久化
+    //                    5、发送消息的消息体
+     channel.basicPublish("",QUEUE_NAME,true, MessageProperties.PERSISTENT_TEXT_PLAIN,"hello world".getBytes());
+
+        //mandatory设置为true时，如果没有找到队列，处理没有找到队列被返回的消息
+        channel.addReturnListener(new ReturnListener() {
+            @Override
+            public void handleReturn(int replyCode, String replyText, String exchange, String routingKey, AMQP.BasicProperties properties, byte[] body) throws IOException {
+
+            }
+        });
+
+6、不公平分发(能者多劳)
+    rabbitmq分发消息采用轮询分发，但是一些场景下并不是很好，比如消费者1处理快，消费者2处理慢，轮询的情况下就会出现消费者1
+    大部分时间都是空闲的，但是消费者2一直在处理，这种分配方式这种情况下就不是很好；
+
+    为了避免这种情况，消费端可以如下设置
+        channel.basicQos(1); 
+        意思就是说消费端如果当前任务还没有处理完或者还没有应答你，你先别分配给我，我目前只能处理一个任务，然后rabbitmq
+        就会把该任务分配给没有那么忙的空闲消费者
+
+7、预取值(prefetch)
+     channel.basicQos(5); 这里的5就是预取值
+    当消费端channel里消息数量等于prefetch得值时，rabbitmq就不会再向channel中发送消息
+
+
+8、发布确认原理
+    1、什么是发布确认？
+        生产者将消息发往队列后，队列将消息持久化了之后通知channel消息已经被持久化
+    2、如何设置
+        1、设置要求队列必须持久化
+        2、设置要求队列中的消息必须持久化
+        3、发布确认
+            1、开启发布确认
+                  channel.confirmSelect();
+    3、发布确认类型
+        1、单个发布确认
+            发布一个消息后只有它被确认发布，后续的消息才能继续发布
+             channel.waitForConfirmsOrDie(3000);这个方法只有在消息被确认的时候才返回 boolean，
+               如果在指定的时间内这个消息没有确认就会抛出异常
+             channel.waitForConfirms(3000)
+             没有被确认那么它将抛出异常；
+             缺点：
+                发布速度特别慢，会阻塞后续消息的发布
+
+    以上做到了之后才能非常肯定的确认消息不会丢失
+
+8、交换机的作用
+
+    生产者---(信道)-----> 交换机 ---(routingkey)---> 队列 ----(信道)----> 消费者
+
+    队列里的消息只能被消费一次，那么同一个消息如何被消费多次呢？
+    生产的消息从不会直接发送给队列，而是经过交换机，如果没有指定交换机的时候rabbitmq也会提供默认的交换机；
+    1、交换机
+        交换机的工作内容非常简单，一方面接收来自生产者的消息，另一方面将它们推入队列。交换机必须知道如何处理收到的消息
+    2、绑定(bindings)
+        其实是exchange和queue之间的桥梁，他告诉我们exchange和哪个队列进行了绑定关系
+        同routingkey进行绑定
+
+
+    1、fanout(扇出)发布订阅模式
+        消息发到交换机，交换机通过routingkey找到队列，生产者从队列获取消息，扇出类型的交换机，队列和交换机的routingkey
+        一样的队列都能收到消息
+    2、direct
+        消息只发送到它绑定的routingkey的队列中去
+    3、Topics
+        topic类型的交换机的消息的routingKey是不能随意乱写的，，它必须是一个单词列表，用点号分割开，
+        比如：myse.vmw,quick.orange.rabbit
+        * :可以代替一个单词
+        #：可以代替0个或多个单词
+
+
+死信队列
+    死信
+        就是队列种无法被消费的消息，字面意思可以这样理解；有死信就有了死信队列
+    应用场景
+        为了保证订单业务的消息数据不丢失，需要使用到rabbitmq的死信队列机制，当消息消费发生异常时，将消息投入死信队列中
+        还有比如说：用户在商城下单成功后点击支付后再指定时间内未支付会自动失效
+    死信的来源
+        1、消息TTL过期：消息过期时间
+        2、队列达到最大长度，无法再添加数据到mq中
+        3、消息被拒绝(basic.reject或者basic.nack)并且requeue=false
+    死信队列过程
+        消息生产者发送消息到普通交换机，普通交换发送到普通队列，普通队列里的消息由于以上原因变成死信，然后将死信发送给
+        死信交换机，死信交换机发送给死信队列，死信消费者消费死信
+
+         Map<String, Object> arguments = new HashMap<>();
+        //正常队列设置死信交换机
+        arguments.put("x-dead-letter-exchange","dead-exchange");
+        //设置死信routingkey
+        arguments.put("x-dead-letter-routing-key","lisi");
+        //设置正常队列中的消息的过期时间，超过的就发到死信队列
+        arguments.put("x-message-ttl",10000);
+        //设置该队列中可以存放的消息的最大数量，超过的就发到死信队列
+        arguments.put("x-max-length",2);
+        //为某个队列设置一个死信队列
+        AMQP.Queue.DeclareOk declareOk = channel.queueDeclare(QUEUE_NAME, false, false, false, arguments);
+
+
+        2、消息被拒变成死信
+              //拒绝此消息，并且不放回队列
+              channel.basicReject(message.getEnvelope().getDeliveryTag(),false);
+延迟队列
+    延迟队列其实就是死信队列中消息过期导致的这一种情况；
+    简单来说，延迟队列就是用来存放需要在指定时间被处理的元素的队列；
+
+    使用场景
+        1、订单在十分钟内未支付则自动取消
+        2、用户注册后，如果在十天内没有登录则进行短信提醒
+
+
+
+整合springboot
+    1、<dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-amqp</artifactId>
+      </dependency>

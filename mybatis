@@ -12,6 +12,9 @@ mybatis:持久层框架，用Java写的，他封装了jdbc操作的很多的细�
     2、创建实体类和dao接口
     3、创建mybatis主配置文件sqlMapperConfig.xml
     4、创建映射配置文件IRoleDao.xml
+springboot
+    5、配置文件中mybatis.mapper-locations=com/jshx/khty/**/mapping/*.xml
+    6、@MapperScan(value = "com.jshx.khty")
 
 环境搭建注意事项
     1、在idea创建目录的时候，目录和包是不一样的，
@@ -166,7 +169,7 @@ xml全局配置文件
                  * 方法一：implements TypeHandler
                  * 方法二：extends BaseTypeHandler
                  *
-                 * 此处的泛型写 要转化的java类型
+                 * 此处的泛型写的是要转化的java类型
                  */
 
                 public class BooleanAndIntConverter extends BaseTypeHandler<Boolean> {
@@ -515,7 +518,7 @@ SQL 映射文件
                 这里有一个简单（也很傻）的示例，它可以生成一个随机 ID（不建议实际使用，这里只是为了展示 MyBatis 处理
                 问题的灵活性和宽容度）：
                 <insert id="insertAuthor" parameterType	= "Autor">
-                   //在核心sql语句执行之前先运行一个查询sql查到id，将查到的id先赋值给javaBean的keyProperty指定的属性
+                   //在核心sql语句执行之前先运行一个查询sql查到id，将查到的id 先赋值给javaBean的keyProperty指定的属性
                   <selectKey keyProperty="id" resultType="int" order="BEFORE">
                     select CAST(RANDOM()*1000000 as INTEGER) a from SYSIBM.SYSDUMMY1
                   </selectKey>
@@ -908,7 +911,7 @@ Mybatis Plus
                 3、主键类型为其他的情况时，是在插入某条记录前，先生成主键，然后不需要显式设置主键值，插入数据时会自动
                     将之前生成好的主键插入表中，你只需要关心你要插入的其他列的数据值
         @TableLogic
-             没有@TableLogic注解调用deleteById/removeById,直接删除数据。
+             没有@TableLogic注解时调用deleteById/removeById,他会直接删除数据。
                 SQL:delete from table where id = 1
             有注解走Update方法
                 SQL：Update table set isDelete = 1 where id = 1
