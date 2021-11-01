@@ -94,7 +94,7 @@ springsecurity源码
                     1、先判断webSecurityConfigurers是不是空，如果不是空就开始使用之前创建的webSecurity对象来
                         创建springSecurityFilterChain过滤器链
                         webSecurity.build()
-                    2、webSecurity.build()-->doBuild-->getHttp
+                    2、webSecurity.build()-->doBuild--init-->getHttp
                         1、首先调用WebSecurity.beforeInit方法，这时空实现，子类可以扩展
                         2、接着调用WebSecurity.init方法，使用webSecurityConfigurer来初始化websecurity
                             首先拿到websecurity对象里的configurers属性里的所有WebSecurityConfigurer
@@ -246,6 +246,7 @@ springsecurity源码
                                 //这个providerManager才是真正起到认证功能的类，不同的配置器里创建的providerManager不一样，
                                 //所以他们的认证方式也不一样
                                 providerManager = postProcess(providerManager);
+                                //这个providerManager后来放到了httpSecurity里面了
                                 return providerManager;
                             }*/
                         authenticationManager = localConfigureAuthenticationBldr.build();
@@ -335,6 +336,25 @@ springsecurity源码
 
             mvcMatchers
 
+        一、requestMatchers()方法与authorizeRequests()区别
+                1.理解这两个方法的区别首先要知道springsecurity中，每声明一个adapter实例，就会产生一条过滤器链，一个请求过来要走哪个过滤器
+                链就是由requestMatchers()方法配置的url决定的。请求匹配上requestMatchers()配置的过滤器链后，在进一步的详细控制则是
+                authorizeRequests()决定的。
+                一句话概括就是requestMatchers()配置的是哪些url进行安全控制，authorizeRequests()配置的是如何进行控制
+        例如：
+                下面这个adapter只对/api1/order/**和/api1/address/**两个url生效。（即当请求匹配这两个url其中之一时，才会进行安全控制，
+                其他url可直接访问。）当一个请求的url匹配其中之一后，才会进入这个过滤器链。进入过滤器链后，匹配 /api1/order/**的请求全部需
+                要认证后才能访问，而匹配/api1/address/bejing/**的请求可以直接访问
+
+        二、ResourceServerConfigurerAdapter与WebSecurityConfigurerAdapt
+                1.ResourceServerConfigurerAdapter是用于当使用spring的oath2时， 配置哪些url要进行oauth2认证
+                2.WebSecurityConfigurerAdapter是用于当前这个项目本身的访问控制。
+                3.ResourceServerConfigurerAdapter与WebSecurityConfigurerAdapter都有一个相同的方法，配置url的访问安全控制策略：
+                        public void configure(HttpSecurity http) throws Exception {}
+                如果在这个方法中配置了相同的url访问控制，会发现ResourceServerConfigurerAdapter配置控制策略生效，
+                而WebSecurityConfigurerAdapter配置的策略不起作用。是因为ResourceServerConfigurerAdapter的order值小，优先级高。
+                所以ResourceServerConfigurerAdapter起作用。
+
         2、访问资源的控制方式
             1、6种内置的控制访问的方法
                 denyAll
@@ -378,6 +398,7 @@ springsecurity源码
                             .antMatchers("").permitAll()
                             //政策表达式匹配请求路径
                             .regexMatchers("").permitAll()
+                            //正则表达式匹配请求路径
                             .antMatchers("")
                             .hasAnyAuthority()
                             //其他所有的请求都需要被拦截判断是否已认证
@@ -386,9 +407,9 @@ springsecurity源码
                             .and()
                             //设置权限不通过拒绝处理器
                             .exceptionHandling().accessDeniedHandler(accessDeniedHandler)
-                    .and()
+                            .and()
                             //关掉的原因是每次请求都必须带有一个csrf的请求参数，没有的话就不让请求，所以关掉
-                    .csrf().disable();
+                            .csrf().disable();
                 }
 
 jwt简介

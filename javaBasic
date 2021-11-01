@@ -906,7 +906,7 @@ finally后面的代码，理论上如果try没有return，catch抛出异常或�
 
 
 
-        hashTble：集合底层也是哈希表数据结构，初始化容量11，默认扩容因子0.75，扩容是原容量*2 +1 ；是线程安全的，添加值的方法都
+        hashTable：集合底层也是哈希表数据结构，初始化容量11，默认扩容因子0.75，扩容是原容量*2 +1 ；是线程安全的，添加值的方法都
         带有synchronized关键字，效率较低，现在使用较少，有一个子类：Propertites（key和value必须是String，线程安全的，
         称为属性类）；
         hashTble的key和value不允许null值；

@@ -320,7 +320,7 @@ hystrix断路器
             多个微服务之间调用的时候，假设微服务A调用微服务B和微服务C，微服务B和微服务C又调用其他微服务，这就是所谓的“扇出”。
             如果扇出的链路上某个微服务的调用响应时间过长或者不可用，对微服务A的调用就会占用越来越多的系统资源，进而引起系统雪崩。
     2、hystrix是一个用于分布式系统的延迟和容错的开源库，在分布式系统里，许多依赖会不可避免的会调用失败，比如超时、异常等；
-        hystrix能够保证一个依赖在出现问题的情况下，不会发哦之整体服务的失败，避免级联故障，以提高分布式系统的弹性；
+        hystrix能够保证一个依赖在出现问题的情况下，不会发生整体服务的失败，避免级联故障，以提高分布式系统的弹性；
 
         “断路器”本身是一种开关装置，当某个服务单元发生故障后，通过断路器的断路监控(类似熔断保险丝)，向调用方返回一个
         符合预期的、可处理的备选响应(fallBack)，而不是长时间等待或者抛出调用方无法处理的异常，这样就保证了服务调用方的线程
@@ -358,6 +358,34 @@ hystrix断路器
                                     @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "3000")
                                 }
 
+                    注意：
+                        #设置feign客户端超时时间(OpenFeign默认支持ribbon)
+                        ribbon:
+                          #指的是建立连接后从服务器读取到可用资源所用的时间
+                          ReadTimeout: 20000
+                          #指的是建立连接所用的时间，适用于网络状况正常的情况下,两端连接所用的时间
+                          ConnectTimeout: 5000
+
+                        feign:
+                          hystrix:
+                            enabled: true		#开启服务降级等功能
+
+                        hystrix:
+                          command:
+                            default:  #default全局有效，service id指定应用有效
+                              execution:
+                                timeout:
+                                  enabled: true
+                                  # 如果enabled设置为false，则请求超时交给ribbon控制,此时@HystrixProperty(name = "execution.isolation
+                                  #.thread.timeoutInMilliseconds", value = "5000")不起效
+                                  # 如果enabled设置为true, 则hystrix也有对超时的控制权，@HystrixProperty(name = "execution.isolation
+                                  #.thread.timeoutInMilliseconds", value = "5000")起效果
+                                  # 且如果enabled设置为true，ribbon，hystrix都有对请求超时的控制权，且控制效果一样
+                                isolation:
+                                  thread:
+                                    timeoutInMilliseconds: 20000
+                        由于enabled设置为true，ribbon，hystrix都有对请求超时的控制权，所以建议ribbon.ReadTimeout和timeoutInMilliseconds是指的时间一致
+
                  3、主配置类上添加激活注解
                     @EnableCircuitBreaker
 
@@ -372,7 +400,7 @@ hystrix断路器
                           thread:
                             timeoutInMilliseconds: 3000 #执行降级方法 命令执行超时时间，默认1000ms
                       circuitBreaker:
-                        requestVolumeThreshold: 3 #十秒钟内失败3次 的话就直接调用降级方法
+                        requestVolumeThreshold: 3 #十秒钟内请求达到的总次数
                         sleepWindowInMilliSeconds: 5000 #默认5秒钟内和电器短路一样，5秒钟后会试探性的先关闭熔断机制，但是如果这时候再失败一次{之前是20次} 那么又会重新进行熔断）而是直接调用降级方法
                         errorThresholdPercentage: 60     # 失败率达到多少后跳闸
                     power: #映射到方法中使用@HystrixCommand注解属性为commandKey的属性值

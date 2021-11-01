@@ -14,7 +14,7 @@ hashMap的并发问题
 
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                        boolean evict) {
-            Node<K,V>[] tab; Node<K,V> p; int n, i;
+            Node<K,V>[] tab; Node<K,V> p; int n,
             if ((tab = table) == null || (n = tab.length) == 0)
                 //如果node节点数组为null，就初始化数组并给一个初始容量
                 n = (tab = resize()).length;

@@ -1,0 +1,77 @@
+核心概念
+    1、appid
+        应用的唯一标识
+        配置在类路径下的properties文件中
+    2、配置对应的环境
+        dev、fat(功能测试环境)、uat(用户接受测试环境)、pro
+        在每个环境所对应的服务器上配置server.properties
+        这个文件里填写对应的环境以及apollo地址
+        windows环境：C:\opt\settings\server.properties
+        linux环境：\opt\settings\server.properties
+    3、集群(cluster)
+        一个应用下不同实例的分组对不同的cluster，可以有不同的配置
+        比如kafka地址针对上海机房和成都机房可以有不同的配置
+        默认数据中心作为cluster
+        server.properties -> idc
+    4、命名空间(namespace)
+
+    5、配置项
+        支持properties、json、xml格式
+        定位方式
+            私有配置：env+app+cluster+namespace+item_key
+            公有配置：env+cluster+namespace+item_key
+    6、权限
+        系统管理员：拥有所有权限
+        创建者：可以代为创建项目，责任人是默认的项目管理员，一般创建者=责任人
+        项目管理员：可以创建namespace，集群，管理项目和namespace权限
+        编辑权限：只能编辑不能发布
+        发布权限：只能发布不能编辑
+        查看、普通用户：可以搜索查看所有项目配置，但是不能做相关操作
+
+应用客户端实现总结
+   推拉结合
+     保持一个长连接，配置实时推送
+     定期拉配置
+   配置缓存在内存
+     本地再缓存一份
+   应用程序
+     通过apollo客户端获取最新配置
+     订阅配置更新通知
+
+部署问题
+    1、portal只需要部署在生产环境，然后他可以连接各个环境的adminService来管理各个环境的配置
+    2、MetaServer\ConfigService\AdminService每个环境都需要独立部署一份+并且独立部署DB生产环境
+    3、portal在打包各个环境时，需要将各个环境的MetaServer域名也打包进去，这样在portal发布或修改各个环境的配置时可以通过MetaServer域名
+       将配置推送到指定环境的DB；
+       客户端需要连接配置中心时也需要指定metaServer的域名
+    4、创建数据库
+        ApolloPortalDB：初始化这个数据库，需要在数据库手动配置上支持的环境(DEV、FAT、UAT、PRO)，部门列表以及超级管理员的人员
+        ApolloConfigDB:需要在各个环境里配置上各个环境对应的eureka服务的地址，因为ConfigService\AdminService需要注册到eureka上，
+        而各个环境的eureka服务的地址不一样
+
+    注意：当不同环境的配置独立部署时，其实是可以根据配置中心的地址区分现在客户端获取的时什么环境的配置
+
+    5、apollo配置中心客户端配置得几种方式
+        apollo 启动得时候会先去META-INF 下面找app.properties 找app.id
+        一、apollo-env.properties方式
+            1、在resource 下新建apollo-env.properties，在主程序配置了@EnableApolloConfig注解启动项目会自动寻找这个配置文件
+                apollo-env.properties
+                    local.meta=http://config-service-url
+                    dev.meta=http://config-service-url
+                    fat.meta=http://config-service-url
+                    uat.meta=http://config-service-url
+                    lpt.meta=http://config-service-url
+                    pro.meta=http://config-service-url
+            Ⅰ、通过C:\opt\settings\server.properties 文件指定env=DEV 自动装配dev.meta 的url；
+
+               若在linux下 server.properties 的路径为/opt/settings/server.properties
+
+            Ⅱ、通过指定 jvm启动参数 -Denv=DEV 也可以达到上面效果。
+                服务端则只需要 Java -Denv=DEV -jar xxx.jar
+
+        二、通过应用程序启动配置项配置 applicaition.properties
+            apollo.meta=http://config-service-url
+
+        三、通过 java 配置文件系统指定配置
+            启动类添加 System.setProperties("apollo.meta","configService-url");
+            jvm 启动参数添加 -Dapollo.meta=http://config-service-url
