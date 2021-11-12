@@ -1,0 +1,95 @@
+nacos
+    特性
+        1、服务发现与配置管理
+        配置管理
+            单机模式时nacos默认使用嵌入式数据库实现配置数据的管理，若想使用外部mysql存储nacos数据，需要进行以下步骤
+            1、安装数据库，版本要求5.6.5+以上，8以下
+            2、初始化数据库，新建数据库naxos_config,数据库初始化文件，conf/nacos-mysql.sql
+            3、修改conf/application.properties文件，增加支持mysql数据源配置(目前仅支持mysql)
+            发布配置
+                两种方式
+                    1：post请求 http://127.0.0.1:8848/nacos/v1/ns/instance?serviceName=nacos.naming.serviceName&ip=20.18.7.10&port=8080
+                    2：在nacos配置管理页面进行配置发布
+            获取配置
+                1、get请求 http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.cfg.dataId&group=test
+                2、java代码获取配置
+                    String dataId = "nacos-simple-demo.yaml";
+                    String group = "DEFAULT_GROUP";
+                    String remoteAddress = "127.0.0.1:8848";
+                    Properties properties = new Properties();
+                    //如果没有指定namespace，默认是去public去查找配置数据
+                    properties.put("serverAddr",remoteAddress);
+                    ConfigService configService = NacosFactory.createConfigService(properties);
+                    String config = configService.getConfig(dataId, group, 5000);
+                    System.out.println(config);
+            配置模型
+                对于nacos配置管理，可以通过namespace+group+dataId唯一的定位到一个配置集
+                配置集(Data ID)
+                    在系统中，一个配置文件通常就是一个配置集，一个配置集可以包含了系统的各种配置信息，例如，一个配置集可能包含了数据源、线程池、日志级别等配置项
+                    。每个配置集都可以定义一个有意义的名称，就是配置集的ID，即Data ID
+                配置项
+                    配置集中包含的一个个配置内容就是配置项。
+                配置分组(Group)
+                    配置分组是对配置集进行分组，通过一个有意义的字符串来表示，不同的配置分组下可以有相同的配置集(Data ID)，当你在nacos上创建一个配置时，
+                    如果未填写配置分组的名称，则配置默认分组的名称采用DEFAULT-GROUP；
+                命名空间(namespace)
+                    命名空间可用于不同环境的配置隔离，例如可以隔离开发环境、测试环境、生产环境
+
+                namespace：代表不同的环境
+                group：代表某项目，如xx电商项目
+                dataId：每个项目下有若干个moudle，每个配置集就是每一个moudle的主配置文件
+
+                String dataId = "nacos-simple-demo.yaml";
+                String group = "DEFAULT_GROUP";
+                String remoteAddress = "127.0.0.1:8848";
+                Properties properties = new Properties();
+                properties.put("serverAddr",remoteAddress);
+                //使用命名空间请求数据
+                properties.put("namespace","546897f2-ea83-4f86-9649-5de3b449fd34");
+                ConfigService configService = NacosFactory.createConfigService(properties);
+                String config = configService.getConfig(dataId, group, 5000);
+                System.out.println(config);
+
+            nacos管理页面
+                历史版本：可以将当前 的编辑回滚到某次编辑
+                监听查询：可以获取到有哪些客户端正在监听某个环境下的某个group下的某个dataid配置
+
+            nacos登录管理
+                String pwd = new BCryptPasswordEncoder().encode("你想要的密码");
+                System.out.println(pwd);
+                在user表添加进去加密后的密码
+
+            自定义扩展dataId配置
+                可以让每个微服务对应多个dataId；
+                spring:
+                  application:
+                    name: service1
+                  cloud:
+                    nacos:
+                      config:
+                        server-addr: 127.0.0.1:8848
+                        #dataId的名称就是application.name + file-extension
+                        file-extension: yaml   优先级最高
+                        namespace: 546897f2-ea83-4f86-9649-5de3b449fd34
+                        group: TEST-GROUP
+
+                        #自定义扩展dataId方式一，优先级次之
+                        ext-config[0]:  这里0所处的地方的值越大，优先级越高
+                          data-id: exc1.properties
+                          group: EXC1_GROUP
+                          #添加支持动态刷新
+                          refresh: true
+
+                        #自定义扩展dataId方式二,这种方式只支持group为DEFAULT_GROUP；优先级最低
+                        shared-dataids: exc1.properties,exc2.properties
+                        #添加支持动态刷新
+                        refreshable-dataids: exc1.properties,exc2.properties
+
+            配置优先级
+                上面的例子中，dataId配置集的优先级从上到下越来越低
+
+
+        服务发现
+            数据模型
+
+            服务管理页面的基础功能
