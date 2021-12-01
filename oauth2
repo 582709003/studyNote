@@ -1,0 +1,52 @@
+1、oauth2.0
+    1、首先获取授权码
+        访问oauth/authorize时，会先校验你是否登录过授权系统，也就是普通的登录；登录之后就可以访问AuthorizationEndpoint这个类，其实就是普通的controller类，访问其中的oauth/authorize方法获取授权码
+    2、拿着授权码去获取token
+        首先会经过ClientCredentialsTokenEndpointFilter过滤器也会判断你是否认证,但是这次是认证你的客户端，就是客户端id，密钥、权限等；
+        验证通过才会让你去请求token，请求token时访问的是TokenEndpoint这个类，其实也是一个普通的controller类，访问其中的/oauth/token；还有一个就是资源服务器访问的检查token的controller，CheckTokenEndpoint
+
+   3、AuthorizationServerConfig决定了生成什么ClientDetailsService(configure(ClientDetailsServiceConfigurer clients))，
+      然后将生成的ClientDetailsService放入httpSecurity以及容器中，然后可以看业务情况通过AuthorizationServerEndpointsConfigurer
+      放入TokenEndpoint
+
+   4、AuthorizationServerSecurityConfigurer在init方法时会给httpSecurity里设置一个DaoAuthenticationConfigurer，这个类后面
+      生成AuthenticationManager,当获取token时会使用这个AuthenticationManager去认证客户端是否合法；
+
+2、单点登录
+    过程
+        （1） 首先访问taobao，由于没有登录或者token不合法被拦截，访问当前系统的登陆页面进行登录，进入 ssoserver 的 checktoken 方法，此时全局 token 为空，完成登录逻辑，生成 token 存入全局 token，并且将 token 存入数据库，再带着这个 token 返回 taobao。
+
+        （2）进入 taobao 拦截器，有 token，进行验证，进入 ssoserver 的 verify 方法，从数据库中查询，token 存在，则返回 true。
+    
+        （3）回到 taobao 拦截器，结果为 true，将 token 存入 Cookie（给 tmall 检测使用），并将 isLogin = true 存入本地 session，
+            返回 true，通过拦截器，进入页面，taobao 登录逻辑完成。
+    
+        （4）tmall 访问，被拦截，检测到没有 token，进入 ssoserver 的 checktoken 方法，此时全局 token 存在，则对比 Cookie，如果
+            Cookie 中没有相等的 token，则登录，如果有相等的 token，则表示其他子项目（taobao）已登录过，tmall 不需要再次登录，带着这个
+            token 返回 tmall。
+    
+        （5）进入 tmall 拦截器，有 token，进行验证，进入 ssoserver 的 verify 方法，从数据库中查询，token 存在，则返回 true。
+    
+        （6）回到 tmall 拦截器，结果为 true，将 token 存入 Cookie，并将 isLogin = true 存入本地 session，返回 true，通过拦截器，
+            进入页面，tmall 登录逻辑完成。
+    
+    源码
+        1、OAuth2ClientContextFilter
+            这个过滤器主要起到到发现当前客户端没有验证过，通过异常机制重定向到授权服务器获取授权码
+            当重定向到应用A的http://localhost:8082/login登录地址时，经过OAuth2ClientContextFilter过滤器后，再进入到了SpringSecurity过滤器链中的OAuth2ClientAuthenticationProcessingFilter过滤器中。在OAuth2ClientAuthenticationProcessingFilter中，会进行单点登录的认证，即向授权服务器发送登录验证请求，因为没有携带accessToken或code，这个时候就会抛出异常，然后被前面的OAuth2ClientContextFilter过滤器拦截到，然后在OAuth2ClientContextFilter异常处理逻辑中，实现认证授权地址的重定向http://localhost:8080/oauth/authorize。
+    
+        2、OAuth2ClientAuthenticationProcessingFilter
+            这个过滤器主要起到当授权服务器接收到请求授权码的请求时，将授权码返回并重定向到客户端，当重定向到客户端时会被这个拦截器拦截，
+            然后使用授权码以及clientId、secret去授权服务器去获取访问令牌，
+                //获取access_token
+                accessToken = accessTokenProvider.obtainAccessToken(resource, accessTokenRequest);
+            获取到令牌后并对此令牌进行校验，
+                //校验token
+                OAuth2Authentication result = tokenServices.loadAuthentication(accessToken.getValue());
+            校验完后并创建Authentication登录，完成登录
+    
+        3、此后其他客户端可以将此token放到请求头去登录，进而完成单点登录
+    
+    过程
+         首先访问taobao，由于没有登录或者token不合法被拦截，访问当前系统的登陆页面进行登录，输入账号密码点击登录，然后被当前系统的OAuth2ClientAuthenticationProcessingFilter拦截器拦截，这个拦截器在获取token的过程中抛异常，然后被OAuth2ClientContextFilter捕获，捕获之后就重定向到授权服务器去获取授权码http://localhost:8080/oauth/authorize；
+         获取授权码成功后就又重定向到客户端服务器，然后又被客户端的OAuth2ClientAuthenticationProcessingFilter拦截， 拦截后此过滤器又试图获取token，使用授权码以及clientId、secret去授权服务器去获取访问令牌，获取成功后就开始校验token的合法性，如果合法，那就设置为全局的authentication,登陆成功；访问另一个客户端时请求头带上这个Basic token，然后又会被OAuth2ClientAuthenticationProcessingFilter拦截，然后验证token合法性，合法那就登录。

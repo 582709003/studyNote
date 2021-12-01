@@ -90,5 +90,21 @@ DDD给我们的思路：
      一个单独的工厂通常生产整个聚合，传出一个根实体的引用，确保聚合的不变量都有。如果对象的内部聚合需要工厂，通常工厂方法的逻辑放在在聚合根上。
      这样对外部隐藏了聚合内聚的实现，同时赋予了根确保聚合完整的职责。如果聚合根不是子实体工厂的合适的家，那么继续创建一个单独的工厂。
 
+user interface：
+该层包含与其他系统/客户进行交互的接口与通信设施，在多数应用里，该层可能提供包括web services、rmi或rest等在内的一种或多种通信接口。**该层主要由facade、dto和assembler三类组件构成**，三类组件均是典型的j2ee模式。
+dto的作用最初主要是以粗粒度的数据结构减少网络通信并简化调用接口。在领域驱动设计中，采用dto模型，可以起到隐藏领域细节，帮助实现独立封闭的领域模型的作用。
+dto与领域对象之间的相互转换工作多由assembler承担，也有一些系统使用反射机制自动实现dto与领域对象之间的相互转换，如apache common beanutils。
+facade的用意在于为远程客户端提供粗粒度的调用接口。**facade本身不处理任何的业务逻辑，它的主要工作就是将一个用户请求委派给一个或多个service进行处理，同时借助assembler将service传入或传出的领域对象转化为dto进行传输。**
+
+application：
+application层中主要组件就是service。
+
+domain：
+domain层是整个系统的核心层，该层维护一个使用面向对象技术实现的领域模型，几乎全部的业务逻辑会在该层实现。domain层包含entity（实体）、valueobject(值对象)、domain event（领域事件）和repository（仓储）等多种重要的领域组件。
+
+infrastructure：
+infrastructure（基础设施层）为interfaces、application和domain三层提供支撑。所有与具体平台、框架相关的实现会在infrastructure中提供，避免三层特别是domain层掺杂进这些实现，从而“污染”领域模型。infrastructure中最常见的一类设施是对象持久化的具体实现。一般会有conveter组件用来将领域模型实体转换成DO（写入数据库的对象）以及仓库的实现等等
+
+
 
 CQRS

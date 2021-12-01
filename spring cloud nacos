@@ -38,7 +38,7 @@ nacos
                 namespace：代表不同的环境
                 group：代表某项目，如xx电商项目
                 dataId：每个项目下有若干个moudle，每个配置集就是每一个moudle的主配置文件
-
+    
                 String dataId = "nacos-simple-demo.yaml";
                 String group = "DEFAULT_GROUP";
                 String remoteAddress = "127.0.0.1:8848";
@@ -49,16 +49,16 @@ nacos
                 ConfigService configService = NacosFactory.createConfigService(properties);
                 String config = configService.getConfig(dataId, group, 5000);
                 System.out.println(config);
-
+    
             nacos管理页面
                 历史版本：可以将当前 的编辑回滚到某次编辑
                 监听查询：可以获取到有哪些客户端正在监听某个环境下的某个group下的某个dataid配置
-
+    
             nacos登录管理
                 String pwd = new BCryptPasswordEncoder().encode("你想要的密码");
                 System.out.println(pwd);
                 在user表添加进去加密后的密码
-
+    
             自定义扩展dataId配置
                 可以让每个微服务对应多个dataId；
                 spring:
@@ -72,24 +72,23 @@ nacos
                         file-extension: yaml   优先级最高
                         namespace: 546897f2-ea83-4f86-9649-5de3b449fd34
                         group: TEST-GROUP
-
+    
                         #自定义扩展dataId方式一，优先级次之
                         ext-config[0]:  这里0所处的地方的值越大，优先级越高
                           data-id: exc1.properties
                           group: EXC1_GROUP
                           #添加支持动态刷新
                           refresh: true
-
+    
                         #自定义扩展dataId方式二,这种方式只支持group为DEFAULT_GROUP；优先级最低
                         shared-dataids: exc1.properties,exc2.properties
                         #添加支持动态刷新
                         refreshable-dataids: exc1.properties,exc2.properties
-
+    
             配置优先级
                 上面的例子中，dataId配置集的优先级从上到下越来越低
 
 
         服务发现
             数据模型
-
             服务管理页面的基础功能

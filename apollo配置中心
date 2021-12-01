@@ -50,7 +50,7 @@
         而各个环境的eureka服务的地址不一样
 
     注意：当不同环境的配置独立部署时，其实是可以根据配置中心的地址区分现在客户端获取的时什么环境的配置
-
+    
     5、apollo配置中心客户端配置得几种方式
         apollo 启动得时候会先去META-INF 下面找app.properties 找app.id
         一、apollo-env.properties方式
@@ -63,15 +63,15 @@
                     lpt.meta=http://config-service-url
                     pro.meta=http://config-service-url
             Ⅰ、通过C:\opt\settings\server.properties 文件指定env=DEV 自动装配dev.meta 的url；
-
+    
                若在linux下 server.properties 的路径为/opt/settings/server.properties
-
+    
             Ⅱ、通过指定 jvm启动参数 -Denv=DEV 也可以达到上面效果。
                 服务端则只需要 Java -Denv=DEV -jar xxx.jar
-
+    
         二、通过应用程序启动配置项配置 applicaition.properties
             apollo.meta=http://config-service-url
-
+    
         三、通过 java 配置文件系统指定配置
             启动类添加 System.setProperties("apollo.meta","configService-url");
             jvm 启动参数添加 -Dapollo.meta=http://config-service-url
