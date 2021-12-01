@@ -580,6 +580,7 @@ gateWay
     6、gateway配置动态路由
         spring:
             #网关路由配置
+
             cloud:
                 gateway:
                     routes:
@@ -591,6 +592,8 @@ gateWay
                             以后就可以不用暴漏这个地址，取而代之的是
                             http://127.0.0.1:9527/pay/payment/find/1，这样就会通过网关访问目标资源
 
+                            -RemoteAddr=192.168.10.1/0 #这个表示如果你所请求的ip符合这个，那就会满足这个
+
                       - id: payment_routh2 #路由的id，没有固定规则，但要求唯一，建议配合服务名
                         uri: lb://cloud-paymment-service #利用服务名进行路由,负载均衡
                         predicates:
@@ -599,6 +602,9 @@ gateWay
                     discovery:
                         locator:
                             enabled: true #开启从注册中心获取服务名并创建动态路由，利用服务名进行路由
+
+                     请求时：http://127.0.0.1:8080/cloud-paymment-service/pay/1
+                           这样请求就会自动路由到cloud-paymment-service微服务上
 
     7、常用predicate断言
          predicates:
@@ -1062,34 +1068,34 @@ spring Cloud stream
                 }
 
             5、controller
-                    @RestController
-                    public class TestController {
+                @RestController
+                public class TestController {
 
-                        @Autowired
-                        private MyProcessor myProcessor;
+                    @Autowired
+                    private MyProcessor myProcessor;
 
-                        @GetMapping(value = "sendLogMessage")
-                        public void sendLogMessage(String message){
-                            Person person = new Person();
-                            person.setName(message);
-                            Message<Person> stringMessage = org.springframework.messaging.support.MessageBuilder.withPayload(person).build();
-                            myProcessor.outPut().send(stringMessage);
+                    @GetMapping(value = "sendLogMessage")
+                    public void sendLogMessage(String message){
+                        Person person = new Person();
+                        person.setName(message);
+                        Message<Person> stringMessage = org.springframework.messaging.support.MessageBuilder.withPayload(person).build();
+                        myProcessor.outPut().send(stringMessage);
+                    }
+
+                    public static class Person {
+                        private String name;
+                        public String getName() {
+                            return name;
                         }
-
-                        public static class Person {
-                            private String name;
-                            public String getName() {
-                                return name;
-                            }
-                            public void setName(String name) {
-                                this.name = name;
-                            }
-                            @Override
-                            public String toString() {
-                                return this.name;
-                            }
+                        public void setName(String name) {
+                            this.name = name;
+                        }
+                        @Override
+                        public String toString() {
+                            return this.name;
                         }
                     }
+                }
 
             6、主配置类添加
                 //@EnableBinding 注解用来指定一个或多个定义了 @Input 或 @Output 注解的接口，以此实现对消息通道（Channel）的绑定
@@ -1112,7 +1118,7 @@ spring Cloud stream
                 output: #这个名字是一个通道的名称
                     binder: myRabbit #设置要帮绑定的绑定器
                     destination: xxputExchange #表示要使用的exchange名称的定义
-                    #具体分组 对应 MQ 是 队列名称 并且持久化队列
+                    #具体分组 对应 MQ中的队列名称 并且持久化队列
                     group: xxputQuean #分组，用来解决重复消费的问题，订阅同一个主题的微服务组名要一样才能解决重复消费
                     content-type: application/json #设置消息类型，本次为json
 

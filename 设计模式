@@ -800,7 +800,6 @@
     public class DoFishTest {
     	public static void main(String[] args) {
     		// 向上转型(非静态编译看左，运行看右。静态的都看左)
-    			DoFishTemplate coldFish = new ColdFish();
     		// 若子类重写了父类的方法则调用的是子类自己的逻辑，若没有重写则调用父类的逻辑
     		// 编译错误，因为父类无此方法。
     		// coldFish.setPreparation(false);
